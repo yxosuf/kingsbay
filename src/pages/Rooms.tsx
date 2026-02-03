@@ -41,7 +41,7 @@ interface Room {
   amenities: string[] | null;
 }
 
-const roomTypes = ['standard', 'deluxe', 'suite', 'family', 'penthouse'];
+const roomTypes = ['standard', 'double', 'deluxe', 'suite', 'family', 'penthouse', 'apartment'];
 const statusColors: Record<RoomStatus, string> = {
   available: 'bg-success/20 text-success border-success',
   occupied: 'bg-destructive/20 text-destructive border-destructive',
