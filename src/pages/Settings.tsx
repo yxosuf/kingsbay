@@ -29,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, UserPlus, Trash2, Shield, Hotel } from 'lucide-react';
+import { Plus, UserPlus, Trash2, Shield, Hotel, Users, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -40,11 +40,24 @@ interface StaffMember {
   profiles: { full_name: string | null; email: string | null } | null;
 }
 
+interface PendingUser {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  created_at: string;
+}
+
 export default function Settings() {
+  // NOTE: isAdmin is for UI visibility only. Security is enforced by RLS policies on the database.
   const { isAdmin, user } = useAuth();
   const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingPending, setLoadingPending] = useState(true);
   const [showAddStaff, setShowAddStaff] = useState(false);
+  const [showAssignRole, setShowAssignRole] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<PendingUser | null>(null);
+  const [assignRole, setAssignRole] = useState<'admin' | 'manager' | 'front_desk'>('front_desk');
   const [saving, setSaving] = useState(false);
 
   // Add staff form
@@ -53,6 +66,7 @@ export default function Settings() {
 
   useEffect(() => {
     fetchStaff();
+    fetchPendingUsers();
   }, []);
 
   const fetchStaff = async () => {
@@ -83,6 +97,68 @@ export default function Settings() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchPendingUsers = async () => {
+    try {
+      // Fetch all profiles
+      const { data: allProfiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, created_at')
+        .order('created_at', { ascending: false });
+
+      if (profilesError) throw profilesError;
+
+      // Fetch all user_ids that have roles
+      const { data: roles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id');
+
+      if (rolesError) throw rolesError;
+
+      const userIdsWithRoles = new Set(roles?.map(r => r.user_id) || []);
+      
+      // Filter out profiles that already have roles
+      const pending = (allProfiles || []).filter(p => !userIdsWithRoles.has(p.id));
+      
+      setPendingUsers(pending);
+    } catch (error) {
+      console.error('Error fetching pending users:', error);
+    } finally {
+      setLoadingPending(false);
+    }
+  };
+
+  const handleAssignRole = async () => {
+    if (!selectedUser) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('user_roles').insert({
+        user_id: selectedUser.id,
+        role: assignRole,
+      });
+
+      if (error) throw error;
+
+      toast.success(`Role assigned to ${selectedUser.full_name || selectedUser.email}`);
+      setShowAssignRole(false);
+      setSelectedUser(null);
+      setAssignRole('front_desk');
+      fetchStaff();
+      fetchPendingUsers();
+    } catch (error: any) {
+      console.error('Error assigning role:', error);
+      toast.error('Failed to assign role. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openAssignRoleDialog = (pendingUser: PendingUser) => {
+    setSelectedUser(pendingUser);
+    setAssignRole('front_desk');
+    setShowAssignRole(true);
   };
 
   const handleAddStaff = async () => {
@@ -192,11 +268,84 @@ export default function Settings() {
   return (
     <DashboardLayout title="Settings">
       <div className="space-y-6">
-        <Tabs defaultValue="staff">
+        <Tabs defaultValue="users">
           <TabsList>
+            <TabsTrigger value="users">
+              <Users className="h-4 w-4 mr-2" />
+              Users
+              {pendingUsers.length > 0 && (
+                <Badge variant="destructive" className="ml-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                  {pendingUsers.length}
+                </Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="staff">Staff Management</TabsTrigger>
             <TabsTrigger value="hotel">Hotel Settings</TabsTrigger>
           </TabsList>
+
+          {/* Users Tab - Pending Role Assignment */}
+          <TabsContent value="users" className="mt-6 space-y-6">
+            <Card>
+              <CardHeader>
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="h-5 w-5" />
+                    Pending Users
+                  </CardTitle>
+                  <CardDescription>
+                    Users who have signed up but haven't been assigned a role yet
+                  </CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loadingPending ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  </div>
+                ) : pendingUsers.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No pending users. All signed-up users have roles assigned.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Signed Up</TableHead>
+                        {isAdmin && <TableHead className="text-right">Actions</TableHead>}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pendingUsers.map((pendingUser) => (
+                        <TableRow key={pendingUser.id}>
+                          <TableCell className="font-medium">
+                            {pendingUser.full_name || 'No name provided'}
+                          </TableCell>
+                          <TableCell>{pendingUser.email}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {new Date(pendingUser.created_at).toLocaleDateString()}
+                          </TableCell>
+                          {isAdmin && (
+                            <TableCell className="text-right">
+                              <Button
+                                size="sm"
+                                onClick={() => openAssignRoleDialog(pendingUser)}
+                              >
+                                <Shield className="h-4 w-4 mr-2" />
+                                Assign Role
+                              </Button>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="staff" className="mt-6 space-y-6">
             {/* Staff Management */}
@@ -419,6 +568,54 @@ export default function Settings() {
             </Button>
             <Button onClick={handleAddStaff} disabled={saving}>
               {saving ? 'Adding...' : 'Add Staff'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Role Dialog */}
+      <Dialog open={showAssignRole} onOpenChange={(open) => {
+        setShowAssignRole(open);
+        if (!open) {
+          setSelectedUser(null);
+          setAssignRole('front_desk');
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign Role</DialogTitle>
+            <DialogDescription>
+              Assign a role to {selectedUser?.full_name || selectedUser?.email || 'this user'} to grant them access to the system.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>User</Label>
+              <Input
+                value={`${selectedUser?.full_name || 'No name'} (${selectedUser?.email || 'No email'})`}
+                disabled
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <Select value={assignRole} onValueChange={(v) => setAssignRole(v as 'admin' | 'manager' | 'front_desk')}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin - Full access</SelectItem>
+                  <SelectItem value="manager">Manager - Manage bookings & reports</SelectItem>
+                  <SelectItem value="front_desk">Front Desk - Basic operations</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAssignRole(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAssignRole} disabled={saving}>
+              {saving ? 'Assigning...' : 'Assign Role'}
             </Button>
           </DialogFooter>
         </DialogContent>

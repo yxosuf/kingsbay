@@ -62,6 +62,7 @@ const categoryLabels: Record<ServiceCategory, string> = {
 };
 
 export default function Services() {
+  // NOTE: isAdmin is for UI visibility only. Security is enforced by RLS policies on the database.
   const { isAdmin } = useAuth();
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
