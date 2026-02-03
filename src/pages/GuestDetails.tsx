@@ -35,6 +35,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
 
 interface GuestDetails {
   id: string;
@@ -111,8 +112,8 @@ export default function GuestDetails() {
       if (error) throw error;
       setGuest(data);
     } catch (error) {
-      console.error('Error fetching guest:', error);
-      toast.error('Failed to load guest details');
+      logError('Error fetching guest', error);
+      toast.error(getSafeErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -206,8 +207,8 @@ export default function GuestDetails() {
       setQuantity('1');
       fetchGuestServices();
     } catch (error: any) {
-      console.error('Error adding service:', error);
-      toast.error(error.message || 'Failed to add service');
+      logError('Error adding service', error);
+      toast.error(getSafeErrorMessage(error));
     } finally {
       setSaving(false);
     }

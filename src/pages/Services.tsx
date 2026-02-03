@@ -35,6 +35,7 @@ import { Plus, Edit, Trash2, UtensilsCrossed, Car, Dumbbell, Star } from 'lucide
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
 
 type ServiceCategory = 'room_service' | 'transport' | 'facilities' | 'special_request';
 
@@ -152,8 +153,8 @@ export default function Services() {
       resetForm();
       fetchServices();
     } catch (error: any) {
-      console.error('Error saving service:', error);
-      toast.error(error.message || 'Failed to save service');
+      logError('Error saving service', error);
+      toast.error(getSafeErrorMessage(error));
     } finally {
       setSaving(false);
     }
@@ -168,7 +169,8 @@ export default function Services() {
       toast.success('Service deleted');
       fetchServices();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to delete service');
+      logError('Error deleting service', error);
+      toast.error(getSafeErrorMessage(error));
     }
   };
 

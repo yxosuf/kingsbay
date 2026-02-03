@@ -25,6 +25,7 @@ import { Plus, Edit, Trash2, BedDouble, Wrench } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
 
 type RoomStatus = 'available' | 'occupied' | 'reserved' | 'maintenance';
 
@@ -141,8 +142,8 @@ export default function Rooms() {
       resetForm();
       fetchRooms();
     } catch (error: any) {
-      console.error('Error saving room:', error);
-      toast.error(error.message || 'Failed to save room');
+      logError('Error saving room', error);
+      toast.error(getSafeErrorMessage(error));
     } finally {
       setSaving(false);
     }
@@ -157,7 +158,8 @@ export default function Rooms() {
       toast.success('Room deleted');
       fetchRooms();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to delete room');
+      logError('Error deleting room', error);
+      toast.error(getSafeErrorMessage(error));
     }
   };
 

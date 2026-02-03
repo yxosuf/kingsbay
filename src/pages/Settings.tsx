@@ -33,6 +33,7 @@ import { Plus, UserPlus, Trash2, Shield, Hotel, Users, Clock } from 'lucide-reac
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
 
 interface StaffMember {
   user_id: string;
@@ -148,8 +149,8 @@ export default function Settings() {
       fetchStaff();
       fetchPendingUsers();
     } catch (error: any) {
-      console.error('Error assigning role:', error);
-      toast.error('Failed to assign role. Please try again.');
+      logError('Error assigning role', error);
+      toast.error(getSafeErrorMessage(error));
     } finally {
       setSaving(false);
     }
@@ -202,8 +203,8 @@ export default function Settings() {
       setNewRole('front_desk');
       fetchStaff();
     } catch (error: any) {
-      console.error('Error adding staff:', error);
-      toast.error(error.message || 'Failed to add staff member');
+      logError('Error adding staff', error);
+      toast.error(getSafeErrorMessage(error));
     } finally {
       setSaving(false);
     }
@@ -227,7 +228,8 @@ export default function Settings() {
       toast.success('Staff member removed');
       fetchStaff();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to remove staff member');
+      logError('Error removing staff', error);
+      toast.error(getSafeErrorMessage(error));
     }
   };
 
@@ -247,7 +249,8 @@ export default function Settings() {
       toast.success('Role updated');
       fetchStaff();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to update role');
+      logError('Error updating role', error);
+      toast.error(getSafeErrorMessage(error));
     }
   };
 
