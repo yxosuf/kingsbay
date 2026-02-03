@@ -51,6 +51,8 @@ export function AppSidebar() {
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
+    // For /bookings, only match exact path (not /bookings/new or /bookings/:id)
+    if (path === '/bookings') return location.pathname === '/bookings';
     return location.pathname.startsWith(path);
   };
 
