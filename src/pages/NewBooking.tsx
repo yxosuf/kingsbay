@@ -22,6 +22,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
+import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
 
 const bookingSchema = z.object({
   guestName: z.string().trim().min(2, 'Guest name is required'),
@@ -181,8 +182,8 @@ export default function NewBooking() {
       toast.success('Booking created successfully!');
       navigate('/bookings');
     } catch (error: any) {
-      console.error('Error creating booking:', error);
-      toast.error(error.message || 'Failed to create booking');
+      logError('Error creating booking', error);
+      toast.error(getSafeErrorMessage(error));
     } finally {
       setLoading(false);
     }
