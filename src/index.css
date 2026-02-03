@@ -6,13 +6,13 @@
 
 @layer base {
   :root {
-    /* Primary: Warm Brown (Hospitality theme) */
-    --primary: 25 45% 30%;
+    /* Primary: Deep Brown (Hospitality theme) */
+    --primary: 25 100% 8%;
     --primary-foreground: 40 30% 96%;
 
     /* Background: Warm Cream/Beige */
     --background: 40 30% 96%;
-    --foreground: 25 30% 15%;
+    --foreground: 25 100% 8%;
 
     /* Card: Soft White */
     --card: 40 25% 98%;
@@ -24,7 +24,7 @@
 
     /* Secondary: Light Beige */
     --secondary: 35 25% 90%;
-    --secondary-foreground: 25 45% 25%;
+    --secondary-foreground: 25 100% 8%;
 
     /* Muted: Soft Gray-Beige */
     --muted: 35 15% 88%;
@@ -32,7 +32,7 @@
 
     /* Accent: Warm Gold */
     --accent: 35 60% 50%;
-    --accent-foreground: 25 30% 15%;
+    --accent-foreground: 25 100% 8%;
 
     /* Destructive: Soft Red */
     --destructive: 0 65% 50%;
@@ -53,7 +53,7 @@
     /* Border & Input */
     --border: 35 20% 82%;
     --input: 35 20% 82%;
-    --ring: 25 45% 30%;
+    --ring: 25 100% 8%;
 
     --radius: 0.625rem;
 
@@ -61,14 +61,14 @@
     --sidebar-background: 25 100% 8%;
     --sidebar-foreground: 40 20% 85%;
     --sidebar-primary: 35 60% 55%;
-    --sidebar-primary-foreground: 25 30% 10%;
-    --sidebar-accent: 25 30% 25%;
+    --sidebar-primary-foreground: 25 100% 8%;
+    --sidebar-accent: 25 100% 12%;
     --sidebar-accent-foreground: 40 20% 90%;
-    --sidebar-border: 25 25% 25%;
+    --sidebar-border: 25 100% 12%;
     --sidebar-ring: 35 60% 55%;
 
     /* Chart Colors */
-    --chart-1: 25 45% 30%;
+    --chart-1: 25 100% 8%;
     --chart-2: 35 60% 50%;
     --chart-3: 145 60% 35%;
     --chart-4: 210 60% 50%;
