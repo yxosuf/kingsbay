@@ -49,6 +49,7 @@ const statusColors: Record<RoomStatus, string> = {
 };
 
 export default function Rooms() {
+  // NOTE: isAdmin is for UI visibility only. Security is enforced by RLS policies on the database.
   const { isAdmin } = useAuth();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);

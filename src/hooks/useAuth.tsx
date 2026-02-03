@@ -4,6 +4,19 @@ import { supabase } from '@/integrations/supabase/client';
 
 type StaffRole = 'admin' | 'front_desk' | 'manager';
 
+/**
+ * Auth context interface providing user authentication and role information.
+ * 
+ * SECURITY NOTE: The role-based boolean properties (isAdmin, isManager, isFrontDesk)
+ * are for UI/UX purposes ONLY - they control what the user sees, not what they can do.
+ * 
+ * All actual security enforcement is handled server-side via Row Level Security (RLS)
+ * policies in the database. These client-side checks can be bypassed by modifying
+ * browser state, so they should NEVER be relied upon for security decisions.
+ * 
+ * The backend RLS policies use SECURITY DEFINER functions (is_admin(), is_manager(), etc.)
+ * to properly validate user roles before allowing database operations.
+ */
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -13,8 +26,11 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  /** @description UI-only flag - actual admin permissions enforced via RLS policies */
   isAdmin: boolean;
+  /** @description UI-only flag - actual manager permissions enforced via RLS policies */
   isManager: boolean;
+  /** @description UI-only flag - actual front desk permissions enforced via RLS policies */
   isFrontDesk: boolean;
 }
 
@@ -127,6 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signIn,
     signUp,
     signOut,
+    // NOTE: These role flags are for UI/UX only. Security is enforced by RLS policies.
     isAdmin: role === 'admin',
     isManager: role === 'manager',
     isFrontDesk: role === 'front_desk',
