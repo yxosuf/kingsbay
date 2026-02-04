@@ -80,10 +80,16 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       {/* Header with Logo */}
-      <SidebarHeader className="border-b border-sidebar-border p-4">
+      <SidebarHeader className={cn(
+        "border-b border-sidebar-border",
+        collapsed && !isMobile ? "p-2 flex justify-center" : "p-4"
+      )}>
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground">
-            <Crown className="h-5 w-5" />
+          <div className={cn(
+            "shrink-0 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground flex",
+            collapsed && !isMobile ? "h-8 w-8" : "h-10 w-10"
+          )}>
+            <Crown className={cn(collapsed && !isMobile ? "h-4 w-4" : "h-5 w-5")} />
           </div>
           {(!collapsed || isMobile) && (
             <div className="flex flex-col min-w-0">
