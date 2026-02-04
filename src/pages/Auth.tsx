@@ -99,36 +99,36 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md space-y-6">
+      <div className="w-full max-w-md space-y-4 sm:space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-primary-foreground mb-4">
-            <Hotel className="w-8 h-8" />
+          <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-primary text-primary-foreground mb-3 sm:mb-4">
+            <Hotel className="w-7 h-7 sm:w-8 sm:h-8" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground">King's Bay Villa</h1>
-          <p className="text-muted-foreground">Hotel Management System</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">King's Bay Villa</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Hotel Management System</p>
         </div>
 
         {/* Auth Card */}
         <Card className="border-border/50 shadow-lg">
           <Tabs defaultValue="login" className="w-full">
-            <CardHeader className="pb-4">
+            <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                <TabsTrigger value="login" className="text-sm">Sign In</TabsTrigger>
+                <TabsTrigger value="signup" className="text-sm">Sign Up</TabsTrigger>
               </TabsList>
             </CardHeader>
 
-            <CardContent className="pt-2">
+            <CardContent className="pt-2 px-4 sm:px-6 pb-4 sm:pb-6">
               {/* Login Tab */}
               <TabsContent value="login" className="space-y-4 mt-0">
-                <CardTitle className="text-xl">Welcome back</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-lg sm:text-xl">Welcome back</CardTitle>
+                <CardDescription className="text-sm">
                   Sign in to your staff account to continue
                 </CardDescription>
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
+                    <Label htmlFor="login-email" className="text-sm">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -143,7 +143,7 @@ export default function Auth() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="login-password">Password</Label>
+                    <Label htmlFor="login-password" className="text-sm">Password</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -165,13 +165,13 @@ export default function Auth() {
 
               {/* Signup Tab */}
               <TabsContent value="signup" className="space-y-4 mt-0">
-                <CardTitle className="text-xl">Create an account</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-lg sm:text-xl">Create an account</CardTitle>
+                <CardDescription className="text-sm">
                   Register as a new staff member
                 </CardDescription>
                 <form onSubmit={handleSignup} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name">Full Name</Label>
+                    <Label htmlFor="signup-name" className="text-sm">Full Name</Label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -186,7 +186,7 @@ export default function Auth() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
+                    <Label htmlFor="signup-email" className="text-sm">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -201,7 +201,7 @@ export default function Auth() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
+                    <Label htmlFor="signup-password" className="text-sm">Password</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input

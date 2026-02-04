@@ -60,9 +60,9 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <AppSidebar />
-        <SidebarInset className="flex-1">
+        <SidebarInset className="flex-1 flex flex-col min-w-0">
           <AppHeader title={title} />
-          <main className="flex-1 p-4 lg:p-6 bg-background">
+          <main className="flex-1 p-3 sm:p-4 lg:p-6 bg-background overflow-x-hidden">
             {children}
           </main>
         </SidebarInset>

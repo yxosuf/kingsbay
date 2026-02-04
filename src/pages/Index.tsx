@@ -232,23 +232,23 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout title="Dashboard">
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {statCards.map((stat) => (
             <Card 
               key={stat.title} 
               className="cursor-pointer hover:shadow-md transition-shadow"
               onClick={stat.onClick}
             >
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">{stat.title}</p>
-                    <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div className="space-y-1 min-w-0">
+                    <p className="text-xs sm:text-sm text-muted-foreground truncate">{stat.title}</p>
+                    <p className="text-lg sm:text-2xl font-bold text-foreground truncate">{stat.value}</p>
                   </div>
-                  <div className={`p-3 rounded-xl ${stat.bgColor}`}>
-                    <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                  <div className={`p-2 sm:p-3 rounded-xl ${stat.bgColor} self-start sm:self-auto shrink-0`}>
+                    <stat.icon className={`h-5 w-5 sm:h-6 sm:w-6 ${stat.color}`} />
                   </div>
                 </div>
               </CardContent>
@@ -257,20 +257,20 @@ export default function Dashboard() {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Recent Bookings Table */}
           <Card className="lg:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Recent Bookings</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between pb-3 sm:pb-6">
+              <CardTitle className="text-base sm:text-lg">Recent Bookings</CardTitle>
               <Button 
                 variant="link" 
-                className="text-primary"
+                className="text-primary text-sm px-0"
                 onClick={() => navigate('/bookings')}
               >
                 View All
               </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-3 sm:px-6">
               {loading ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -280,35 +280,34 @@ export default function Dashboard() {
                   No bookings yet. Create your first booking!
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Guest</TableHead>
-                      <TableHead>Room</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                <div className="space-y-3 sm:space-y-0">
+                  {/* Mobile view */}
+                  <div className="sm:hidden space-y-3">
                     {recentBookings.map((booking) => (
-                      <TableRow key={booking.id}>
-                        <TableCell className="font-medium">{booking.guest_name}</TableCell>
-                        <TableCell>Room {booking.room_number}</TableCell>
-                        <TableCell>{getStatusBadge(booking.status)}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
+                      <Card key={booking.id} className="border-border/50">
+                        <CardContent className="p-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium truncate">{booking.guest_name}</p>
+                              <p className="text-sm text-muted-foreground">Room {booking.room_number}</p>
+                            </div>
+                            {getStatusBadge(booking.status)}
+                          </div>
+                          <div className="flex items-center gap-2 mt-3 pt-2 border-t">
                             <Button 
-                              variant="ghost" 
-                              size="icon"
+                              variant="outline" 
+                              size="sm"
+                              className="flex-1"
                               onClick={() => navigate(`/bookings/${booking.id}`)}
                             >
-                              <Eye className="h-4 w-4" />
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
                             </Button>
                             {(booking.status === 'pending' || booking.status === 'confirmed') && (
                               <Button 
-                                variant="ghost" 
-                                size="icon"
-                                className="text-success"
+                                variant="outline" 
+                                size="sm"
+                                className="text-success border-success"
                                 onClick={() => handleCheckIn(booking.id)}
                               >
                                 <LogIn className="h-4 w-4" />
@@ -316,55 +315,107 @@ export default function Dashboard() {
                             )}
                             {booking.status === 'checked_in' && (
                               <Button 
-                                variant="ghost" 
-                                size="icon"
-                                className="text-warning"
+                                variant="outline" 
+                                size="sm"
+                                className="text-warning border-warning"
                                 onClick={() => handleCheckOut(booking.id)}
                               >
                                 <LogOut className="h-4 w-4" />
                               </Button>
                             )}
                           </div>
-                        </TableCell>
-                      </TableRow>
+                        </CardContent>
+                      </Card>
                     ))}
-                  </TableBody>
-                </Table>
+                  </div>
+                  
+                  {/* Desktop view */}
+                  <Table className="hidden sm:table">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Guest</TableHead>
+                        <TableHead>Room</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {recentBookings.map((booking) => (
+                        <TableRow key={booking.id}>
+                          <TableCell className="font-medium">{booking.guest_name}</TableCell>
+                          <TableCell>Room {booking.room_number}</TableCell>
+                          <TableCell>{getStatusBadge(booking.status)}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => navigate(`/bookings/${booking.id}`)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              {(booking.status === 'pending' || booking.status === 'confirmed') && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  className="text-success"
+                                  onClick={() => handleCheckIn(booking.id)}
+                                >
+                                  <LogIn className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {booking.status === 'checked_in' && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  className="text-warning"
+                                  onClick={() => handleCheckOut(booking.id)}
+                                >
+                                  <LogOut className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </CardContent>
           </Card>
 
           {/* Side Widgets */}
-          <div className="space-y-4">
+          <div className="grid grid-cols-2 lg:grid-cols-1 gap-3 sm:gap-4">
             {/* Weather Widget */}
             <Card className="bg-primary text-primary-foreground">
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm opacity-80">Weather</p>
-                    <p className="text-3xl font-bold">
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm opacity-80">Weather</p>
+                    <p className="text-2xl sm:text-3xl font-bold">
                       {weather?.temperature || '--'}°C
                     </p>
-                    <p className="text-sm opacity-80">{weather?.location}</p>
+                    <p className="text-xs sm:text-sm opacity-80 truncate">{weather?.location}</p>
                   </div>
-                  <Cloud className="h-12 w-12 opacity-80" />
+                  <Cloud className="h-8 w-8 sm:h-12 sm:w-12 opacity-80 shrink-0" />
                 </div>
               </CardContent>
             </Card>
 
             {/* Exchange Rate Widget */}
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">USD Exchange Rate</p>
-                    <p className="text-2xl font-bold text-foreground">
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm text-muted-foreground">USD Rate</p>
+                    <p className="text-xl sm:text-2xl font-bold text-foreground">
                       Rs. {exchangeRate?.usdToLkr?.toFixed(2) || '--'}
                     </p>
-                    <p className="text-xs text-muted-foreground">Real-time market rate</p>
+                    <p className="text-xs text-muted-foreground hidden sm:block">Real-time market rate</p>
                   </div>
-                  <div className="p-3 rounded-xl bg-success/10">
-                    <TrendingUp className="h-6 w-6 text-success" />
+                  <div className="p-2 sm:p-3 rounded-xl bg-success/10 shrink-0">
+                    <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-success" />
                   </div>
                 </div>
               </CardContent>
