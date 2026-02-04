@@ -24,6 +24,7 @@ import {
 import { Plus, Edit, Trash2, BedDouble, Wrench } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useProperty } from '@/hooks/useProperty';
 import { toast } from 'sonner';
 import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
 
@@ -39,6 +40,7 @@ interface Room {
   floor: number | null;
   description: string | null;
   amenities: string[] | null;
+  property_id: string | null;
 }
 
 const roomTypes = ['standard', 'double', 'deluxe', 'suite', 'family', 'penthouse', 'apartment'];
@@ -52,6 +54,7 @@ const statusColors: Record<RoomStatus, string> = {
 export default function Rooms() {
   // NOTE: isAdmin is for UI visibility only. Security is enforced by RLS policies on the database.
   const { isAdmin } = useAuth();
+  const { selectedProperty, showAllProperties } = useProperty();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -68,14 +71,20 @@ export default function Rooms() {
 
   useEffect(() => {
     fetchRooms();
-  }, []);
+  }, [selectedProperty, showAllProperties]);
 
   const fetchRooms = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('rooms')
         .select('*')
         .order('room_number');
+      
+      if (!showAllProperties && selectedProperty?.id) {
+        query = query.eq('property_id', selectedProperty.id);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setRooms((data as Room[]) || []);
@@ -123,6 +132,7 @@ export default function Rooms() {
         max_guests: parseInt(maxGuests),
         floor: floor ? parseInt(floor) : null,
         description: description.trim() || null,
+        property_id: selectedProperty?.id || null,
       };
 
       if (editingRoom) {
@@ -133,6 +143,10 @@ export default function Rooms() {
         if (error) throw error;
         toast.success('Room updated successfully');
       } else {
+        if (!selectedProperty?.id) {
+          toast.error('Please select a property first');
+          return;
+        }
         const { error } = await supabase.from('rooms').insert(roomData);
         if (error) throw error;
         toast.success('Room added successfully');

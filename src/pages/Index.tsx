@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useProperty } from '@/hooks/useProperty';
 
 interface DashboardStats {
   activeGuests: number;
@@ -54,6 +55,7 @@ interface ExchangeRate {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { selectedProperty, showAllProperties, properties } = useProperty();
   const [stats, setStats] = useState<DashboardStats>({
     activeGuests: 0,
     totalRevenue: 0,
@@ -69,67 +71,83 @@ export default function Dashboard() {
     fetchDashboardData();
     fetchWeather();
     fetchExchangeRate();
-  }, []);
+  }, [selectedProperty, showAllProperties]);
 
   const fetchDashboardData = async () => {
     try {
+      const propertyFilter = !showAllProperties && selectedProperty?.id;
+      
       // Fetch active guests (checked_in bookings)
-      const { count: activeGuests } = await supabase
+      let activeGuestsQuery = supabase
         .from('bookings')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'checked_in');
+      if (propertyFilter) activeGuestsQuery = activeGuestsQuery.eq('property_id', selectedProperty.id);
+      const { count: activeGuests } = await activeGuestsQuery;
 
       // Fetch today's arrivals
       const today = new Date().toISOString().split('T')[0];
-      const { count: arrivalsToday } = await supabase
+      let arrivalsQuery = supabase
         .from('bookings')
         .select('*', { count: 'exact', head: true })
         .eq('check_in', today)
         .in('status', ['pending', 'confirmed']);
+      if (propertyFilter) arrivalsQuery = arrivalsQuery.eq('property_id', selectedProperty.id);
+      const { count: arrivalsToday } = await arrivalsQuery;
 
       // Fetch available rooms
-      const { count: availableRooms } = await supabase
+      let roomsQuery = supabase
         .from('rooms')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'available');
+      if (propertyFilter) roomsQuery = roomsQuery.eq('property_id', selectedProperty.id);
+      const { count: availableRooms } = await roomsQuery;
 
       // Fetch total revenue this month
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
       
-      const { data: payments } = await supabase
+      let paymentsQuery = supabase
         .from('payments')
-        .select('amount')
+        .select('amount, property_id')
         .gte('created_at', startOfMonth.toISOString());
+      if (propertyFilter) paymentsQuery = paymentsQuery.eq('property_id', selectedProperty.id);
+      const { data: payments } = await paymentsQuery;
       
       const totalRevenue = payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
 
       // Fetch today's check-ins (arrivals)
-      const { data: checkIns } = await supabase
+      let checkInsQuery = supabase
         .from('bookings')
         .select(`
           id,
           status,
           check_in,
+          property_id,
           guests (name),
           rooms (room_number)
         `)
         .eq('check_in', today)
         .in('status', ['pending', 'confirmed', 'checked_in']);
+      if (propertyFilter) checkInsQuery = checkInsQuery.eq('property_id', selectedProperty.id);
+      const { data: checkIns } = await checkInsQuery;
 
       // Fetch today's check-outs (departures)
-      const { data: checkOuts } = await supabase
+      let checkOutsQuery = supabase
         .from('bookings')
         .select(`
           id,
           status,
           check_out,
+          property_id,
           guests (name),
           rooms (room_number)
         `)
         .eq('check_out', today)
         .in('status', ['checked_in', 'checked_out']);
+      if (propertyFilter) checkOutsQuery = checkOutsQuery.eq('property_id', selectedProperty.id);
+      const { data: checkOuts } = await checkOutsQuery;
 
       setStats({
         activeGuests: activeGuests || 0,

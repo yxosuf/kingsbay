@@ -8,10 +8,12 @@ import {
   FileText,
   Settings,
   Crown,
-  LogOut
+  LogOut,
+  Building2
 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useProperty } from '@/hooks/useProperty';
 import {
   Sidebar,
   SidebarContent,
@@ -38,6 +40,7 @@ const mainNavItems = [
 ];
 
 const systemNavItems = [
+  { title: 'Properties', url: '/properties', icon: Building2, adminOnly: true },
   { title: 'Settings', url: '/settings', icon: Settings },
 ];
 
@@ -46,7 +49,8 @@ export function AppSidebar() {
   const collapsed = state === 'collapsed';
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, profile, role } = useAuth();
+  const { signOut, profile, role, isAdmin } = useAuth();
+  const { selectedProperty } = useProperty();
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
@@ -68,6 +72,11 @@ export function AppSidebar() {
     }
   };
 
+  // Filter system nav items based on role
+  const filteredSystemNavItems = systemNavItems.filter(
+    (item) => !item.adminOnly || isAdmin
+  );
+
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       {/* Header with Logo */}
@@ -77,9 +86,13 @@ export function AppSidebar() {
             <Crown className="h-5 w-5" />
           </div>
           {(!collapsed || isMobile) && (
-            <div className="flex flex-col">
-              <span className="font-semibold text-sidebar-foreground">King's Bay</span>
-              <span className="text-xs text-sidebar-foreground/60">Villa</span>
+            <div className="flex flex-col min-w-0">
+              <span className="font-semibold text-sidebar-foreground truncate">
+                {selectedProperty?.name || "King's Bay"}
+              </span>
+              <span className="text-xs text-sidebar-foreground/60 capitalize">
+                {selectedProperty?.property_type || 'Villa'}
+              </span>
             </div>
           )}
         </div>
@@ -111,7 +124,7 @@ export function AppSidebar() {
         <SidebarGroup className="mt-auto">
           <SidebarGroupContent>
             <SidebarMenu>
-              {systemNavItems.map((item) => (
+              {filteredSystemNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     isActive={isActive(item.url)}
