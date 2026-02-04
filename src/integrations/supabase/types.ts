@@ -28,6 +28,7 @@ export type Database = {
           num_guests: number | null
           ota_price: number | null
           ota_reference: string | null
+          property_id: string | null
           room_id: string
           special_requests: string | null
           status: Database["public"]["Enums"]["booking_status"]
@@ -47,6 +48,7 @@ export type Database = {
           num_guests?: number | null
           ota_price?: number | null
           ota_reference?: string | null
+          property_id?: string | null
           room_id: string
           special_requests?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
@@ -66,6 +68,7 @@ export type Database = {
           num_guests?: number | null
           ota_price?: number | null
           ota_reference?: string | null
+          property_id?: string | null
           room_id?: string
           special_requests?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
@@ -78,6 +81,13 @@ export type Database = {
             columns: ["guest_id"]
             isOneToOne: false
             referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
           {
@@ -96,6 +106,7 @@ export type Database = {
           created_by: string | null
           id: string
           notes: string | null
+          property_id: string | null
           quantity: number
           service_date: string
           service_id: string
@@ -108,6 +119,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           notes?: string | null
+          property_id?: string | null
           quantity?: number
           service_date?: string
           service_id: string
@@ -120,6 +132,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           notes?: string | null
+          property_id?: string | null
           quantity?: number
           service_date?: string
           service_id?: string
@@ -132,6 +145,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_services_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
           {
@@ -191,6 +211,7 @@ export type Database = {
           invoice_number: string
           notes: string | null
           payment_status: Database["public"]["Enums"]["payment_status"]
+          property_id: string | null
           room_charges: number
           service_charges: number
           tax_amount: number
@@ -205,6 +226,7 @@ export type Database = {
           invoice_number: string
           notes?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
+          property_id?: string | null
           room_charges?: number
           service_charges?: number
           tax_amount?: number
@@ -219,6 +241,7 @@ export type Database = {
           invoice_number?: string
           notes?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
+          property_id?: string | null
           room_charges?: number
           service_charges?: number
           tax_amount?: number
@@ -233,6 +256,13 @@ export type Database = {
             referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "invoices_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
         ]
       }
       payments: {
@@ -244,6 +274,7 @@ export type Database = {
           method: Database["public"]["Enums"]["payment_method"]
           notes: string | null
           payment_date: string
+          property_id: string | null
           received_by: string | null
           reference_number: string | null
         }
@@ -255,6 +286,7 @@ export type Database = {
           method?: Database["public"]["Enums"]["payment_method"]
           notes?: string | null
           payment_date?: string
+          property_id?: string | null
           received_by?: string | null
           reference_number?: string | null
         }
@@ -266,6 +298,7 @@ export type Database = {
           method?: Database["public"]["Enums"]["payment_method"]
           notes?: string | null
           payment_date?: string
+          property_id?: string | null
           received_by?: string | null
           reference_number?: string | null
         }
@@ -275,6 +308,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
         ]
@@ -306,6 +346,51 @@ export type Database = {
         }
         Relationships: []
       }
+      properties: {
+        Row: {
+          address: string | null
+          created_at: string
+          description: string | null
+          email: string | null
+          id: string
+          is_active: boolean
+          location: string | null
+          name: string
+          phone: string | null
+          property_type: Database["public"]["Enums"]["property_type"]
+          total_rooms: number | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          name: string
+          phone?: string | null
+          property_type?: Database["public"]["Enums"]["property_type"]
+          total_rooms?: number | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          name?: string
+          phone?: string | null
+          property_type?: Database["public"]["Enums"]["property_type"]
+          total_rooms?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       rooms: {
         Row: {
           amenities: string[] | null
@@ -315,6 +400,7 @@ export type Database = {
           id: string
           max_guests: number | null
           price: number
+          property_id: string | null
           room_number: string
           room_type: string
           status: Database["public"]["Enums"]["room_status"]
@@ -328,6 +414,7 @@ export type Database = {
           id?: string
           max_guests?: number | null
           price?: number
+          property_id?: string | null
           room_number: string
           room_type?: string
           status?: Database["public"]["Enums"]["room_status"]
@@ -341,12 +428,21 @@ export type Database = {
           id?: string
           max_guests?: number | null
           price?: number
+          property_id?: string | null
           room_number?: string
           room_type?: string
           status?: Database["public"]["Enums"]["room_status"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "rooms_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       services: {
         Row: {
@@ -380,6 +476,35 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      user_property_access: {
+        Row: {
+          created_at: string
+          id: string
+          property_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          property_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          property_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_property_access_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -436,6 +561,7 @@ export type Database = {
         | "archived"
       payment_method: "cash" | "card" | "bank_transfer" | "online"
       payment_status: "pending" | "partial" | "paid"
+      property_type: "hotel" | "villa" | "resort" | "apartment" | "guesthouse"
       room_status: "available" | "occupied" | "reserved" | "maintenance"
       service_category:
         | "room_service"
@@ -588,6 +714,7 @@ export const Constants = {
       ],
       payment_method: ["cash", "card", "bank_transfer", "online"],
       payment_status: ["pending", "partial", "paid"],
+      property_type: ["hotel", "villa", "resort", "apartment", "guesthouse"],
       room_status: ["available", "occupied", "reserved", "maintenance"],
       service_category: [
         "room_service",

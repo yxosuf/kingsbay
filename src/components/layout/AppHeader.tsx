@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Bell, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { PropertySelector } from './PropertySelector';
+import { useProperty } from '@/hooks/useProperty';
 
 interface AppHeaderProps {
   title: string;
@@ -9,6 +11,7 @@ interface AppHeaderProps {
 
 export function AppHeader({ title }: AppHeaderProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const { properties } = useProperty();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -38,6 +41,9 @@ export function AppHeader({ title }: AppHeaderProps) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+        {/* Property Selector - only show if properties exist */}
+        {properties.length > 0 && <PropertySelector />}
+        
         {/* Time Widget */}
         <div className="hidden sm:flex flex-col items-end">
           <span className="text-xs text-muted-foreground">Sri Lanka Time</span>

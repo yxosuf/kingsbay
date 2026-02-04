@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select';
 import { Plus, Search, Eye, LogIn, LogOut, X, BookOpen } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useProperty } from '@/hooks/useProperty';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -33,6 +34,7 @@ interface Booking {
   num_guests: number;
   total_amount: number;
   room_id: string;
+  property_id: string | null;
   guests: { name: string; phone: string } | null;
   rooms: { room_number: string; room_type: string } | null;
 }
@@ -40,6 +42,7 @@ interface Booking {
 export default function Bookings() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { selectedProperty, showAllProperties } = useProperty();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -48,7 +51,7 @@ export default function Bookings() {
 
   useEffect(() => {
     fetchBookings();
-  }, [statusFilter]);
+  }, [statusFilter, selectedProperty, showAllProperties]);
 
   const fetchBookings = async () => {
     try {
@@ -62,10 +65,16 @@ export default function Bookings() {
           num_guests,
           total_amount,
           room_id,
+          property_id,
           guests (name, phone),
           rooms (room_number, room_type)
         `)
         .order('created_at', { ascending: false });
+
+      // Filter by property
+      if (!showAllProperties && selectedProperty?.id) {
+        query = query.eq('property_id', selectedProperty.id);
+      }
 
       if (statusFilter === 'today') {
         const today = new Date().toISOString().split('T')[0];

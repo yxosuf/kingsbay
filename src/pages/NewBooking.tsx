@@ -19,6 +19,7 @@ import { CalendarIcon, Search, Plus, User } from 'lucide-react';
 import { format, differenceInDays, startOfDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useProperty } from '@/hooks/useProperty';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
@@ -53,6 +54,7 @@ interface Guest {
 export default function NewBooking() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { selectedProperty } = useProperty();
   const [loading, setLoading] = useState(false);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [existingGuests, setExistingGuests] = useState<Guest[]>([]);
@@ -91,11 +93,14 @@ export default function NewBooking() {
   useEffect(() => {
     fetchAvailableRooms();
     fetchExistingGuests();
-  }, [checkIn, checkOut]);
+  }, [checkIn, checkOut, selectedProperty]);
 
   const fetchAvailableRooms = async () => {
     try {
       let query = supabase.from('rooms').select('*').eq('status', 'available');
+      if (selectedProperty?.id) {
+        query = query.eq('property_id', selectedProperty.id);
+      }
       const { data } = await query;
       setRooms(data || []);
     } catch (error) {
@@ -229,6 +234,7 @@ export default function NewBooking() {
         commission_rate: bookingSource !== 'direct' ? parseFloat(commissionRate) || null : null,
         commission_amount: commissionAmt,
         ota_reference: bookingSource !== 'direct' ? otaReference.trim() || null : null,
+        property_id: selectedProperty?.id || null,
       } as any);
 
       if (bookingError) throw bookingError;
