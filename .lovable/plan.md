@@ -1,287 +1,295 @@
 
+# Channel Manager Feature Plan
 
-# King's Bay Villa – Hotel Management System 
-
-This is **whole structure** of the King's Bay Villa Hotel Management System, built on your original plan with added structure, clear button flows, database relationships, and integration-ready architecture.
-
----
-
-## 🎯 Goals
-
-* Improve operational flow clarity (front desk friendly)
-* Clearly define **what each button does**
-* Establish a **clean database schema** with relationships
-* Prepare for **future integrations** (Booking.com, Airbnb, accounting, POS)
-* Maintain simplicity for small/boutique hotels
+## Overview
+This plan outlines a phased approach to implementing a Channel Manager system that will prevent overbooking by making your app the **single source of truth** for room availability across all booking channels (direct, Booking.com, Airbnb, etc.).
 
 ---
 
-## 🧭 SYSTEM-WIDE USER FLOW (HIGH LEVEL)
+## Current System Analysis
 
-**Login → Dashboard → Daily Operations → Billing → Reports → Logout**
+Your system already has:
+- Multi-property support with rooms, bookings, and guests
+- OTA booking source tracking (Booking.com, Airbnb, Agoda, Expedia)
+- Commission rate tracking per booking source
+- Room status management (available, occupied, reserved, maintenance)
 
-Staff always return to **Dashboard** as the control center.
-
----
-
-## 🏠 DASHBOARD (CONTROL CENTER)
-
-### Buttons & Actions Flow
-
-* **Active Guests Card**
-  → Click → Guest List (Checked-in only)
-
-* **Total Revenue Card**
-  → Click → Monthly Revenue Report
-
-* **Arrivals Today Card**
-  → Click → Today’s Bookings List
-
-* **Available Rooms Card**
-  → Click → Room Status Board
+What's missing for a true Channel Manager:
+- Real-time availability calendar
+- Safety buffer inventory management
+- Channel connection configuration
+- Inbound webhook processing for OTA bookings
+- Outbound availability sync to channels
+- Conflict protection / booking lock mechanism
 
 ---
 
-### Recent Bookings Table
+## Phased Implementation Approach
 
-**Buttons per row:**
+### Phase 1: Core Infrastructure (Foundation)
 
-* View → Booking Details Page
-* Check-in → Status update → Room becomes Occupied
-* Check-out → Invoice generation → Room becomes Available
+**1.1 Database Schema Updates**
 
----
+New tables required:
 
-## 📅 BOOKING MANAGEMENT FLOW
+```text
+channel_connections
++------------------+----------+------------------------------------------+
+| Column           | Type     | Purpose                                  |
++------------------+----------+------------------------------------------+
+| id               | uuid     | Primary key                              |
+| property_id      | uuid     | FK to properties                         |
+| channel_type     | enum     | booking_com, airbnb, agoda, etc.        |
+| is_enabled       | boolean  | Enable/disable channel                   |
+| api_key          | text     | Encrypted API credentials (optional)     |
+| ical_import_url  | text     | iCal URL to import from channel         |
+| ical_export_url  | text     | Generated iCal URL for export           |
+| last_sync_at     | timestamp| Last successful sync                     |
+| sync_status      | enum     | active, error, disabled                 |
+| commission_rate  | numeric  | Default commission for this channel      |
+| created_at       | timestamp|                                          |
++------------------+----------+------------------------------------------+
 
-### New Booking Flow
+room_availability
++------------------+----------+------------------------------------------+
+| Column           | Type     | Purpose                                  |
++------------------+----------+------------------------------------------+
+| id               | uuid     | Primary key                              |
+| room_id          | uuid     | FK to rooms                              |
+| date             | date     | Specific date                            |
+| is_available     | boolean  | Availability on this date               |
+| blocked_reason   | text     | maintenance, hold, buffer, etc.         |
+| booking_id       | uuid     | FK to bookings (if booked)              |
+| source_channel   | enum     | Which channel made this unavailable     |
+| created_at       | timestamp|                                          |
++------------------+----------+------------------------------------------+
 
-1. New Booking Button
-2. Enter Guest Details
-3. Select Dates
-4. System checks room availability
-5. Select Room
-6. Select Payment Method
-7. Save Booking
+property_inventory_settings
++------------------+----------+------------------------------------------+
+| Column           | Type     | Purpose                                  |
++------------------+----------+------------------------------------------+
+| id               | uuid     | Primary key                              |
+| property_id      | uuid     | FK to properties                         |
+| safety_buffer    | integer  | Rooms held back (default: 1)            |
+| auto_close_at    | integer  | Auto-close availability X rooms left    |
+| sync_frequency   | enum     | realtime, 5min, 15min, hourly           |
+| created_at       | timestamp|                                          |
++------------------+----------+------------------------------------------+
 
-**Status:** Pending / Confirmed
+sync_logs
++------------------+----------+------------------------------------------+
+| Column           | Type     | Purpose                                  |
++------------------+----------+------------------------------------------+
+| id               | uuid     | Primary key                              |
+| channel_id       | uuid     | FK to channel_connections               |
+| direction        | enum     | inbound, outbound                       |
+| status           | enum     | success, failed, partial                |
+| records_synced   | integer  | Number of bookings/dates synced         |
+| error_message    | text     | Error details if failed                 |
+| created_at       | timestamp|                                          |
++------------------+----------+------------------------------------------+
+```
 
----
+**1.2 Availability Calendar System**
 
-### Booking Status Lifecycle
-
-Pending → Confirmed → Checked-in → Checked-out → Archived
-
-Cancelled can occur before check-in
-
----
-
-## 🛏️ ROOM MANAGEMENT FLOW
-
-### Room Status Board
-
-* Click Room Card
-  → View Room Details
-  → Change Status (Available / Occupied / Reserved / Maintenance)
-
-* Auto-updates triggered by:
-
-  * Check-in
-  * Check-out
-  * Maintenance toggle
-
----
-
-## 🛎️ SERVICES MANAGEMENT FLOW
-
-### Adding a Service to Guest
-
-1. Open Guest Profile
-2. Go to Services Tab
-3. Select Service
-4. Add Quantity
-5. Save
-
-→ Charge added to Guest Invoice
-
----
-
-## 👤 GUEST MANAGEMENT FLOW
-
-### Guest Profile Actions
-
-* View Personal Info
-* View Booking History
-* View Current Stay
-* Add Services
-* Open Invoice
+- Create a master availability calendar component showing all rooms/dates
+- Calculate real-time availability: `total_rooms - active_bookings - blocked_rooms - safety_buffer`
+- Visual indicators for each room/date state
 
 ---
 
-## 💰 BILLING & PAYMENTS FLOW
+### Phase 2: Channel Management UI
 
-### Invoice Generation Flow
+**2.1 Channel Settings Page** (`/settings/channels`)
 
-Checked-out → Auto Invoice Created
+- List of supported channels with enable/disable toggles
+- Per-property channel configuration
+- Room type mapping (your room types to channel room types)
+- Commission rate defaults per channel
+- iCal URL display for manual sync (Phase 1 approach)
 
-Invoice Includes:
+**2.2 Inventory Settings**
 
-* Room Charges
-* Services Charges
-* Taxes
-* Total
+- Safety buffer configuration per property
+- Auto-close threshold settings
+- Manual block dates feature (maintenance, events)
+- Bulk availability updates
 
----
+**2.3 Sync Dashboard**
 
-### Payment Flow
-
-* Select Payment Method
-* Mark as Paid / Partial / Pending
-* Update Outstanding Balance
-
----
-
-## 📈 REPORTS FLOW
-
-* Select Report Type
-* Select Date Range
-* Generate Report
-* Export to Excel / CSV
+- Real-time sync status per channel
+- Last sync timestamp
+- Error notifications
+- Manual sync trigger button
+- Sync history log
 
 ---
 
-## 🔐 AUTHENTICATION FLOW
+### Phase 3: iCal Sync (Realistic First Implementation)
 
-Login → Role Check → Page Access
+Since Booking.com and Airbnb APIs require business verification and approval (which can take weeks/months), we'll start with iCal sync which works immediately.
 
-Roles:
+**3.1 iCal Export Edge Function**
 
-* Admin
-* Front Desk
-* Manager
+Generate iCal feeds for your properties that OTAs can subscribe to:
 
----
+```text
+GET /functions/v1/ical-export?property_id=xxx&room_type=deluxe
+```
 
-## 🗄️ DATABASE DESIGN (SUPABASE)
+Returns standard iCal format with blocked dates.
 
-### Core Tables
+**3.2 iCal Import Edge Function**
 
-#### guests
+Parse iCal feeds from OTAs to import their bookings:
 
-* id (PK)
-* name
-* phone
-* email
-* id_passport
+- Scheduled background task (every 15 minutes)
+- Parse iCal from Booking.com/Airbnb URLs
+- Create bookings in your system
+- Update availability calendar
+- Trigger outbound sync to other channels
 
-#### rooms
+**3.3 Conflict Detection**
 
-* id (PK)
-* room_number
-* room_type
-* price
-* status
-
-#### bookings
-
-* id (PK)
-* guest_id (FK)
-* room_id (FK)
-* check_in
-* check_out
-* status
-
-#### services
-
-* id (PK)
-* name
-* category
-* price
-
-#### guest_services
-
-* id (PK)
-* guest_id (FK)
-* service_id (FK)
-* quantity
-
-#### invoices
-
-* id (PK)
-* booking_id (FK)
-* total_amount
-* payment_status
-
-#### payments
-
-* id (PK)
-* invoice_id (FK)
-* method
-* amount
-* date
-
-#### staff
-
-* id (PK)
-* role
-* email
+- Before confirming any booking, check availability calendar
+- If conflict detected, reject with clear error
+- Log all conflicts for reporting
 
 ---
 
-## 🔗 DATABASE RELATIONSHIPS (TEXT FLOW)
+### Phase 4: Real-Time API Integration (Future)
 
-* Guest → has many → Bookings
-* Booking → belongs to → Room
-* Booking → generates → Invoice
-* Invoice → has many → Payments
-* Guest → uses many → Services (via guest_services)
+**4.1 Webhook Endpoints**
 
----
+Edge functions to receive booking notifications:
 
-## 🔌 EXTERNAL & FUTURE INTEGRATIONS (V2 READY)
+- `POST /functions/v1/channel-webhook/booking-com`
+- `POST /functions/v1/channel-webhook/airbnb`
 
-### Channel Manager (Future)
+**4.2 Outbound Push Notifications**
 
-* Booking.com
-* Airbnb
-* Agoda
+When availability changes:
+1. Update local availability calendar
+2. Queue sync job for all connected channels
+3. Push updates via API (when approved)
 
-Flow:
-External Booking → Sync → Bookings Table → Room Status Update
+**4.3 Booking Lock Mechanism**
 
----
-
-### Accounting Software (Future)
-
-Invoice Data → Export → Accounting System (QuickBooks / Xero)
+Prevent race conditions:
+- When processing a booking, lock inventory for 30 seconds
+- Use database-level locking with `FOR UPDATE`
+- Release lock on complete or timeout
 
 ---
 
-## 📦 OFFLINE & BACKUP STRATEGY
+## Implementation Order
 
-* Manual Excel Export (Bookings, Guests, Payments)
-* Daily Auto Backup Option
-* Local CSV Download
-
----
-
-## 🚀 V2 → V3 ROADMAP (OPTIONAL)
-
-* Multi-property support
-* Cleaning & housekeeping module
-* POS integration
-* Mobile tablet UI
-* AI demand pricing (advanced)
+| Step | Component | Description |
+|------|-----------|-------------|
+| 1 | Database migrations | Create new tables with RLS policies |
+| 2 | Property inventory settings | UI to configure buffer and sync settings |
+| 3 | Channel connections UI | Enable/disable channels per property |
+| 4 | Availability calendar view | Visual room/date availability grid |
+| 5 | iCal export function | Generate iCal feeds for OTAs |
+| 6 | iCal import function | Parse OTA calendars |
+| 7 | Sync scheduler | Background job for periodic sync |
+| 8 | Conflict detection | Pre-booking availability check |
+| 9 | Sync dashboard | Monitor sync status and logs |
 
 ---
 
-## ✅ FINAL NOTE
+## Technical Specifications
 
-This V2 plan is:
+### Updated Booking Flow (with Channel Manager)
 
-* Realistic
-* Buildable
-* Hotel-staff friendly
-* Scalable
+```text
+New Booking Request (from any source)
+          |
+          v
+   Check Availability Calendar
+          |
+          v
+    Is Room Available?
+       /       \
+      No        Yes
+      |          |
+      v          v
+   Reject    Lock Inventory (30s)
+              |
+              v
+        Create Booking
+              |
+              v
+     Update Availability Calendar
+              |
+              v
+    Push to All Connected Channels
+              |
+              v
+        Release Lock
+```
 
-It is **strong enough to sell** and **simple enough to run daily**.
+### Safety Buffer Logic
+
+For a property with:
+- 6 total rooms of type "deluxe"
+- 2 active bookings
+- 1 safety buffer
+
+Sellable inventory = 6 - 2 - 1 = **3 rooms available**
+
+When availability drops to buffer level, auto-close on OTAs.
+
+---
+
+## Files to Create/Modify
+
+### New Files
+- `src/pages/ChannelManager.tsx` - Main channel management page
+- `src/pages/AvailabilityCalendar.tsx` - Visual availability grid
+- `src/components/channels/ChannelCard.tsx` - Channel configuration card
+- `src/components/channels/InventorySettings.tsx` - Buffer settings
+- `src/components/channels/SyncStatus.tsx` - Sync status display
+- `supabase/functions/ical-export/index.ts` - iCal feed generator
+- `supabase/functions/ical-import/index.ts` - iCal parser
+- `supabase/functions/channel-sync/index.ts` - Sync orchestrator
+
+### Modified Files
+- `src/pages/NewBooking.tsx` - Add availability check before booking
+- `src/components/layout/AppSidebar.tsx` - Add Channel Manager nav link
+- `src/pages/Settings.tsx` - Link to channel settings
+
+---
+
+## Considerations
+
+### What This Enables
+- Prevent double bookings across all platforms
+- Single dashboard to manage all channels
+- Automatic commission tracking by source
+- Clear visibility into room inventory
+- Professional channel management workflow
+
+### Limitations of iCal Sync (Phase 1)
+- Sync delay of 15-30 minutes (not real-time)
+- Limited to blocked dates (no rate management)
+- No automatic booking details (just blocked periods)
+
+### Path to Full API Integration
+- Apply for Booking.com Partner API access
+- Apply for Airbnb Host API access
+- Both require business verification
+- Once approved, upgrade to real-time webhooks
+
+---
+
+## Estimated Complexity
+
+| Phase | Effort | Priority |
+|-------|--------|----------|
+| Phase 1: Database + Core | Medium | High |
+| Phase 2: Channel UI | Medium | High |
+| Phase 3: iCal Sync | High | High |
+| Phase 4: API Integration | High | Future |
+
+This plan transforms your booking app into a professional-grade hotel operations platform with built-in channel management capabilities.
