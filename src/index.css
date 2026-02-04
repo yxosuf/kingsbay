@@ -30,8 +30,8 @@
     --muted: 35 15% 88%;
     --muted-foreground: 25 10% 45%;
 
-    /* Accent: Warm Gold */
-    --accent: 35 60% 50%;
+    /* Accent: Rich Amber Gold */
+    --accent: 38 80% 45%;
     --accent-foreground: 25 100% 8%;
 
     /* Destructive: Soft Red */
@@ -43,7 +43,7 @@
     --success-foreground: 0 0% 100%;
 
     /* Warning: Amber */
-    --warning: 38 92% 50%;
+    --warning: 38 85% 48%;
     --warning-foreground: 25 30% 15%;
 
     /* Info: Soft Blue */
@@ -60,16 +60,16 @@
     /* Sidebar: Dark Brown Theme */
     --sidebar-background: 25 100% 8%;
     --sidebar-foreground: 40 20% 85%;
-    --sidebar-primary: 35 60% 55%;
+    --sidebar-primary: 38 80% 50%;
     --sidebar-primary-foreground: 25 100% 8%;
     --sidebar-accent: 25 100% 12%;
     --sidebar-accent-foreground: 40 20% 90%;
     --sidebar-border: 25 100% 12%;
-    --sidebar-ring: 35 60% 55%;
+    --sidebar-ring: 38 80% 50%;
 
     /* Chart Colors */
     --chart-1: 25 100% 8%;
-    --chart-2: 35 60% 50%;
+    --chart-2: 38 80% 45%;
     --chart-3: 145 60% 35%;
     --chart-4: 210 60% 50%;
     --chart-5: 0 65% 50%;
@@ -95,7 +95,7 @@
     --muted: 25 15% 18%;
     --muted-foreground: 35 10% 55%;
 
-    --accent: 35 55% 45%;
+    --accent: 38 75% 50%;
     --accent-foreground: 40 20% 95%;
 
     --destructive: 0 60% 45%;
@@ -116,12 +116,12 @@
 
     --sidebar-background: 25 100% 8%;
     --sidebar-foreground: 40 15% 80%;
-    --sidebar-primary: 35 55% 55%;
+    --sidebar-primary: 38 75% 55%;
     --sidebar-primary-foreground: 25 30% 10%;
     --sidebar-accent: 25 25% 15%;
     --sidebar-accent-foreground: 40 15% 85%;
     --sidebar-border: 25 20% 15%;
-    --sidebar-ring: 35 55% 55%;
+    --sidebar-ring: 38 75% 55%;
   }
 }
 
