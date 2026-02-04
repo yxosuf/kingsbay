@@ -24,6 +24,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
 import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
+import { ServiceSelector, SelectedService } from '@/components/booking/ServiceSelector';
 
 const bookingSchema = z.object({
   guestName: z.string().trim().min(2, 'Guest name is required'),
@@ -73,6 +74,9 @@ export default function NewBooking() {
   const [numGuests, setNumGuests] = useState(1);
   const [specialRequests, setSpecialRequests] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
+
+  // Additional services state
+  const [selectedServices, setSelectedServices] = useState<SelectedService[]>([]);
 
   // OTA pricing state
   const [bookingSource, setBookingSource] = useState<string>('direct');
@@ -137,6 +141,10 @@ export default function NewBooking() {
     return room.price * Math.max(nights, 1);
   };
 
+  const calculateServicesTotal = () => {
+    return selectedServices.reduce((sum, s) => sum + s.totalPrice, 0);
+  };
+
   const calculateCommission = () => {
     const rate = parseFloat(commissionRate) || OTA_COMMISSION_RATES[bookingSource] || 0;
     const price = useCustomPrice ? parseFloat(customTotalAmount) || 0 : calculateSystemTotal();
@@ -148,6 +156,10 @@ export default function NewBooking() {
       return parseFloat(customTotalAmount) || 0;
     }
     return calculateSystemTotal();
+  };
+
+  const getGrandTotal = () => {
+    return getEffectiveTotal() + calculateServicesTotal();
   };
 
   const getOtaNetPrice = () => {
@@ -219,7 +231,7 @@ export default function NewBooking() {
       const netOtaPrice = bookingSource !== 'direct' ? getOtaNetPrice() : null;
 
       // Create booking
-      const { error: bookingError } = await supabase.from('bookings').insert({
+      const { data: newBooking, error: bookingError } = await supabase.from('bookings').insert({
         guest_id: guestId,
         room_id: roomId,
         check_in: format(checkIn!, 'yyyy-MM-dd'),
@@ -235,9 +247,33 @@ export default function NewBooking() {
         commission_amount: commissionAmt,
         ota_reference: bookingSource !== 'direct' ? otaReference.trim() || null : null,
         property_id: selectedProperty?.id || null,
-      } as any);
+      } as any).select().single();
 
       if (bookingError) throw bookingError;
+
+      // Add selected services to guest_services
+      if (selectedServices.length > 0 && newBooking) {
+        const serviceInserts = selectedServices.map((service) => ({
+          booking_id: newBooking.id,
+          service_id: service.serviceId,
+          quantity: service.quantity,
+          unit_price: service.unitPrice,
+          total_price: service.totalPrice,
+          service_date: format(checkIn!, 'yyyy-MM-dd'),
+          created_by: user?.id,
+          property_id: selectedProperty?.id || null,
+        }));
+
+        const { error: servicesError } = await supabase
+          .from('guest_services')
+          .insert(serviceInserts);
+
+        if (servicesError) {
+          console.error('Error adding services:', servicesError);
+          // Don't fail the whole booking, just warn
+          toast.warning('Booking created but some services could not be added');
+        }
+      }
 
       // Update room status to reserved
       await supabase.from('rooms').update({ status: 'reserved' }).eq('id', roomId);
@@ -615,6 +651,12 @@ export default function NewBooking() {
             </CardContent>
           </Card>
 
+          {/* Additional Services */}
+          <ServiceSelector
+            selectedServices={selectedServices}
+            onServicesChange={setSelectedServices}
+          />
+
           {/* Summary & Submit */}
           <Card>
             <CardContent className="pt-6">
@@ -626,8 +668,16 @@ export default function NewBooking() {
                         Room {selectedRoom.room_number} × {differenceInDays(checkOut, checkIn)}{' '}
                         nights
                       </p>
+                      <p className="text-lg">
+                        Room: Rs. {getEffectiveTotal().toLocaleString()}
+                      </p>
+                      {selectedServices.length > 0 && (
+                        <p className="text-sm text-muted-foreground">
+                          + Services: Rs. {calculateServicesTotal().toLocaleString()}
+                        </p>
+                      )}
                       <p className="text-2xl font-bold">
-                        Rs. {getEffectiveTotal().toLocaleString()}
+                        Total: Rs. {getGrandTotal().toLocaleString()}
                       </p>
                       {bookingSource !== 'direct' && getOtaNetPrice() !== null && (
                         <p className="text-sm text-success">
