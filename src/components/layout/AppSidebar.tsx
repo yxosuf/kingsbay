@@ -8,10 +8,9 @@ import {
   FileText,
   Settings,
   Crown,
-  ChevronLeft,
   LogOut
 } from 'lucide-react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import {
   Sidebar,
@@ -23,7 +22,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
@@ -44,20 +42,30 @@ const systemNavItems = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === 'collapsed';
   const location = useLocation();
+  const navigate = useNavigate();
   const { signOut, profile, role } = useAuth();
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
-    // For /bookings, only match exact path (not /bookings/new or /bookings/:id)
     if (path === '/bookings') return location.pathname === '/bookings';
     return location.pathname.startsWith(path);
   };
 
+  const handleNavClick = (url: string) => {
+    navigate(url);
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
   const handleSignOut = async () => {
     await signOut();
+    if (isMobile) {
+      setOpenMobile(false);
+    }
   };
 
   return (
@@ -65,10 +73,10 @@ export function AppSidebar() {
       {/* Header with Logo */}
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground">
             <Crown className="h-5 w-5" />
           </div>
-          {!collapsed && (
+          {(!collapsed || isMobile) && (
             <div className="flex flex-col">
               <span className="font-semibold text-sidebar-foreground">King's Bay</span>
               <span className="text-xs text-sidebar-foreground/60">Villa</span>
@@ -85,14 +93,13 @@ export function AppSidebar() {
               {mainNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
-                    asChild
                     isActive={isActive(item.url)}
                     tooltip={item.title}
+                    onClick={() => handleNavClick(item.url)}
+                    className="cursor-pointer"
                   >
-                    <NavLink to={item.url} className="flex items-center gap-3">
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -107,14 +114,13 @@ export function AppSidebar() {
               {systemNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
-                    asChild
                     isActive={isActive(item.url)}
                     tooltip={item.title}
+                    onClick={() => handleNavClick(item.url)}
+                    className="cursor-pointer"
                   >
-                    <NavLink to={item.url} className="flex items-center gap-3">
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -125,7 +131,7 @@ export function AppSidebar() {
 
       {/* Footer with User Info */}
       <SidebarFooter className="border-t border-sidebar-border p-3">
-        {!collapsed && (
+        {(!collapsed || isMobile) && (
           <div className="mb-3 px-2">
             <p className="text-sm font-medium text-sidebar-foreground truncate">
               {profile?.full_name || 'Staff Member'}
@@ -138,15 +144,15 @@ export function AppSidebar() {
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
-            size={collapsed ? 'icon' : 'sm'}
+            size={(collapsed && !isMobile) ? 'icon' : 'sm'}
             onClick={handleSignOut}
             className={cn(
               "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent",
-              !collapsed && "w-full justify-start"
+              (!collapsed || isMobile) && "w-full justify-start"
             )}
           >
             <LogOut className="h-4 w-4" />
-            {!collapsed && <span className="ml-2">Sign Out</span>}
+            {(!collapsed || isMobile) && <span className="ml-2">Sign Out</span>}
           </Button>
         </div>
       </SidebarFooter>

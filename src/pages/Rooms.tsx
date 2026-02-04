@@ -188,16 +188,16 @@ export default function Rooms() {
 
   return (
     <DashboardLayout title="Room Status">
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-center">
-          <div className="flex gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
+          <div className="flex flex-wrap gap-2 sm:gap-4">
             {statusOrder.map((status) => (
-              <div key={status} className="flex items-center gap-2">
-                <Badge variant="outline" className={statusColors[status]}>
+              <div key={status} className="flex items-center gap-1.5 sm:gap-2">
+                <Badge variant="outline" className={`${statusColors[status]} text-xs sm:text-sm`}>
                   {status}
                 </Badge>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-xs sm:text-sm text-muted-foreground">
                   ({groupedRooms[status]?.length || 0})
                 </span>
               </div>
@@ -209,7 +209,7 @@ export default function Rooms() {
               if (!open) resetForm();
             }}>
               <DialogTrigger asChild>
-                <Button>
+                <Button className="w-full sm:w-auto">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Room
                 </Button>

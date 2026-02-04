@@ -20,9 +20,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Search, Eye, LogIn, LogOut, X } from 'lucide-react';
+import { Plus, Search, Eye, LogIn, LogOut, X, BookOpen } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Booking {
   id: string;
@@ -31,6 +32,7 @@ interface Booking {
   status: string;
   num_guests: number;
   total_amount: number;
+  room_id: string;
   guests: { name: string; phone: string } | null;
   rooms: { room_number: string; room_type: string } | null;
 }
@@ -42,6 +44,7 @@ export default function Bookings() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState(searchParams.get('filter') || 'all');
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     fetchBookings();
@@ -58,6 +61,7 @@ export default function Bookings() {
           status,
           num_guests,
           total_amount,
+          room_id,
           guests (name, phone),
           rooms (room_number, room_type)
         `)
@@ -83,7 +87,6 @@ export default function Bookings() {
 
   const handleCheckIn = async (bookingId: string, roomId: string) => {
     try {
-      // Update booking status
       const { error: bookingError } = await supabase
         .from('bookings')
         .update({ status: 'checked_in' })
@@ -91,7 +94,6 @@ export default function Bookings() {
 
       if (bookingError) throw bookingError;
 
-      // Update room status
       const { error: roomError } = await supabase
         .from('rooms')
         .update({ status: 'occupied' })
@@ -143,13 +145,89 @@ export default function Bookings() {
       booking.rooms?.room_number?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const renderMobileCard = (booking: Booking) => (
+    <div className="space-y-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="font-medium truncate">{booking.guests?.name || 'Unknown'}</p>
+          <p className="text-sm text-muted-foreground">{booking.guests?.phone}</p>
+        </div>
+        {getStatusBadge(booking.status)}
+      </div>
+      
+      <div className="grid grid-cols-2 gap-2 text-sm">
+        <div>
+          <p className="text-muted-foreground">Room</p>
+          <p className="font-medium">
+            {booking.rooms?.room_number || 'N/A'} 
+            <span className="text-muted-foreground capitalize"> · {booking.rooms?.room_type}</span>
+          </p>
+        </div>
+        <div>
+          <p className="text-muted-foreground">Amount</p>
+          <p className="font-medium">Rs. {booking.total_amount?.toLocaleString() || '0'}</p>
+        </div>
+        <div>
+          <p className="text-muted-foreground">Check-in</p>
+          <p className="font-medium">{new Date(booking.check_in).toLocaleDateString()}</p>
+        </div>
+        <div>
+          <p className="text-muted-foreground">Check-out</p>
+          <p className="font-medium">{new Date(booking.check_out).toLocaleDateString()}</p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 pt-2 border-t">
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-1"
+          onClick={() => navigate(`/bookings/${booking.id}`)}
+        >
+          <Eye className="h-4 w-4 mr-1" />
+          View
+        </Button>
+        {(booking.status === 'pending' || booking.status === 'confirmed') && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-success border-success hover:bg-success/10"
+              onClick={() => handleCheckIn(booking.id, booking.room_id)}
+            >
+              <LogIn className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-destructive border-destructive hover:bg-destructive/10"
+              onClick={() => handleCancel(booking.id)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </>
+        )}
+        {booking.status === 'checked_in' && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-warning border-warning hover:bg-warning/10"
+            onClick={() => navigate(`/bookings/${booking.id}/checkout`)}
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <DashboardLayout title="Bookings">
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Header Actions */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-between">
-          <div className="flex flex-1 gap-4">
-            <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 sm:justify-between">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:flex-1">
+            <div className="relative flex-1 sm:max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search guest or room..."
@@ -159,7 +237,7 @@ export default function Bookings() {
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-full sm:w-40">
                 <SelectValue placeholder="Filter status" />
               </SelectTrigger>
               <SelectContent>
@@ -173,25 +251,36 @@ export default function Bookings() {
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={() => navigate('/bookings/new')}>
+          <Button onClick={() => navigate('/bookings/new')} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             New Booking
           </Button>
         </div>
 
-        {/* Bookings Table */}
+        {/* Bookings Content */}
         <Card>
-          <CardHeader>
-            <CardTitle>All Bookings</CardTitle>
+          <CardHeader className="pb-3 sm:pb-6">
+            <CardTitle className="text-base sm:text-lg">All Bookings</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-3 sm:px-6">
             {loading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
               </div>
             ) : filteredBookings.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                No bookings found.
+                <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No bookings found.</p>
+              </div>
+            ) : isMobile ? (
+              <div className="space-y-3">
+                {filteredBookings.map((booking) => (
+                  <Card key={booking.id} className="border-border/50">
+                    <CardContent className="p-4">
+                      {renderMobileCard(booking)}
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             ) : (
               <Table>
@@ -228,7 +317,7 @@ export default function Bookings() {
                       <TableCell>{getStatusBadge(booking.status)}</TableCell>
                       <TableCell>Rs. {booking.total_amount?.toLocaleString() || '0'}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
@@ -242,7 +331,7 @@ export default function Bookings() {
                                 variant="ghost"
                                 size="icon"
                                 className="text-success"
-                                onClick={() => handleCheckIn(booking.id, (booking as any).room_id)}
+                                onClick={() => handleCheckIn(booking.id, booking.room_id)}
                               >
                                 <LogIn className="h-4 w-4" />
                               </Button>

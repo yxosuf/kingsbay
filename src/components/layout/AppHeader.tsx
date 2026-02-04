@@ -29,15 +29,15 @@ export function AppHeader({ title }: AppHeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-border bg-card px-4 lg:px-6">
-      <div className="flex items-center gap-4">
-        <SidebarTrigger className="text-muted-foreground hover:text-foreground">
+    <header className="sticky top-0 z-40 flex h-14 sm:h-16 items-center justify-between border-b border-border bg-card px-3 sm:px-4 lg:px-6">
+      <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+        <SidebarTrigger className="text-muted-foreground hover:text-foreground shrink-0">
           <Menu className="h-5 w-5" />
         </SidebarTrigger>
-        <h1 className="text-xl font-semibold text-foreground">{title}</h1>
+        <h1 className="text-base sm:text-xl font-semibold text-foreground truncate">{title}</h1>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4 shrink-0">
         {/* Time Widget */}
         <div className="hidden sm:flex flex-col items-end">
           <span className="text-xs text-muted-foreground">Sri Lanka Time</span>
@@ -47,8 +47,8 @@ export function AppHeader({ title }: AppHeaderProps) {
         </div>
 
         {/* Notification Bell */}
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5 text-muted-foreground" />
+        <Button variant="ghost" size="icon" className="relative h-8 w-8 sm:h-10 sm:w-10">
+          <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
           <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-destructive" />
         </Button>
       </div>
