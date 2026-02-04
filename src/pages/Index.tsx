@@ -33,12 +33,13 @@ interface DashboardStats {
   availableRooms: number;
 }
 
-interface RecentBooking {
+interface ActivityItem {
   id: string;
   guest_name: string;
   room_number: string;
+  type: 'check_in' | 'check_out';
   status: string;
-  check_in: string;
+  time: string;
 }
 
 interface WeatherData {
@@ -59,7 +60,7 @@ export default function Dashboard() {
     arrivalsToday: 0,
     availableRooms: 0,
   });
-  const [recentBookings, setRecentBookings] = useState<RecentBooking[]>([]);
+  const [todayActivity, setTodayActivity] = useState<ActivityItem[]>([]);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [exchangeRate, setExchangeRate] = useState<ExchangeRate | null>(null);
   const [loading, setLoading] = useState(true);
@@ -104,8 +105,8 @@ export default function Dashboard() {
       
       const totalRevenue = payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
 
-      // Fetch recent bookings with guest and room info
-      const { data: bookings } = await supabase
+      // Fetch today's check-ins (arrivals)
+      const { data: checkIns } = await supabase
         .from('bookings')
         .select(`
           id,
@@ -114,8 +115,21 @@ export default function Dashboard() {
           guests (name),
           rooms (room_number)
         `)
-        .order('created_at', { ascending: false })
-        .limit(5);
+        .eq('check_in', today)
+        .in('status', ['pending', 'confirmed', 'checked_in']);
+
+      // Fetch today's check-outs (departures)
+      const { data: checkOuts } = await supabase
+        .from('bookings')
+        .select(`
+          id,
+          status,
+          check_out,
+          guests (name),
+          rooms (room_number)
+        `)
+        .eq('check_out', today)
+        .in('status', ['checked_in', 'checked_out']);
 
       setStats({
         activeGuests: activeGuests || 0,
@@ -124,15 +138,27 @@ export default function Dashboard() {
         availableRooms: availableRooms || 0,
       });
 
-      setRecentBookings(
-        bookings?.map((b: any) => ({
+      // Combine and format activity items
+      const activityItems: ActivityItem[] = [
+        ...(checkIns?.map((b: any) => ({
           id: b.id,
           guest_name: b.guests?.name || 'Unknown',
           room_number: b.rooms?.room_number || 'N/A',
+          type: 'check_in' as const,
           status: b.status,
-          check_in: b.check_in,
-        })) || []
-      );
+          time: b.check_in,
+        })) || []),
+        ...(checkOuts?.map((b: any) => ({
+          id: b.id,
+          guest_name: b.guests?.name || 'Unknown',
+          room_number: b.rooms?.room_number || 'N/A',
+          type: 'check_out' as const,
+          status: b.status,
+          time: b.check_out,
+        })) || []),
+      ];
+
+      setTodayActivity(activityItems);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -258,10 +284,10 @@ export default function Dashboard() {
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          {/* Recent Bookings Table */}
+          {/* Today's Activity */}
           <Card className="lg:col-span-2">
             <CardHeader className="flex flex-row items-center justify-between pb-3 sm:pb-6">
-              <CardTitle className="text-base sm:text-lg">Recent Bookings</CardTitle>
+              <CardTitle className="text-base sm:text-lg">Today's Activity</CardTitle>
               <Button 
                 variant="link" 
                 className="text-primary text-sm px-0"
@@ -275,50 +301,71 @@ export default function Dashboard() {
                 <div className="flex items-center justify-center py-8">
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                 </div>
-              ) : recentBookings.length === 0 ? (
+              ) : todayActivity.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  No bookings yet. Create your first booking!
+                  No check-ins or check-outs scheduled for today.
                 </div>
               ) : (
                 <div className="space-y-3 sm:space-y-0">
                   {/* Mobile view */}
                   <div className="sm:hidden space-y-3">
-                    {recentBookings.map((booking) => (
-                      <Card key={booking.id} className="border-border/50">
+                    {todayActivity.map((activity) => (
+                      <Card key={`${activity.id}-${activity.type}`} className="border-border/50">
                         <CardContent className="p-3">
                           <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0 flex-1">
-                              <p className="font-medium truncate">{booking.guest_name}</p>
-                              <p className="text-sm text-muted-foreground">Room {booking.room_number}</p>
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <div className={`p-1.5 rounded-full shrink-0 ${
+                                activity.type === 'check_in' 
+                                  ? 'bg-success/20' 
+                                  : 'bg-warning/20'
+                              }`}>
+                                {activity.type === 'check_in' ? (
+                                  <LogIn className={`h-3.5 w-3.5 text-success`} />
+                                ) : (
+                                  <LogOut className={`h-3.5 w-3.5 text-warning`} />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-medium truncate">{activity.guest_name}</p>
+                                <p className="text-sm text-muted-foreground">Room {activity.room_number}</p>
+                              </div>
                             </div>
-                            {getStatusBadge(booking.status)}
+                            <Badge 
+                              variant="outline" 
+                              className={activity.type === 'check_in' 
+                                ? 'bg-success/10 text-success border-success' 
+                                : 'bg-warning/10 text-warning border-warning'
+                              }
+                            >
+                              {activity.type === 'check_in' ? 'Arrival' : 'Departure'}
+                            </Badge>
                           </div>
                           <div className="flex items-center gap-2 mt-3 pt-2 border-t">
                             <Button 
                               variant="outline" 
                               size="sm"
                               className="flex-1"
-                              onClick={() => navigate(`/bookings/${booking.id}`)}
+                              onClick={() => navigate(`/bookings/${activity.id}`)}
                             >
                               <Eye className="h-4 w-4 mr-1" />
                               View
                             </Button>
-                            {(booking.status === 'pending' || booking.status === 'confirmed') && (
+                            {activity.type === 'check_in' && (activity.status === 'pending' || activity.status === 'confirmed') && (
                               <Button 
                                 variant="outline" 
                                 size="sm"
                                 className="text-success border-success"
-                                onClick={() => handleCheckIn(booking.id)}
+                                onClick={() => handleCheckIn(activity.id)}
                               >
                                 <LogIn className="h-4 w-4" />
                               </Button>
                             )}
-                            {booking.status === 'checked_in' && (
+                            {activity.type === 'check_out' && activity.status === 'checked_in' && (
                               <Button 
                                 variant="outline" 
                                 size="sm"
                                 className="text-warning border-warning"
-                                onClick={() => handleCheckOut(booking.id)}
+                                onClick={() => handleCheckOut(activity.id)}
                               >
                                 <LogOut className="h-4 w-4" />
                               </Button>
@@ -333,6 +380,7 @@ export default function Dashboard() {
                   <Table className="hidden sm:table">
                     <TableHeader>
                       <TableRow>
+                        <TableHead>Type</TableHead>
                         <TableHead>Guest</TableHead>
                         <TableHead>Room</TableHead>
                         <TableHead>Status</TableHead>
@@ -340,36 +388,54 @@ export default function Dashboard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {recentBookings.map((booking) => (
-                        <TableRow key={booking.id}>
-                          <TableCell className="font-medium">{booking.guest_name}</TableCell>
-                          <TableCell>Room {booking.room_number}</TableCell>
-                          <TableCell>{getStatusBadge(booking.status)}</TableCell>
+                      {todayActivity.map((activity) => (
+                        <TableRow key={`${activity.id}-${activity.type}`}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div className={`p-1.5 rounded-full ${
+                                activity.type === 'check_in' 
+                                  ? 'bg-success/20' 
+                                  : 'bg-warning/20'
+                              }`}>
+                                {activity.type === 'check_in' ? (
+                                  <LogIn className="h-4 w-4 text-success" />
+                                ) : (
+                                  <LogOut className="h-4 w-4 text-warning" />
+                                )}
+                              </div>
+                              <span className="font-medium">
+                                {activity.type === 'check_in' ? 'Check-in' : 'Check-out'}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-medium">{activity.guest_name}</TableCell>
+                          <TableCell>Room {activity.room_number}</TableCell>
+                          <TableCell>{getStatusBadge(activity.status)}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">
                               <Button 
                                 variant="ghost" 
                                 size="icon"
-                                onClick={() => navigate(`/bookings/${booking.id}`)}
+                                onClick={() => navigate(`/bookings/${activity.id}`)}
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
-                              {(booking.status === 'pending' || booking.status === 'confirmed') && (
+                              {activity.type === 'check_in' && (activity.status === 'pending' || activity.status === 'confirmed') && (
                                 <Button 
                                   variant="ghost" 
                                   size="icon"
                                   className="text-success"
-                                  onClick={() => handleCheckIn(booking.id)}
+                                  onClick={() => handleCheckIn(activity.id)}
                                 >
                                   <LogIn className="h-4 w-4" />
                                 </Button>
                               )}
-                              {booking.status === 'checked_in' && (
+                              {activity.type === 'check_out' && activity.status === 'checked_in' && (
                                 <Button 
                                   variant="ghost" 
                                   size="icon"
                                   className="text-warning"
-                                  onClick={() => handleCheckOut(booking.id)}
+                                  onClick={() => handleCheckOut(activity.id)}
                                 >
                                   <LogOut className="h-4 w-4" />
                                 </Button>
