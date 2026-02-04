@@ -9,7 +9,8 @@ import {
   Settings,
   Crown,
   LogOut,
-  Building2
+  Building2,
+  Link2
 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -36,6 +37,7 @@ const mainNavItems = [
   { title: 'Room Status', url: '/rooms', icon: BedDouble },
   { title: 'Services', url: '/services', icon: UtensilsCrossed },
   { title: 'Guests', url: '/guests', icon: Users },
+  { title: 'Channels', url: '/channels', icon: Link2 },
   { title: 'Reports', url: '/reports', icon: FileText },
 ];
 

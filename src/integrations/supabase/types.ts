@@ -99,6 +99,59 @@ export type Database = {
           },
         ]
       }
+      channel_connections: {
+        Row: {
+          api_key: string | null
+          channel_type: Database["public"]["Enums"]["channel_type"]
+          commission_rate: number | null
+          created_at: string
+          ical_export_url: string | null
+          ical_import_url: string | null
+          id: string
+          is_enabled: boolean
+          last_sync_at: string | null
+          property_id: string
+          sync_status: Database["public"]["Enums"]["sync_status"]
+          updated_at: string
+        }
+        Insert: {
+          api_key?: string | null
+          channel_type: Database["public"]["Enums"]["channel_type"]
+          commission_rate?: number | null
+          created_at?: string
+          ical_export_url?: string | null
+          ical_import_url?: string | null
+          id?: string
+          is_enabled?: boolean
+          last_sync_at?: string | null
+          property_id: string
+          sync_status?: Database["public"]["Enums"]["sync_status"]
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string | null
+          channel_type?: Database["public"]["Enums"]["channel_type"]
+          commission_rate?: number | null
+          created_at?: string
+          ical_export_url?: string | null
+          ical_import_url?: string | null
+          id?: string
+          is_enabled?: boolean
+          last_sync_at?: string | null
+          property_id?: string
+          sync_status?: Database["public"]["Enums"]["sync_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_connections_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_services: {
         Row: {
           booking_id: string
@@ -391,6 +444,95 @@ export type Database = {
         }
         Relationships: []
       }
+      property_inventory_settings: {
+        Row: {
+          auto_close_at: number
+          created_at: string
+          id: string
+          property_id: string
+          safety_buffer: number
+          sync_frequency: Database["public"]["Enums"]["sync_frequency"]
+          updated_at: string
+        }
+        Insert: {
+          auto_close_at?: number
+          created_at?: string
+          id?: string
+          property_id: string
+          safety_buffer?: number
+          sync_frequency?: Database["public"]["Enums"]["sync_frequency"]
+          updated_at?: string
+        }
+        Update: {
+          auto_close_at?: number
+          created_at?: string
+          id?: string
+          property_id?: string
+          safety_buffer?: number
+          sync_frequency?: Database["public"]["Enums"]["sync_frequency"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_inventory_settings_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: true
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_availability: {
+        Row: {
+          blocked_reason: string | null
+          booking_id: string | null
+          created_at: string
+          date: string
+          id: string
+          is_available: boolean
+          room_id: string
+          source_channel: Database["public"]["Enums"]["channel_type"] | null
+          updated_at: string
+        }
+        Insert: {
+          blocked_reason?: string | null
+          booking_id?: string | null
+          created_at?: string
+          date: string
+          id?: string
+          is_available?: boolean
+          room_id: string
+          source_channel?: Database["public"]["Enums"]["channel_type"] | null
+          updated_at?: string
+        }
+        Update: {
+          blocked_reason?: string | null
+          booking_id?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          is_available?: boolean
+          room_id?: string
+          source_channel?: Database["public"]["Enums"]["channel_type"] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_availability_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_availability_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rooms: {
         Row: {
           amenities: string[] | null
@@ -477,6 +619,44 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_logs: {
+        Row: {
+          channel_id: string
+          created_at: string
+          direction: Database["public"]["Enums"]["sync_direction"]
+          error_message: string | null
+          id: string
+          records_synced: number
+          status: Database["public"]["Enums"]["sync_result_status"]
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string
+          direction: Database["public"]["Enums"]["sync_direction"]
+          error_message?: string | null
+          id?: string
+          records_synced?: number
+          status: Database["public"]["Enums"]["sync_result_status"]
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string
+          direction?: Database["public"]["Enums"]["sync_direction"]
+          error_message?: string | null
+          id?: string
+          records_synced?: number
+          status?: Database["public"]["Enums"]["sync_result_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_logs_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channel_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_property_access: {
         Row: {
           created_at: string
@@ -559,6 +739,13 @@ export type Database = {
         | "checked_out"
         | "cancelled"
         | "archived"
+      channel_type:
+        | "direct"
+        | "booking_com"
+        | "airbnb"
+        | "agoda"
+        | "expedia"
+        | "other_ota"
       payment_method: "cash" | "card" | "bank_transfer" | "online"
       payment_status: "pending" | "partial" | "paid"
       property_type: "hotel" | "villa" | "resort" | "apartment" | "guesthouse"
@@ -569,6 +756,10 @@ export type Database = {
         | "facilities"
         | "special_request"
       staff_role: "admin" | "front_desk" | "manager"
+      sync_direction: "inbound" | "outbound"
+      sync_frequency: "realtime" | "5min" | "15min" | "hourly"
+      sync_result_status: "success" | "failed" | "partial"
+      sync_status: "active" | "error" | "disabled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -712,6 +903,14 @@ export const Constants = {
         "cancelled",
         "archived",
       ],
+      channel_type: [
+        "direct",
+        "booking_com",
+        "airbnb",
+        "agoda",
+        "expedia",
+        "other_ota",
+      ],
       payment_method: ["cash", "card", "bank_transfer", "online"],
       payment_status: ["pending", "partial", "paid"],
       property_type: ["hotel", "villa", "resort", "apartment", "guesthouse"],
@@ -723,6 +922,10 @@ export const Constants = {
         "special_request",
       ],
       staff_role: ["admin", "front_desk", "manager"],
+      sync_direction: ["inbound", "outbound"],
+      sync_frequency: ["realtime", "5min", "15min", "hourly"],
+      sync_result_status: ["success", "failed", "partial"],
+      sync_status: ["active", "error", "disabled"],
     },
   },
 } as const

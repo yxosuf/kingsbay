@@ -17,6 +17,7 @@ import GuestDetails from "./pages/GuestDetails";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import Properties from "./pages/Properties";
+import ChannelManager from "./pages/ChannelManager";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => (
               <Route path="/reports" element={<Reports />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/properties" element={<Properties />} />
+              <Route path="/channels" element={<ChannelManager />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
