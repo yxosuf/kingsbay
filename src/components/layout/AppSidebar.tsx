@@ -7,7 +7,7 @@ import {
   Users,
   FileText,
   Settings,
-  Hotel,
+  Crown,
   ChevronLeft,
   LogOut
 } from 'lucide-react';
@@ -66,7 +66,7 @@ export function AppSidebar() {
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-            <Hotel className="h-5 w-5" />
+            <Crown className="h-5 w-5" />
           </div>
           {!collapsed && (
             <div className="flex flex-col">
