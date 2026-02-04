@@ -16,7 +16,7 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, Search, Plus, User } from 'lucide-react';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, startOfDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -340,13 +340,14 @@ export default function NewBooking() {
                         {checkIn ? format(checkIn, 'PPP') : 'Select date'}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
                         selected={checkIn}
                         onSelect={setCheckIn}
-                        disabled={(date) => date < new Date()}
+                        disabled={(date) => date < startOfDay(new Date())}
                         initialFocus
+                        className="pointer-events-auto"
                       />
                     </PopoverContent>
                   </Popover>
@@ -368,13 +369,14 @@ export default function NewBooking() {
                         {checkOut ? format(checkOut, 'PPP') : 'Select date'}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
                         selected={checkOut}
                         onSelect={setCheckOut}
-                        disabled={(date) => date <= (checkIn || new Date())}
+                        disabled={(date) => date <= (checkIn || startOfDay(new Date()))}
                         initialFocus
+                        className="pointer-events-auto"
                       />
                     </PopoverContent>
                   </Popover>
