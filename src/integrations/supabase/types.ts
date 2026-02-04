@@ -16,13 +16,18 @@ export type Database = {
     Tables: {
       bookings: {
         Row: {
+          booking_source: Database["public"]["Enums"]["booking_source"]
           check_in: string
           check_out: string
+          commission_amount: number | null
+          commission_rate: number | null
           created_at: string
           created_by: string | null
           guest_id: string
           id: string
           num_guests: number | null
+          ota_price: number | null
+          ota_reference: string | null
           room_id: string
           special_requests: string | null
           status: Database["public"]["Enums"]["booking_status"]
@@ -30,13 +35,18 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          booking_source?: Database["public"]["Enums"]["booking_source"]
           check_in: string
           check_out: string
+          commission_amount?: number | null
+          commission_rate?: number | null
           created_at?: string
           created_by?: string | null
           guest_id: string
           id?: string
           num_guests?: number | null
+          ota_price?: number | null
+          ota_reference?: string | null
           room_id: string
           special_requests?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
@@ -44,13 +54,18 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          booking_source?: Database["public"]["Enums"]["booking_source"]
           check_in?: string
           check_out?: string
+          commission_amount?: number | null
+          commission_rate?: number | null
           created_at?: string
           created_by?: string | null
           guest_id?: string
           id?: string
           num_guests?: number | null
+          ota_price?: number | null
+          ota_reference?: string | null
           room_id?: string
           special_requests?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
@@ -405,6 +420,13 @@ export type Database = {
       is_staff: { Args: never; Returns: boolean }
     }
     Enums: {
+      booking_source:
+        | "direct"
+        | "booking_com"
+        | "airbnb"
+        | "agoda"
+        | "expedia"
+        | "other_ota"
       booking_status:
         | "pending"
         | "confirmed"
@@ -548,6 +570,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      booking_source: [
+        "direct",
+        "booking_com",
+        "airbnb",
+        "agoda",
+        "expedia",
+        "other_ota",
+      ],
       booking_status: [
         "pending",
         "confirmed",

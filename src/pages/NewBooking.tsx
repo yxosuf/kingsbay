@@ -72,6 +72,22 @@ export default function NewBooking() {
   const [specialRequests, setSpecialRequests] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
 
+  // OTA pricing state
+  const [bookingSource, setBookingSource] = useState<string>('direct');
+  const [otaPrice, setOtaPrice] = useState<string>('');
+  const [commissionRate, setCommissionRate] = useState<string>('');
+  const [otaReference, setOtaReference] = useState('');
+  const [useCustomPrice, setUseCustomPrice] = useState(false);
+  const [customTotalAmount, setCustomTotalAmount] = useState<string>('');
+
+  const OTA_COMMISSION_RATES: Record<string, number> = {
+    booking_com: 15,
+    airbnb: 3,
+    agoda: 18,
+    expedia: 20,
+    other_ota: 15,
+  };
+
   useEffect(() => {
     fetchAvailableRooms();
     fetchExistingGuests();
@@ -108,13 +124,44 @@ export default function NewBooking() {
     setGuestSearch('');
   };
 
-  const calculateTotal = () => {
+  const calculateSystemTotal = () => {
     if (!checkIn || !checkOut || !roomId) return 0;
     const room = rooms.find((r) => r.id === roomId);
     if (!room) return 0;
     const nights = differenceInDays(checkOut, checkIn);
     return room.price * Math.max(nights, 1);
   };
+
+  const calculateCommission = () => {
+    const rate = parseFloat(commissionRate) || OTA_COMMISSION_RATES[bookingSource] || 0;
+    const price = useCustomPrice ? parseFloat(customTotalAmount) || 0 : calculateSystemTotal();
+    return (price * rate) / 100;
+  };
+
+  const getEffectiveTotal = () => {
+    if (useCustomPrice && customTotalAmount) {
+      return parseFloat(customTotalAmount) || 0;
+    }
+    return calculateSystemTotal();
+  };
+
+  const getOtaNetPrice = () => {
+    if (bookingSource === 'direct') return null;
+    const total = getEffectiveTotal();
+    const commission = calculateCommission();
+    return total - commission;
+  };
+
+  // Auto-set commission rate when booking source changes
+  useEffect(() => {
+    if (bookingSource !== 'direct' && OTA_COMMISSION_RATES[bookingSource]) {
+      setCommissionRate(OTA_COMMISSION_RATES[bookingSource].toString());
+    } else if (bookingSource === 'direct') {
+      setCommissionRate('');
+      setOtaPrice('');
+      setOtaReference('');
+    }
+  }, [bookingSource]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,6 +208,11 @@ export default function NewBooking() {
         guestId = newGuest.id;
       }
 
+      // Calculate OTA values
+      const effectiveTotal = getEffectiveTotal();
+      const commissionAmt = bookingSource !== 'direct' ? calculateCommission() : null;
+      const netOtaPrice = bookingSource !== 'direct' ? getOtaNetPrice() : null;
+
       // Create booking
       const { error: bookingError } = await supabase.from('bookings').insert({
         guest_id: guestId,
@@ -168,11 +220,16 @@ export default function NewBooking() {
         check_in: format(checkIn!, 'yyyy-MM-dd'),
         check_out: format(checkOut!, 'yyyy-MM-dd'),
         num_guests: numGuests,
-        status: 'confirmed',
+        status: 'confirmed' as const,
         special_requests: specialRequests.trim() || null,
-        total_amount: calculateTotal(),
+        total_amount: effectiveTotal,
         created_by: user?.id,
-      });
+        booking_source: bookingSource as any,
+        ota_price: netOtaPrice,
+        commission_rate: bookingSource !== 'direct' ? parseFloat(commissionRate) || null : null,
+        commission_amount: commissionAmt,
+        ota_reference: bookingSource !== 'direct' ? otaReference.trim() || null : null,
+      } as any);
 
       if (bookingError) throw bookingError;
 
@@ -426,6 +483,24 @@ export default function NewBooking() {
                   </Select>
                 </div>
 
+                {/* Booking Source */}
+                <div className="space-y-2">
+                  <Label>Booking Source *</Label>
+                  <Select value={bookingSource} onValueChange={setBookingSource}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="direct">Direct Booking</SelectItem>
+                      <SelectItem value="booking_com">Booking.com</SelectItem>
+                      <SelectItem value="airbnb">Airbnb</SelectItem>
+                      <SelectItem value="agoda">Agoda</SelectItem>
+                      <SelectItem value="expedia">Expedia</SelectItem>
+                      <SelectItem value="other_ota">Other OTA</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 {/* Payment Method */}
                 <div className="space-y-2">
                   <Label>Payment Method</Label>
@@ -442,6 +517,84 @@ export default function NewBooking() {
                   </Select>
                 </div>
               </div>
+
+              {/* OTA Pricing Section */}
+              {bookingSource !== 'direct' && (
+                <div className="mt-4 p-4 bg-muted/50 rounded-lg border space-y-4">
+                  <h4 className="font-medium text-sm">OTA Pricing Details</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="otaReference">OTA Booking Reference</Label>
+                      <Input
+                        id="otaReference"
+                        value={otaReference}
+                        onChange={(e) => setOtaReference(e.target.value)}
+                        placeholder="e.g., BK-12345678"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="commissionRate">Commission Rate (%)</Label>
+                      <Input
+                        id="commissionRate"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={commissionRate}
+                        onChange={(e) => setCommissionRate(e.target.value)}
+                        placeholder="15"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Manual Price Override */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="useCustomPrice"
+                      checked={useCustomPrice}
+                      onChange={(e) => setUseCustomPrice(e.target.checked)}
+                      className="rounded border-input"
+                    />
+                    <Label htmlFor="useCustomPrice" className="text-sm font-normal cursor-pointer">
+                      Override calculated price (use OTA price)
+                    </Label>
+                  </div>
+
+                  {useCustomPrice && (
+                    <div className="space-y-2">
+                      <Label htmlFor="customTotalAmount">Custom Total Amount (Rs.)</Label>
+                      <Input
+                        id="customTotalAmount"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={customTotalAmount}
+                        onChange={(e) => setCustomTotalAmount(e.target.value)}
+                        placeholder="Enter the actual OTA booking price"
+                      />
+                    </div>
+                  )}
+
+                  {/* Commission Summary */}
+                  {(commissionRate || OTA_COMMISSION_RATES[bookingSource]) && (
+                    <div className="pt-3 border-t space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Gross Amount:</span>
+                        <span>Rs. {getEffectiveTotal().toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-destructive">
+                        <span>Commission ({commissionRate || OTA_COMMISSION_RATES[bookingSource]}%):</span>
+                        <span>- Rs. {calculateCommission().toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between font-medium pt-1 border-t">
+                        <span>Net Revenue:</span>
+                        <span className="text-success">Rs. {getOtaNetPrice()?.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Special Requests */}
               <div className="space-y-2">
@@ -468,8 +621,13 @@ export default function NewBooking() {
                         nights
                       </p>
                       <p className="text-2xl font-bold">
-                        Rs. {calculateTotal().toLocaleString()}
+                        Rs. {getEffectiveTotal().toLocaleString()}
                       </p>
+                      {bookingSource !== 'direct' && getOtaNetPrice() !== null && (
+                        <p className="text-sm text-success">
+                          Net after commission: Rs. {getOtaNetPrice()?.toLocaleString()}
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>

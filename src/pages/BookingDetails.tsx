@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { User, BedDouble, Calendar, CreditCard, ArrowLeft, Printer } from 'lucide-react';
+import { User, BedDouble, Calendar, CreditCard, ArrowLeft, Printer, Globe } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -28,6 +28,11 @@ interface BookingDetails {
   total_amount: number;
   special_requests: string | null;
   created_at: string;
+  booking_source: string;
+  ota_price: number | null;
+  commission_rate: number | null;
+  commission_amount: number | null;
+  ota_reference: string | null;
   guests: {
     id: string;
     name: string;
@@ -304,6 +309,53 @@ export default function BookingDetails() {
               </CardContent>
             </Card>
 
+            {/* OTA Booking Info */}
+            {booking.booking_source && booking.booking_source !== 'direct' && (
+              <Card>
+                <CardHeader className="flex flex-row items-center gap-4">
+                  <div className="p-3 rounded-xl bg-warning/10">
+                    <Globe className="h-6 w-6 text-warning" />
+                  </div>
+                  <div>
+                    <CardTitle>OTA Booking Details</CardTitle>
+                    <p className="text-sm text-muted-foreground capitalize">
+                      {booking.booking_source.replace('_', '.')}
+                    </p>
+                  </div>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 gap-4">
+                  {booking.ota_reference && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">OTA Reference</p>
+                      <p className="font-medium">{booking.ota_reference}</p>
+                    </div>
+                  )}
+                  {booking.commission_rate && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Commission Rate</p>
+                      <p className="font-medium">{booking.commission_rate}%</p>
+                    </div>
+                  )}
+                  {booking.commission_amount && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Commission Amount</p>
+                      <p className="font-medium text-destructive">
+                        - Rs. {Number(booking.commission_amount).toLocaleString()}
+                      </p>
+                    </div>
+                  )}
+                  {booking.ota_price !== null && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Net Revenue</p>
+                      <p className="font-medium text-success">
+                        Rs. {Number(booking.ota_price).toLocaleString()}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Services */}
             {services.length > 0 && (
               <Card>
@@ -374,6 +426,27 @@ export default function BookingDetails() {
                   <span>Total</span>
                   <span>Rs. {grandTotal.toLocaleString()}</span>
                 </div>
+
+                {/* OTA Net Revenue Summary */}
+                {booking.booking_source && booking.booking_source !== 'direct' && booking.ota_price !== null && (
+                  <div className="pt-3 border-t space-y-2">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">OTA Revenue</p>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Gross Amount</span>
+                      <span>Rs. {booking.total_amount.toLocaleString()}</span>
+                    </div>
+                    {booking.commission_amount && (
+                      <div className="flex justify-between text-sm text-destructive">
+                        <span>Commission ({booking.commission_rate}%)</span>
+                        <span>- Rs. {Number(booking.commission_amount).toLocaleString()}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-medium text-success">
+                      <span>Net Revenue</span>
+                      <span>Rs. {Number(booking.ota_price).toLocaleString()}</span>
+                    </div>
+                  </div>
+                )}
 
                 {booking.status === 'checked_in' && (
                   <Button
