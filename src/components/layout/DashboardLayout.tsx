@@ -1,9 +1,11 @@
-import { ReactNode, useEffect } from 'react';
+ import { ReactNode, useEffect } from 'react';
+ import { LogIn } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { AppHeader } from './AppHeader';
+ import { Button } from '@/components/ui/button';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -45,12 +47,14 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
             Your account has been created but you haven't been assigned a role yet. 
             Please contact an administrator to get access to the system.
           </p>
-          <button
+          <Button
+            variant="outline"
             onClick={() => navigate('/auth')}
-            className="text-primary hover:underline"
+            className="mt-2"
           >
+            <LogIn className="h-4 w-4" />
             Return to login
-          </button>
+          </Button>
         </div>
       </div>
     );
