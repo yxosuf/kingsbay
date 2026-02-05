@@ -13,7 +13,7 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children, title }: DashboardLayoutProps) {
-  const { user, loading, role } = useAuth();
+  const { user, loading, role, signOut } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,6 +37,11 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
     return null;
   }
 
+  const handleReturnToLogin = async () => {
+    await signOut();
+    navigate('/auth');
+  };
+
   // Show message if user has no role assigned
   if (!role) {
     return (
@@ -49,7 +54,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
           </p>
           <Button
             variant="outline"
-            onClick={() => navigate('/auth')}
+            onClick={handleReturnToLogin}
             className="mt-2"
           >
             <LogIn className="h-4 w-4" />
