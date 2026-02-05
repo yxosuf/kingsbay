@@ -18,6 +18,7 @@ import {
   Activity
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { ChannelIcon } from './ChannelIcon';
 
 interface SyncLog {
   id: string;
@@ -36,7 +37,6 @@ interface ChannelConnection {
 
 interface ChannelInfo {
   name: string;
-  icon: string;
   description: string;
 }
 
@@ -55,12 +55,12 @@ export function SyncStatus({ logs, channels, getChannelInfo }: SyncStatusProps) 
     return 'Unknown';
   };
 
-  const getChannelIcon = (channelId: string) => {
+  const getChannelType = (channelId: string) => {
     const channel = channels.find(c => c.id === channelId);
     if (channel) {
-      return getChannelInfo(channel.channel_type).icon;
+      return channel.channel_type;
     }
-    return '📡';
+    return 'other_ota';
   };
 
   const getStatusIcon = (status: string) => {
@@ -195,7 +195,7 @@ export function SyncStatus({ logs, channels, getChannelInfo }: SyncStatusProps) 
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span>{getChannelIcon(log.channel_id)}</span>
+                        <ChannelIcon type={getChannelType(log.channel_id)} size="sm" />
                         <span>{getChannelName(log.channel_id)}</span>
                       </div>
                     </TableCell>
