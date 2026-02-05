@@ -26,6 +26,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Settings, Trash2, Copy, ExternalLink } from 'lucide-react';
+import { ChannelIcon } from './ChannelIcon';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -46,7 +47,6 @@ interface ChannelConnection {
 
 interface ChannelInfo {
   name: string;
-  icon: string;
   description: string;
 }
 
@@ -95,7 +95,7 @@ export function ChannelCard({ channel, channelInfo, onUpdate, onDelete }: Channe
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-2xl">{channelInfo.icon}</span>
+            <ChannelIcon type={channel.channel_type} size="md" />
             <div>
               <CardTitle className="text-base">{channelInfo.name}</CardTitle>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -155,7 +155,7 @@ export function ChannelCard({ channel, channelInfo, onUpdate, onDelete }: Channe
             <DialogContent>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  <span>{channelInfo.icon}</span>
+                  <ChannelIcon type={channel.channel_type} size="sm" />
                   {channelInfo.name} Settings
                 </DialogTitle>
                 <DialogDescription>

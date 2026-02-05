@@ -17,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { toast } from 'sonner';
 import { ChannelCard } from '@/components/channels/ChannelCard';
+import { ChannelIcon } from '@/components/channels/ChannelIcon';
 import { InventorySettings } from '@/components/channels/InventorySettings';
 import { SyncStatus } from '@/components/channels/SyncStatus';
 import { format } from 'date-fns';
@@ -55,12 +56,12 @@ interface SyncLog {
 }
 
 const CHANNEL_OPTIONS = [
-  { type: 'direct', name: 'Direct Bookings', icon: '🏨', description: 'Walk-ins and phone bookings' },
-  { type: 'booking_com', name: 'Booking.com', icon: '🔵', description: 'World\'s largest OTA' },
-  { type: 'airbnb', name: 'Airbnb', icon: '🏠', description: 'Vacation rentals platform' },
-  { type: 'agoda', name: 'Agoda', icon: '🔴', description: 'Asia-Pacific focused OTA' },
-  { type: 'expedia', name: 'Expedia', icon: '🟡', description: 'Travel booking platform' },
-  { type: 'other_ota', name: 'Other OTA', icon: '🌐', description: 'Other booking channels' },
+  { type: 'direct', name: 'Direct Bookings', description: 'Walk-ins and phone bookings' },
+  { type: 'booking_com', name: 'Booking.com', description: 'World\'s largest OTA' },
+  { type: 'airbnb', name: 'Airbnb', description: 'Vacation rentals platform' },
+  { type: 'agoda', name: 'Agoda', description: 'Asia-Pacific focused OTA' },
+  { type: 'expedia', name: 'Expedia', description: 'Travel booking platform' },
+  { type: 'other_ota', name: 'Other OTA', description: 'Other booking channels' },
 ];
 
 export default function ChannelManager() {
@@ -241,7 +242,6 @@ export default function ChannelManager() {
   const getChannelInfo = (type: string) => {
     return CHANNEL_OPTIONS.find(c => c.type === type) || {
       name: type,
-      icon: '📡',
       description: 'Booking channel',
     };
   };
@@ -400,7 +400,7 @@ export default function ChannelManager() {
                       onClick={() => handleCreateChannel(option.type)}
                     >
                       <CardContent className="flex items-center gap-4 p-4">
-                        <span className="text-3xl">{option.icon}</span>
+                        <ChannelIcon type={option.type} size="md" />
                         <div className="flex-1">
                           <h4 className="font-medium">{option.name}</h4>
                           <p className="text-sm text-muted-foreground">{option.description}</p>
