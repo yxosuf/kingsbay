@@ -41,6 +41,7 @@ interface ChannelConnection {
   last_sync_at: string | null;
   sync_status: string;
   commission_rate: number | null;
+  last_error_message?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -82,9 +83,9 @@ export function ChannelCard({ channel, channelInfo, onUpdate, onDelete }: Channe
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-green-500/10 text-green-500 border-green-500/20';
+        return 'bg-primary/10 text-primary border-primary/20';
       case 'error':
-        return 'bg-red-500/10 text-red-500 border-red-500/20';
+        return 'bg-destructive/10 text-destructive border-destructive/20';
       default:
         return 'bg-muted text-muted-foreground';
     }
@@ -111,15 +112,22 @@ export function ChannelCard({ channel, channelInfo, onUpdate, onDelete }: Channe
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Status Badge */}
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className={getStatusColor(channel.sync_status)}>
-            {channel.sync_status === 'active' ? 'Active' : 
-             channel.sync_status === 'error' ? 'Error' : 'Disabled'}
-          </Badge>
-          {channel.last_sync_at && (
-            <span className="text-xs text-muted-foreground">
-              Last sync: {format(new Date(channel.last_sync_at), 'MMM d, HH:mm')}
-            </span>
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className={getStatusColor(channel.sync_status)}>
+              {channel.sync_status === 'active' ? 'Active' : 
+               channel.sync_status === 'error' ? 'Error' : 'Disabled'}
+            </Badge>
+            {channel.last_sync_at && (
+              <span className="text-xs text-muted-foreground">
+                Last sync: {format(new Date(channel.last_sync_at), 'MMM d, HH:mm')}
+              </span>
+            )}
+          </div>
+          {channel.sync_status === 'error' && channel.last_error_message && (
+            <p className="text-xs text-destructive truncate" title={channel.last_error_message}>
+              {channel.last_error_message}
+            </p>
           )}
         </div>
 

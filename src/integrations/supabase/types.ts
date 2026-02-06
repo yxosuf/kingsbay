@@ -23,12 +23,17 @@ export type Database = {
           commission_rate: number | null
           created_at: string
           created_by: string | null
+          external_booking_id: string | null
+          external_room_type_id: string | null
+          external_source: string | null
           guest_id: string
           id: string
+          needs_review: boolean | null
           num_guests: number | null
           ota_price: number | null
           ota_reference: string | null
           property_id: string | null
+          review_reason: string | null
           room_id: string
           special_requests: string | null
           status: Database["public"]["Enums"]["booking_status"]
@@ -43,12 +48,17 @@ export type Database = {
           commission_rate?: number | null
           created_at?: string
           created_by?: string | null
+          external_booking_id?: string | null
+          external_room_type_id?: string | null
+          external_source?: string | null
           guest_id: string
           id?: string
+          needs_review?: boolean | null
           num_guests?: number | null
           ota_price?: number | null
           ota_reference?: string | null
           property_id?: string | null
+          review_reason?: string | null
           room_id: string
           special_requests?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
@@ -63,12 +73,17 @@ export type Database = {
           commission_rate?: number | null
           created_at?: string
           created_by?: string | null
+          external_booking_id?: string | null
+          external_room_type_id?: string | null
+          external_source?: string | null
           guest_id?: string
           id?: string
+          needs_review?: boolean | null
           num_guests?: number | null
           ota_price?: number | null
           ota_reference?: string | null
           property_id?: string | null
+          review_reason?: string | null
           room_id?: string
           special_requests?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
@@ -109,6 +124,7 @@ export type Database = {
           ical_import_url: string | null
           id: string
           is_enabled: boolean
+          last_error_message: string | null
           last_sync_at: string | null
           property_id: string
           sync_status: Database["public"]["Enums"]["sync_status"]
@@ -123,6 +139,7 @@ export type Database = {
           ical_import_url?: string | null
           id?: string
           is_enabled?: boolean
+          last_error_message?: string | null
           last_sync_at?: string | null
           property_id: string
           sync_status?: Database["public"]["Enums"]["sync_status"]
@@ -137,6 +154,7 @@ export type Database = {
           ical_import_url?: string | null
           id?: string
           is_enabled?: boolean
+          last_error_message?: string | null
           last_sync_at?: string | null
           property_id?: string
           sync_status?: Database["public"]["Enums"]["sync_status"]
@@ -148,6 +166,54 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      channel_room_mappings: {
+        Row: {
+          channel_connection_id: string
+          created_at: string
+          external_room_name: string
+          external_room_type_id: string | null
+          id: string
+          internal_room_id: string | null
+          is_active: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          channel_connection_id: string
+          created_at?: string
+          external_room_name: string
+          external_room_type_id?: string | null
+          id?: string
+          internal_room_id?: string | null
+          is_active?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          channel_connection_id?: string
+          created_at?: string
+          external_room_name?: string
+          external_room_type_id?: string | null
+          id?: string
+          internal_room_id?: string | null
+          is_active?: boolean | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_room_mappings_channel_connection_id_fkey"
+            columns: ["channel_connection_id"]
+            isOneToOne: false
+            referencedRelation: "channel_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_room_mappings_internal_room_id_fkey"
+            columns: ["internal_room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
             referencedColumns: ["id"]
           },
         ]
@@ -712,6 +778,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_booking_overlap: {
+        Args: {
+          p_check_in: string
+          p_check_out: string
+          p_exclude_booking_id?: string
+          p_room_id: string
+        }
+        Returns: {
+          conflicting_booking_id: string
+          conflicting_check_in: string
+          conflicting_check_out: string
+          conflicting_guest_name: string
+          has_overlap: boolean
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["staff_role"]

@@ -308,7 +308,13 @@ export default function NewBooking() {
       navigate('/bookings');
     } catch (error: any) {
       logError('Error creating booking', error);
-      toast.error(getSafeErrorMessage(error));
+      
+      // Check for overlap error from DB trigger
+      if (error.message?.includes('already booked')) {
+        toast.error('Room is already booked for these dates. Please choose different dates or another room.');
+      } else {
+        toast.error(getSafeErrorMessage(error));
+      }
     } finally {
       setLoading(false);
     }
