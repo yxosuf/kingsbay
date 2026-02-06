@@ -227,11 +227,31 @@ export default function ChannelManager() {
   };
 
   const handleManualSync = async () => {
+    if (!selectedProperty?.id) return;
     setSyncing(true);
-    // This will be implemented with the edge function later
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    toast.info('Manual sync will be available once iCal functions are deployed');
-    setSyncing(false);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('channel-sync', {
+        body: { propertyId: selectedProperty.id },
+      });
+      
+      if (error) throw error;
+      
+      if (data.channelsSynced > 0) {
+        toast.success(`Synced ${data.channelsSynced} channel(s) successfully`);
+      } else if (data.channelsFailed > 0) {
+        toast.error(`${data.channelsFailed} channel(s) failed to sync`);
+      } else {
+        toast.info('No channels configured for sync');
+      }
+      
+      fetchData(); // Refresh data after sync
+    } catch (error: any) {
+      console.error('Sync error:', error);
+      toast.error('Failed to sync channels');
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const enabledChannels = channels.filter(c => c.is_enabled);
