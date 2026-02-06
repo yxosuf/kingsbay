@@ -3,14 +3,11 @@ import {
   CalendarPlus, 
   BookOpen, 
   BedDouble, 
-  UtensilsCrossed, 
   Users,
-  FileText,
   Settings,
   Crown,
   LogOut,
-  Building2,
-  Link2
+  Building2
 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -36,10 +33,7 @@ const mainNavItems = [
   { title: 'Bookings', url: '/bookings', icon: BookOpen },
   { title: 'Room Status', url: '/rooms', icon: BedDouble },
   { title: 'Availability', url: '/availability', icon: CalendarPlus },
-  { title: 'Services', url: '/services', icon: UtensilsCrossed },
   { title: 'Guests', url: '/guests', icon: Users },
-  { title: 'Channels', url: '/channels', icon: Link2 },
-  { title: 'Reports', url: '/reports', icon: FileText },
 ];
 
 const systemNavItems = [
