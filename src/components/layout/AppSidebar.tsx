@@ -35,6 +35,7 @@ const mainNavItems = [
   { title: 'New Booking', url: '/bookings/new', icon: CalendarPlus },
   { title: 'Bookings', url: '/bookings', icon: BookOpen },
   { title: 'Room Status', url: '/rooms', icon: BedDouble },
+  { title: 'Availability', url: '/availability', icon: CalendarPlus },
   { title: 'Services', url: '/services', icon: UtensilsCrossed },
   { title: 'Guests', url: '/guests', icon: Users },
   { title: 'Channels', url: '/channels', icon: Link2 },

@@ -1,1 +1,10 @@
 project_id = "phybclqyaykozitpkdsf"
+
+[functions.ical-export]
+verify_jwt = false
+
+[functions.ical-import]
+verify_jwt = false
+
+[functions.channel-sync]
+verify_jwt = false

@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 import { z } from 'zod';
 import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
 import { ServiceSelector, SelectedService } from '@/components/booking/ServiceSelector';
+import { checkRoomAvailability } from '@/lib/availabilityCheck';
 
 const bookingSchema = z.object({
   guestName: z.string().trim().min(2, 'Guest name is required'),
@@ -206,6 +207,31 @@ export default function NewBooking() {
     setLoading(true);
 
     try {
+      // CONFLICT DETECTION: Check room availability before booking
+      const availability = await checkRoomAvailability(roomId, checkIn!, checkOut!);
+      
+      if (!availability.isAvailable) {
+        const conflicts = [];
+        
+        if (availability.conflictingBookings.length > 0) {
+          const bookingConflicts = availability.conflictingBookings.map(b => 
+            `${b.guestName} (${b.checkIn} to ${b.checkOut})`
+          ).join(', ');
+          conflicts.push(`Existing bookings: ${bookingConflicts}`);
+        }
+        
+        if (availability.blockedDates.length > 0) {
+          const blockedList = availability.blockedDates.map(b => 
+            `${b.date} (${b.reason})`
+          ).join(', ');
+          conflicts.push(`Blocked dates: ${blockedList}`);
+        }
+        
+        toast.error(`Room is not available. ${conflicts.join('. ')}`);
+        setLoading(false);
+        return;
+      }
+
       let guestId = selectedGuest?.id;
 
       // Create new guest if not selected from existing
