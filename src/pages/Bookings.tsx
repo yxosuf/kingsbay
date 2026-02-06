@@ -20,7 +20,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Search, Eye, LogIn, LogOut, X, BookOpen } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Plus, Search, Eye, LogIn, LogOut, X, BookOpen, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { toast } from 'sonner';
@@ -35,6 +43,9 @@ interface Booking {
   total_amount: number;
   room_id: string;
   property_id: string | null;
+  booking_source: string;
+  needs_review: boolean;
+  review_reason: string | null;
   guests: { name: string; phone: string } | null;
   rooms: { room_number: string; room_type: string } | null;
 }
@@ -48,6 +59,10 @@ export default function Bookings() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState(searchParams.get('filter') || 'all');
   const isMobile = useIsMobile();
+  const [cancelConfirm, setCancelConfirm] = useState<{ open: boolean; booking: Booking | null }>({
+    open: false,
+    booking: null,
+  });
 
   useEffect(() => {
     fetchBookings();
@@ -66,6 +81,9 @@ export default function Bookings() {
           total_amount,
           room_id,
           property_id,
+          booking_source,
+          needs_review,
+          review_reason,
           guests (name, phone),
           rooms (room_number, room_type)
         `)
@@ -117,15 +135,22 @@ export default function Bookings() {
     }
   };
 
-  const handleCancel = async (bookingId: string) => {
+  const handleCancelClick = (booking: Booking) => {
+    setCancelConfirm({ open: true, booking });
+  };
+
+  const handleCancelConfirm = async () => {
+    if (!cancelConfirm.booking) return;
+    
     try {
       const { error } = await supabase
         .from('bookings')
         .update({ status: 'cancelled' })
-        .eq('id', bookingId);
+        .eq('id', cancelConfirm.booking.id);
 
       if (error) throw error;
       toast.success('Booking cancelled');
+      setCancelConfirm({ open: false, booking: null });
       fetchBookings();
     } catch (error) {
       toast.error('Failed to cancel booking');
@@ -158,7 +183,15 @@ export default function Bookings() {
     <div className="space-y-3">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <p className="font-medium truncate">{booking.guests?.name || 'Unknown'}</p>
+          <div className="flex items-center gap-2">
+            <p className="font-medium truncate">{booking.guests?.name || 'Unknown'}</p>
+            {booking.needs_review && (
+              <Badge variant="destructive" className="shrink-0 flex items-center gap-1 text-xs">
+                <AlertTriangle className="h-3 w-3" />
+                Review
+              </Badge>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground">{booking.guests?.phone}</p>
         </div>
         {getStatusBadge(booking.status)}
@@ -210,7 +243,7 @@ export default function Bookings() {
               variant="outline"
               size="sm"
               className="text-destructive border-destructive hover:bg-destructive/10"
-              onClick={() => handleCancel(booking.id)}
+              onClick={() => handleCancelClick(booking)}
             >
               <X className="h-4 w-4" />
             </Button>
@@ -309,7 +342,15 @@ export default function Bookings() {
                     <TableRow key={booking.id}>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{booking.guests?.name || 'Unknown'}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{booking.guests?.name || 'Unknown'}</p>
+                            {booking.needs_review && (
+                              <Badge variant="destructive" className="flex items-center gap-1 text-xs">
+                                <AlertTriangle className="h-3 w-3" />
+                                Review
+                              </Badge>
+                            )}
+                          </div>
                           <p className="text-sm text-muted-foreground">{booking.guests?.phone}</p>
                         </div>
                       </TableCell>
@@ -348,7 +389,7 @@ export default function Bookings() {
                                 variant="ghost"
                                 size="icon"
                                 className="text-destructive"
-                                onClick={() => handleCancel(booking.id)}
+                                onClick={() => handleCancelClick(booking)}
                               >
                                 <X className="h-4 w-4" />
                               </Button>
@@ -374,6 +415,39 @@ export default function Bookings() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Cancel Confirmation Dialog */}
+      <Dialog 
+        open={cancelConfirm.open} 
+        onOpenChange={(open) => !open && setCancelConfirm({ open: false, booking: null })}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel Booking</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel this booking? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {cancelConfirm.booking && (
+            <div className="py-4 space-y-2">
+              <p><strong>Guest:</strong> {cancelConfirm.booking.guests?.name || 'Unknown'}</p>
+              <p><strong>Room:</strong> {cancelConfirm.booking.rooms?.room_number || 'N/A'}</p>
+              <p><strong>Dates:</strong> {new Date(cancelConfirm.booking.check_in).toLocaleDateString()} - {new Date(cancelConfirm.booking.check_out).toLocaleDateString()}</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setCancelConfirm({ open: false, booking: null })}
+            >
+              Keep Booking
+            </Button>
+            <Button variant="destructive" onClick={handleCancelConfirm}>
+              Cancel Booking
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

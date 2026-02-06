@@ -9,7 +9,9 @@ import {
   Activity, 
   Link2,
   LinkIcon,
-  ExternalLink
+  ExternalLink,
+  AlertTriangle,
+  Map,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
@@ -18,6 +20,8 @@ import { ChannelCard } from '@/components/channels/ChannelCard';
 import { ChannelIcon } from '@/components/channels/ChannelIcon';
 import { InventorySettings } from '@/components/channels/InventorySettings';
 import { SyncStatus } from '@/components/channels/SyncStatus';
+import { ChannelRoomMappings } from '@/components/channels/ChannelRoomMappings';
+import { NeedsReviewBookings } from '@/components/channels/NeedsReviewBookings';
 import { format } from 'date-fns';
 
 interface ChannelConnection {
@@ -31,6 +35,7 @@ interface ChannelConnection {
   last_sync_at: string | null;
   sync_status: string;
   commission_rate: number | null;
+  last_error_message: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -338,10 +343,18 @@ export function ChannelsSettings() {
       </div>
 
       <Tabs defaultValue="channels" className="space-y-4">
-        <TabsList>
+        <TabsList className="flex flex-wrap">
           <TabsTrigger value="channels" className="flex items-center gap-2">
             <LinkIcon className="h-4 w-4" />
             Channels
+          </TabsTrigger>
+          <TabsTrigger value="mappings" className="flex items-center gap-2">
+            <Map className="h-4 w-4" />
+            Room Mappings
+          </TabsTrigger>
+          <TabsTrigger value="review" className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            Needs Review
           </TabsTrigger>
           <TabsTrigger value="inventory" className="flex items-center gap-2">
             <Settings2 className="h-4 w-4" />
@@ -413,6 +426,14 @@ export function ChannelsSettings() {
               </div>
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="mappings">
+          <ChannelRoomMappings />
+        </TabsContent>
+
+        <TabsContent value="review">
+          <NeedsReviewBookings />
         </TabsContent>
 
         <TabsContent value="inventory">
