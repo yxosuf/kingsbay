@@ -29,11 +29,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, UserPlus, Trash2, Shield, Hotel, Users, Clock } from 'lucide-react';
+import { Plus, UserPlus, Trash2, Shield, Hotel, Users, Clock, UtensilsCrossed, Link2, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
+import { ServicesSettings } from '@/components/settings/ServicesSettings';
+import { ChannelsSettings } from '@/components/settings/ChannelsSettings';
+import { ReportsSettings } from '@/components/settings/ReportsSettings';
 
 interface StaffMember {
   user_id: string;
@@ -49,7 +52,6 @@ interface PendingUser {
 }
 
 export default function Settings() {
-  // NOTE: isAdmin is for UI visibility only. Security is enforced by RLS policies on the database.
   const { isAdmin, user } = useAuth();
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
@@ -61,7 +63,6 @@ export default function Settings() {
   const [assignRole, setAssignRole] = useState<'admin' | 'manager' | 'front_desk'>('front_desk');
   const [saving, setSaving] = useState(false);
 
-  // Add staff form
   const [newEmail, setNewEmail] = useState('');
   const [newRole, setNewRole] = useState('front_desk');
 
@@ -79,7 +80,6 @@ export default function Settings() {
 
       if (error) throw error;
       
-      // Fetch profiles separately
       const userIds = roles?.map(r => r.user_id) || [];
       const { data: profiles } = await supabase
         .from('profiles')
@@ -102,7 +102,6 @@ export default function Settings() {
 
   const fetchPendingUsers = async () => {
     try {
-      // Fetch all profiles
       const { data: allProfiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, full_name, email, created_at')
@@ -110,7 +109,6 @@ export default function Settings() {
 
       if (profilesError) throw profilesError;
 
-      // Fetch all user_ids that have roles
       const { data: roles, error: rolesError } = await supabase
         .from('user_roles')
         .select('user_id');
@@ -118,8 +116,6 @@ export default function Settings() {
       if (rolesError) throw rolesError;
 
       const userIdsWithRoles = new Set(roles?.map(r => r.user_id) || []);
-      
-      // Filter out profiles that already have roles
       const pending = (allProfiles || []).filter(p => !userIdsWithRoles.has(p.id));
       
       setPendingUsers(pending);
@@ -170,7 +166,6 @@ export default function Settings() {
 
     setSaving(true);
     try {
-      // Find user by email from profiles
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id')
@@ -182,7 +177,6 @@ export default function Settings() {
         return;
       }
 
-      // Add role
       const { error: roleError } = await supabase.from('user_roles').insert({
         user_id: profile.id,
         role: newRole as 'admin' | 'front_desk' | 'manager',
@@ -272,21 +266,39 @@ export default function Settings() {
     <DashboardLayout title="Settings">
       <div className="space-y-6">
         <Tabs defaultValue="users">
-          <TabsList>
-            <TabsTrigger value="users">
-              <Users className="h-4 w-4 mr-2" />
+          <TabsList className="flex-wrap h-auto gap-1">
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
               Users
               {pendingUsers.length > 0 && (
-                <Badge variant="destructive" className="ml-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs">
                   {pendingUsers.length}
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="staff">Staff Management</TabsTrigger>
-            <TabsTrigger value="hotel">Hotel Settings</TabsTrigger>
+            <TabsTrigger value="staff" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              Staff
+            </TabsTrigger>
+            <TabsTrigger value="services" className="flex items-center gap-2">
+              <UtensilsCrossed className="h-4 w-4" />
+              Services
+            </TabsTrigger>
+            <TabsTrigger value="channels" className="flex items-center gap-2">
+              <Link2 className="h-4 w-4" />
+              Channels
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Reports
+            </TabsTrigger>
+            <TabsTrigger value="hotel" className="flex items-center gap-2">
+              <Hotel className="h-4 w-4" />
+              Hotel
+            </TabsTrigger>
           </TabsList>
 
-          {/* Users Tab - Pending Role Assignment */}
+          {/* Users Tab */}
           <TabsContent value="users" className="mt-6 space-y-6">
             <Card>
               <CardHeader>
@@ -350,8 +362,8 @@ export default function Settings() {
             </Card>
           </TabsContent>
 
+          {/* Staff Tab */}
           <TabsContent value="staff" className="mt-6 space-y-6">
-            {/* Staff Management */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
@@ -493,6 +505,22 @@ export default function Settings() {
             </Card>
           </TabsContent>
 
+          {/* Services Tab */}
+          <TabsContent value="services" className="mt-6">
+            <ServicesSettings />
+          </TabsContent>
+
+          {/* Channels Tab */}
+          <TabsContent value="channels" className="mt-6">
+            <ChannelsSettings />
+          </TabsContent>
+
+          {/* Reports Tab */}
+          <TabsContent value="reports" className="mt-6">
+            <ReportsSettings />
+          </TabsContent>
+
+          {/* Hotel Tab */}
           <TabsContent value="hotel" className="mt-6">
             <Card>
               <CardHeader>
