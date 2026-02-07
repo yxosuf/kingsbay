@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +20,8 @@ import { toast } from 'sonner';
 import { format, differenceInDays } from 'date-fns';
 import { ExtendStayDialog } from '@/components/booking/ExtendStayDialog';
 import { AddServiceDialog } from '@/components/booking/AddServiceDialog';
+import { PrintableInvoice } from '@/components/invoice/PrintableInvoice';
+import { useReactToPrint } from 'react-to-print';
 
 interface BookingDetails {
   id: string;
@@ -76,6 +78,17 @@ export default function BookingDetails() {
   const [showExtendDialog, setShowExtendDialog] = useState(false);
   const [showAddServiceDialog, setShowAddServiceDialog] = useState(false);
   const [linkedBookings, setLinkedBookings] = useState<{id: string; check_in: string; check_out: string; rooms: {room_number: string} | null}[]>([]);
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
+  const [invoiceNumber, setInvoiceNumber] = useState<string | null>(null);
+  const printRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: `Invoice-${invoiceNumber || 'preview'}`,
+    onAfterPrint: () => {
+      toast.success('Invoice printed successfully');
+    },
+  });
 
   useEffect(() => {
     if (id) {
@@ -99,6 +112,19 @@ export default function BookingDetails() {
 
       if (error) throw error;
       setBooking(data);
+      
+      // Fetch existing invoice if booking is checked out
+      if (data?.status === 'checked_out') {
+        const { data: invoiceData } = await supabase
+          .from('invoices')
+          .select('invoice_number')
+          .eq('booking_id', data.id)
+          .maybeSingle();
+        
+        if (invoiceData) {
+          setInvoiceNumber(invoiceData.invoice_number);
+        }
+      }
     } catch (error) {
       console.error('Error fetching booking:', error);
       toast.error('Failed to load booking details');
@@ -207,9 +233,10 @@ export default function BookingDetails() {
         .update({ status: 'available' })
         .eq('id', booking.rooms?.id);
 
+      setInvoiceNumber(invoice.invoice_number);
       toast.success('Guest checked out successfully. Invoice created.');
       setShowCheckoutDialog(false);
-      navigate(`/bookings`);
+      setShowPrintPreview(true);
     } catch (error: any) {
       console.error('Error during checkout:', error);
       toast.error(error.message || 'Failed to process checkout');
@@ -290,6 +317,12 @@ export default function BookingDetails() {
             {booking.status === 'checked_in' && (
               <Button onClick={() => setShowCheckoutDialog(true)}>
                 Check Out & Generate Invoice
+              </Button>
+            )}
+            {booking.status === 'checked_out' && invoiceNumber && (
+              <Button variant="outline" onClick={() => setShowPrintPreview(true)}>
+                <Printer className="h-4 w-4 mr-2" />
+                Print Invoice
               </Button>
             )}
           </div>
@@ -620,6 +653,74 @@ export default function BookingDetails() {
         bookingId={booking.id}
         onSuccess={fetchGuestServices}
       />
+
+      {/* Print Preview Dialog */}
+      <Dialog open={showPrintPreview} onOpenChange={setShowPrintPreview}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Printer className="h-5 w-5" />
+              Invoice Preview
+            </DialogTitle>
+            <DialogDescription>
+              Review the invoice before printing
+            </DialogDescription>
+          </DialogHeader>
+          
+          {booking && booking.rooms && booking.guests && (
+            <PrintableInvoice
+              ref={printRef}
+              data={{
+                invoiceNumber: invoiceNumber || `INV-${Date.now()}`,
+                invoiceDate: new Date(),
+                guest: {
+                  name: booking.guests.name,
+                  phone: booking.guests.phone,
+                  email: booking.guests.email,
+                  address: null,
+                  id_passport: booking.guests.id_passport,
+                },
+                room: {
+                  room_number: booking.rooms.room_number,
+                  room_type: booking.rooms.room_type,
+                  price: booking.rooms.price,
+                },
+                booking: {
+                  check_in: booking.check_in,
+                  check_out: booking.check_out,
+                  num_guests: booking.num_guests,
+                  booking_source: booking.booking_source,
+                },
+                services: services.map((s) => ({
+                  name: s.services?.name || 'Service',
+                  quantity: s.quantity,
+                  unit_price: Number(s.total_price) / s.quantity,
+                  total_price: Number(s.total_price),
+                  date: s.service_date,
+                })),
+                roomCharges: booking.total_amount,
+                serviceCharges: services.reduce((sum, s) => sum + Number(s.total_price), 0),
+                taxRate: 0.1,
+                taxAmount: (booking.total_amount + services.reduce((sum, s) => sum + Number(s.total_price), 0)) * 0.1,
+                totalAmount: (booking.total_amount + services.reduce((sum, s) => sum + Number(s.total_price), 0)) * 1.1,
+              }}
+            />
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => {
+              setShowPrintPreview(false);
+              navigate('/bookings');
+            }}>
+              Close & Return to Bookings
+            </Button>
+            <Button onClick={() => handlePrint()}>
+              <Printer className="h-4 w-4 mr-2" />
+              Print Invoice
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
