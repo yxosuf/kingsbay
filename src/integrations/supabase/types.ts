@@ -32,6 +32,7 @@ export type Database = {
           num_guests: number | null
           ota_price: number | null
           ota_reference: string | null
+          parent_booking_id: string | null
           property_id: string | null
           review_reason: string | null
           room_id: string
@@ -57,6 +58,7 @@ export type Database = {
           num_guests?: number | null
           ota_price?: number | null
           ota_reference?: string | null
+          parent_booking_id?: string | null
           property_id?: string | null
           review_reason?: string | null
           room_id: string
@@ -82,6 +84,7 @@ export type Database = {
           num_guests?: number | null
           ota_price?: number | null
           ota_reference?: string | null
+          parent_booking_id?: string | null
           property_id?: string | null
           review_reason?: string | null
           room_id?: string
@@ -96,6 +99,13 @@ export type Database = {
             columns: ["guest_id"]
             isOneToOne: false
             referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_parent_booking_id_fkey"
+            columns: ["parent_booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
           {

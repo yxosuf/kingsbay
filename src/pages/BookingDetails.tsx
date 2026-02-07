@@ -13,11 +13,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { User, BedDouble, Calendar, CreditCard, ArrowLeft, Printer, Globe } from 'lucide-react';
+import { User, BedDouble, Calendar, CreditCard, ArrowLeft, Printer, Globe, Plus, CalendarPlus, Link as LinkIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { format, differenceInDays } from 'date-fns';
+import { ExtendStayDialog } from '@/components/booking/ExtendStayDialog';
+import { AddServiceDialog } from '@/components/booking/AddServiceDialog';
 
 interface BookingDetails {
   id: string;
@@ -33,6 +35,9 @@ interface BookingDetails {
   commission_rate: number | null;
   commission_amount: number | null;
   ota_reference: string | null;
+  parent_booking_id: string | null;
+  guest_id: string;
+  room_id: string;
   guests: {
     id: string;
     name: string;
@@ -68,11 +73,15 @@ export default function BookingDetails() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [showCheckoutDialog, setShowCheckoutDialog] = useState(isCheckout);
+  const [showExtendDialog, setShowExtendDialog] = useState(false);
+  const [showAddServiceDialog, setShowAddServiceDialog] = useState(false);
+  const [linkedBookings, setLinkedBookings] = useState<{id: string; check_in: string; check_out: string; rooms: {room_number: string} | null}[]>([]);
 
   useEffect(() => {
     if (id) {
       fetchBookingDetails();
       fetchGuestServices();
+      fetchLinkedBookings();
     }
   }, [id]);
 
@@ -114,6 +123,43 @@ export default function BookingDetails() {
       setServices(data || []);
     } catch (error) {
       console.error('Error fetching services:', error);
+    }
+  };
+
+  const fetchLinkedBookings = async () => {
+    try {
+      // Get child bookings (continuations of this booking)
+      const { data: children } = await supabase
+        .from('bookings')
+        .select('id, check_in, check_out, rooms(room_number)')
+        .eq('parent_booking_id', id);
+      
+      // Get parent booking if this is a child
+      const { data: parentData } = await supabase
+        .from('bookings')
+        .select('parent_booking_id')
+        .eq('id', id)
+        .maybeSingle();
+      
+      let siblings: typeof children = [];
+      if (parentData?.parent_booking_id) {
+        const { data: parent } = await supabase
+          .from('bookings')
+          .select('id, check_in, check_out, rooms(room_number)')
+          .eq('id', parentData.parent_booking_id);
+        
+        const { data: otherChildren } = await supabase
+          .from('bookings')
+          .select('id, check_in, check_out, rooms(room_number)')
+          .eq('parent_booking_id', parentData.parent_booking_id)
+          .neq('id', id);
+        
+        siblings = [...(parent || []), ...(otherChildren || [])];
+      }
+
+      setLinkedBookings([...(children || []), ...siblings]);
+    } catch (error) {
+      console.error('Error fetching linked bookings:', error);
     }
   };
 
@@ -223,12 +269,24 @@ export default function BookingDetails() {
     <DashboardLayout title="Booking Details">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <Button variant="ghost" onClick={() => navigate('/bookings')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Bookings
           </Button>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            {(booking.status === 'checked_in' || booking.status === 'confirmed') && (
+              <>
+                <Button variant="outline" onClick={() => setShowAddServiceDialog(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Service
+                </Button>
+                <Button variant="outline" onClick={() => setShowExtendDialog(true)}>
+                  <CalendarPlus className="h-4 w-4 mr-2" />
+                  Extend Stay
+                </Button>
+              </>
+            )}
             {booking.status === 'checked_in' && (
               <Button onClick={() => setShowCheckoutDialog(true)}>
                 Check Out & Generate Invoice
@@ -385,6 +443,37 @@ export default function BookingDetails() {
               </Card>
             )}
 
+            {/* Linked Bookings (Split Stays) */}
+            {linkedBookings.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <LinkIcon className="h-5 w-5" />
+                    Linked Bookings (Split Stay)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {linkedBookings.map((linked) => (
+                      <div
+                        key={linked.id}
+                        className="flex items-center justify-between p-3 bg-muted rounded-lg cursor-pointer hover:bg-muted/80"
+                        onClick={() => navigate(`/bookings/${linked.id}`)}
+                      >
+                        <div>
+                          <p className="font-medium">Room {linked.rooms?.room_number}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(linked.check_in), 'PP')} - {format(new Date(linked.check_out), 'PP')}
+                          </p>
+                        </div>
+                        <Badge variant="outline">View</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {booking.special_requests && (
               <Card>
                 <CardHeader>
@@ -502,6 +591,35 @@ export default function BookingDetails() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Extend Stay Dialog */}
+      {booking.rooms && (
+        <ExtendStayDialog
+          open={showExtendDialog}
+          onOpenChange={setShowExtendDialog}
+          booking={{
+            id: booking.id,
+            check_in: booking.check_in,
+            check_out: booking.check_out,
+            room_id: booking.room_id,
+            guest_id: booking.guest_id,
+            total_amount: booking.total_amount,
+            rooms: booking.rooms,
+          }}
+          onSuccess={() => {
+            fetchBookingDetails();
+            fetchLinkedBookings();
+          }}
+        />
+      )}
+
+      {/* Add Service Dialog */}
+      <AddServiceDialog
+        open={showAddServiceDialog}
+        onOpenChange={setShowAddServiceDialog}
+        bookingId={booking.id}
+        onSuccess={fetchGuestServices}
+      />
     </DashboardLayout>
   );
 }

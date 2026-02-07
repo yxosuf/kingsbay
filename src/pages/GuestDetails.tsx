@@ -6,23 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
   Table,
   TableBody,
   TableCell,
@@ -30,12 +13,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ArrowLeft, User, Calendar, Plus, Receipt, Printer } from 'lucide-react';
+import { ArrowLeft, User, Calendar, Receipt, Edit, MapPin, Phone, Mail, CreditCard } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
+import { EditGuestDialog } from '@/components/guest/EditGuestDialog';
 
 interface GuestDetails {
   id: string;
@@ -55,6 +38,7 @@ interface Booking {
   check_out: string;
   status: string;
   total_amount: number;
+  booking_source: string;
   rooms: { room_number: string; room_type: string } | null;
 }
 
@@ -64,42 +48,33 @@ interface GuestService {
   quantity: number;
   unit_price: number;
   total_price: number;
-  services: { name: string } | null;
-}
-
-interface Service {
-  id: string;
-  name: string;
-  price: number;
-  category: string;
+  booking_id: string;
+  services: { name: string; category: string } | null;
+  bookings: { check_in: string; rooms: { room_number: string } | null } | null;
 }
 
 export default function GuestDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
 
   const [guest, setGuest] = useState<GuestDetails | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [guestServices, setGuestServices] = useState<GuestService[]>([]);
-  const [availableServices, setAvailableServices] = useState<Service[]>([]);
+  const [allServices, setAllServices] = useState<GuestService[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Add service dialog state
-  const [showAddService, setShowAddService] = useState(false);
-  const [selectedBookingId, setSelectedBookingId] = useState('');
-  const [selectedServiceId, setSelectedServiceId] = useState('');
-  const [quantity, setQuantity] = useState('1');
-  const [saving, setSaving] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   useEffect(() => {
     if (id) {
       fetchGuestDetails();
       fetchBookings();
-      fetchGuestServices();
-      fetchAvailableServices();
     }
   }, [id]);
+
+  useEffect(() => {
+    if (bookings.length > 0) {
+      fetchAllGuestServices();
+    }
+  }, [bookings]);
 
   const fetchGuestDetails = async () => {
     try {
@@ -129,6 +104,7 @@ export default function GuestDetails() {
           check_out,
           status,
           total_amount,
+          booking_source,
           rooms (room_number, room_type)
         `)
         .eq('guest_id', id)
@@ -140,8 +116,11 @@ export default function GuestDetails() {
     }
   };
 
-  const fetchGuestServices = async () => {
+  const fetchAllGuestServices = async () => {
     try {
+      const bookingIds = bookings.map((b) => b.id);
+      if (bookingIds.length === 0) return;
+
       const { data } = await supabase
         .from('guest_services')
         .select(`
@@ -150,71 +129,56 @@ export default function GuestDetails() {
           quantity,
           unit_price,
           total_price,
-          services (name)
+          booking_id,
+          services (name, category),
+          bookings (check_in, rooms (room_number))
         `)
-        .eq('booking_id', bookings.find((b) => b.status === 'checked_in')?.id || '')
+        .in('booking_id', bookingIds)
         .order('service_date', { ascending: false });
 
-      setGuestServices(data || []);
+      setAllServices(data || []);
     } catch (error) {
       console.error('Error fetching services:', error);
     }
   };
 
-  const fetchAvailableServices = async () => {
-    try {
-      const { data } = await supabase
-        .from('services')
-        .select('id, name, price, category')
-        .eq('is_active', true)
-        .order('name');
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, string> = {
+      pending: 'bg-warning/20 text-warning border-warning',
+      confirmed: 'bg-info/20 text-info border-info',
+      checked_in: 'bg-success/20 text-success border-success',
+      checked_out: 'bg-muted text-muted-foreground',
+      cancelled: 'bg-destructive/20 text-destructive border-destructive',
+    };
 
-      setAvailableServices(data || []);
-    } catch (error) {
-      console.error('Error fetching available services:', error);
-    }
-  };
-
-  const handleAddService = async () => {
-    if (!selectedBookingId || !selectedServiceId || !quantity) {
-      toast.error('Please fill in all fields');
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const service = availableServices.find((s) => s.id === selectedServiceId);
-      if (!service) throw new Error('Service not found');
-
-      const qty = parseInt(quantity);
-      const totalPrice = service.price * qty;
-
-      const { error } = await supabase.from('guest_services').insert({
-        booking_id: selectedBookingId,
-        service_id: selectedServiceId,
-        quantity: qty,
-        unit_price: service.price,
-        total_price: totalPrice,
-        service_date: new Date().toISOString().split('T')[0],
-        created_by: user?.id,
-      });
-
-      if (error) throw error;
-
-      toast.success('Service added to guest');
-      setShowAddService(false);
-      setSelectedServiceId('');
-      setQuantity('1');
-      fetchGuestServices();
-    } catch (error: any) {
-      logError('Error adding service', error);
-      toast.error(getSafeErrorMessage(error));
-    } finally {
-      setSaving(false);
-    }
+    return (
+      <Badge variant="outline" className={variants[status] || ''}>
+        {status.replace('_', ' ')}
+      </Badge>
+    );
   };
 
   const activeBooking = bookings.find((b) => b.status === 'checked_in');
+  const totalServicesValue = allServices.reduce((sum, s) => sum + Number(s.total_price), 0);
+  const totalBookingsValue = bookings.reduce((sum, b) => sum + Number(b.total_amount), 0);
+
+  // Group services by category for summary
+  const servicesByCategory = allServices.reduce((acc, service) => {
+    const category = service.services?.category || 'other';
+    if (!acc[category]) {
+      acc[category] = { count: 0, total: 0 };
+    }
+    acc[category].count += service.quantity;
+    acc[category].total += Number(service.total_price);
+    return acc;
+  }, {} as Record<string, { count: number; total: number }>);
+
+  const categoryLabels: Record<string, string> = {
+    room_service: 'Room Service',
+    transport: 'Transport',
+    facilities: 'Facilities',
+    special_request: 'Special Requests',
+  };
 
   if (loading) {
     return (
@@ -248,12 +212,10 @@ export default function GuestDetails() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Guests
           </Button>
-          {activeBooking && (
-            <Button onClick={() => setShowAddService(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Service
-            </Button>
-          )}
+          <Button variant="outline" onClick={() => setShowEditDialog(true)}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit Guest
+          </Button>
         </div>
 
         {/* Guest Info Card */}
@@ -274,31 +236,105 @@ export default function GuestDetails() {
               </Badge>
             )}
           </CardHeader>
-          <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Phone</p>
-              <p className="font-medium">{guest.phone || 'N/A'}</p>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="flex items-start gap-3">
+                <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Phone / WhatsApp</p>
+                  <p className="font-medium">{guest.phone || 'Not provided'}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Email</p>
+                  <p className="font-medium">{guest.email || 'Not provided'}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CreditCard className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-sm text-muted-foreground">ID / Passport</p>
+                  <p className="font-medium">{guest.id_passport || 'Not provided'}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Nationality</p>
+                  <p className="font-medium">{guest.nationality || 'Not provided'}</p>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Email</p>
-              <p className="font-medium">{guest.email || 'N/A'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">ID / Passport</p>
-              <p className="font-medium">{guest.id_passport || 'N/A'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Nationality</p>
-              <p className="font-medium">{guest.nationality || 'N/A'}</p>
-            </div>
+            
+            {(guest.address || guest.notes) && (
+              <div className="mt-6 pt-6 border-t grid grid-cols-1 md:grid-cols-2 gap-6">
+                {guest.address && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Address</p>
+                    <p className="font-medium">{guest.address}</p>
+                  </div>
+                )}
+                {guest.notes && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Notes</p>
+                    <p className="text-muted-foreground">{guest.notes}</p>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-xl bg-info/10">
+                  <Calendar className="h-6 w-6 text-info" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Bookings</p>
+                  <p className="text-2xl font-bold">{bookings.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-xl bg-success/10">
+                  <CreditCard className="h-6 w-6 text-success" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Room Charges</p>
+                  <p className="text-2xl font-bold">Rs. {totalBookingsValue.toLocaleString()}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-xl bg-warning/10">
+                  <Receipt className="h-6 w-6 text-warning" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Services</p>
+                  <p className="text-2xl font-bold">Rs. {totalServicesValue.toLocaleString()}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Tabs */}
         <Tabs defaultValue="bookings">
           <TabsList>
             <TabsTrigger value="bookings">Booking History</TabsTrigger>
-            <TabsTrigger value="services">Services</TabsTrigger>
+            <TabsTrigger value="services">Services Purchased</TabsTrigger>
           </TabsList>
 
           <TabsContent value="bookings" className="mt-6">
@@ -321,6 +357,7 @@ export default function GuestDetails() {
                         <TableHead>Room</TableHead>
                         <TableHead>Check-in</TableHead>
                         <TableHead>Check-out</TableHead>
+                        <TableHead>Source</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Amount</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
@@ -331,7 +368,7 @@ export default function GuestDetails() {
                         <TableRow key={booking.id}>
                           <TableCell>
                             <div>
-                              <p>Room {booking.rooms?.room_number}</p>
+                              <p className="font-medium">Room {booking.rooms?.room_number}</p>
                               <p className="text-sm text-muted-foreground capitalize">
                                 {booking.rooms?.room_type}
                               </p>
@@ -344,8 +381,11 @@ export default function GuestDetails() {
                             {format(new Date(booking.check_out), 'PP')}
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline">{booking.status.replace('_', ' ')}</Badge>
+                            <Badge variant="outline" className="capitalize">
+                              {booking.booking_source.replace('_', '.')}
+                            </Badge>
                           </TableCell>
+                          <TableCell>{getStatusBadge(booking.status)}</TableCell>
                           <TableCell>Rs. {booking.total_amount?.toLocaleString()}</TableCell>
                           <TableCell className="text-right">
                             <Button
@@ -365,22 +405,41 @@ export default function GuestDetails() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="services" className="mt-6">
+          <TabsContent value="services" className="mt-6 space-y-6">
+            {/* Services Summary by Category */}
+            {Object.keys(servicesByCategory).length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Services Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {Object.entries(servicesByCategory).map(([category, data]) => (
+                      <div key={category} className="p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">
+                          {categoryLabels[category] || category}
+                        </p>
+                        <p className="text-xl font-bold">Rs. {data.total.toLocaleString()}</p>
+                        <p className="text-sm text-muted-foreground">{data.count} items</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* All Services Table */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Receipt className="h-5 w-5" />
-                  Services (Current Stay)
+                  All Services (All Stays)
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {!activeBooking ? (
+                {allServices.length === 0 ? (
                   <p className="text-center py-8 text-muted-foreground">
-                    Guest is not currently checked in
-                  </p>
-                ) : guestServices.length === 0 ? (
-                  <p className="text-center py-8 text-muted-foreground">
-                    No services added yet
+                    No services purchased yet
                   </p>
                 ) : (
                   <Table>
@@ -388,24 +447,40 @@ export default function GuestDetails() {
                       <TableRow>
                         <TableHead>Service</TableHead>
                         <TableHead>Date</TableHead>
+                        <TableHead>Stay</TableHead>
                         <TableHead>Qty</TableHead>
                         <TableHead>Unit Price</TableHead>
                         <TableHead>Total</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {guestServices.map((service) => (
+                      {allServices.map((service) => (
                         <TableRow key={service.id}>
-                          <TableCell className="font-medium">
-                            {service.services?.name}
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{service.services?.name}</p>
+                              <p className="text-sm text-muted-foreground capitalize">
+                                {categoryLabels[service.services?.category || ''] || service.services?.category}
+                              </p>
+                            </div>
                           </TableCell>
                           <TableCell>
                             {format(new Date(service.service_date), 'PP')}
                           </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              <p>Room {service.bookings?.rooms?.room_number}</p>
+                              <p className="text-muted-foreground">
+                                {service.bookings?.check_in
+                                  ? format(new Date(service.bookings.check_in), 'MMM d, yyyy')
+                                  : '-'}
+                              </p>
+                            </div>
+                          </TableCell>
                           <TableCell>{service.quantity}</TableCell>
-                          <TableCell>Rs. {service.unit_price.toLocaleString()}</TableCell>
+                          <TableCell>Rs. {Number(service.unit_price).toLocaleString()}</TableCell>
                           <TableCell className="font-medium">
-                            Rs. {service.total_price.toLocaleString()}
+                            Rs. {Number(service.total_price).toLocaleString()}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -418,69 +493,13 @@ export default function GuestDetails() {
         </Tabs>
       </div>
 
-      {/* Add Service Dialog */}
-      <Dialog open={showAddService} onOpenChange={setShowAddService}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Service</DialogTitle>
-            <DialogDescription>
-              Add a service charge to the guest's current stay
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Service</Label>
-              <Select value={selectedServiceId} onValueChange={setSelectedServiceId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a service" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableServices.map((service) => (
-                    <SelectItem key={service.id} value={service.id}>
-                      {service.name} - Rs. {service.price.toLocaleString()}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Quantity</Label>
-              <Input
-                type="number"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                min="1"
-              />
-            </div>
-            {selectedServiceId && (
-              <div className="p-4 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground">Total</p>
-                <p className="text-xl font-bold">
-                  Rs.{' '}
-                  {(
-                    (availableServices.find((s) => s.id === selectedServiceId)?.price || 0) *
-                    parseInt(quantity || '1')
-                  ).toLocaleString()}
-                </p>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddService(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                setSelectedBookingId(activeBooking?.id || '');
-                handleAddService();
-              }}
-              disabled={saving}
-            >
-              {saving ? 'Adding...' : 'Add Service'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Edit Guest Dialog */}
+      <EditGuestDialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        guest={guest}
+        onSuccess={fetchGuestDetails}
+      />
     </DashboardLayout>
   );
 }

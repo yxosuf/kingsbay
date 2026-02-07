@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CalendarIcon, Download, TrendingUp, Users, BedDouble, Wallet } from 'lucide-react';
+import { CalendarIcon, Download, TrendingUp, Users, BedDouble, Wallet, FileSpreadsheet } from 'lucide-react';
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Separator } from '@/components/ui/separator';
 
 export function ReportsSettings() {
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
@@ -119,6 +120,177 @@ export function ReportsSettings() {
     a.click();
     window.URL.revokeObjectURL(url);
     toast.success('Report exported successfully');
+  };
+
+  const exportFullGuestDetails = async () => {
+    setLoading(true);
+    try {
+      // Fetch all guests with their booking stats
+      const { data: guests, error: guestsError } = await supabase
+        .from('guests')
+        .select(`
+          id,
+          name,
+          phone,
+          email,
+          nationality,
+          id_passport,
+          address,
+          notes,
+          created_at
+        `)
+        .order('name');
+
+      if (guestsError) throw guestsError;
+
+      // Fetch booking counts and dates for each guest
+      const guestStats = await Promise.all(
+        (guests || []).map(async (guest) => {
+          const { data: bookings } = await supabase
+            .from('bookings')
+            .select('id, check_in, check_out, total_amount')
+            .eq('guest_id', guest.id)
+            .order('check_out', { ascending: false });
+
+          const bookingIds = (bookings || []).map(b => b.id).filter(Boolean);
+          const { data: services } = bookingIds.length > 0
+            ? await supabase
+                .from('guest_services')
+                .select('total_price, booking_id')
+                .in('booking_id', bookingIds)
+            : { data: [] };
+
+          const totalServices = (services || []).reduce((sum, s) => sum + Number(s.total_price), 0);
+          const lastBooking = bookings?.[0];
+
+          return {
+            ...guest,
+            total_bookings: bookings?.length || 0,
+            last_checkin: lastBooking?.check_in || '',
+            last_checkout: lastBooking?.check_out || '',
+            total_services_value: totalServices,
+          };
+        })
+      );
+
+      // Generate CSV
+      const headers = [
+        'Guest ID',
+        'Full Name',
+        'Phone',
+        'Email',
+        'Country',
+        'Passport/ID',
+        'Address',
+        'Notes',
+        'Total Bookings',
+        'Last Check-in',
+        'Last Check-out',
+        'Total Services Value',
+      ];
+
+      let csvContent = headers.join(',') + '\n';
+
+      guestStats.forEach((guest) => {
+        const row = [
+          guest.id,
+          `"${(guest.name || '').replace(/"/g, '""')}"`,
+          guest.phone || '',
+          guest.email || '',
+          guest.nationality || '',
+          guest.id_passport || '',
+          `"${(guest.address || '').replace(/"/g, '""')}"`,
+          `"${(guest.notes || '').replace(/"/g, '""')}"`,
+          guest.total_bookings,
+          guest.last_checkin,
+          guest.last_checkout,
+          guest.total_services_value,
+        ];
+        csvContent += row.join(',') + '\n';
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Guest_Details_Full_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      toast.success('Full guest details exported successfully');
+    } catch (error) {
+      console.error('Error exporting guest details:', error);
+      toast.error('Failed to export guest details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const exportGuestServicesReport = async () => {
+    setLoading(true);
+    try {
+      const { data: services, error } = await supabase
+        .from('guest_services')
+        .select(`
+          id,
+          quantity,
+          unit_price,
+          total_price,
+          service_date,
+          notes,
+          services (name),
+          bookings (
+            id,
+            check_in,
+            guests (name)
+          )
+        `)
+        .order('service_date', { ascending: false });
+
+      if (error) throw error;
+
+      const headers = [
+        'Guest Name',
+        'Booking ID',
+        'Booking Check-in',
+        'Service Name',
+        'Quantity',
+        'Unit Price',
+        'Total Price',
+        'Date Purchased',
+        'Notes',
+      ];
+
+      let csvContent = headers.join(',') + '\n';
+
+      (services || []).forEach((service: any) => {
+        const row = [
+          `"${(service.bookings?.guests?.name || '').replace(/"/g, '""')}"`,
+          service.bookings?.id || '',
+          service.bookings?.check_in || '',
+          `"${(service.services?.name || '').replace(/"/g, '""')}"`,
+          service.quantity,
+          service.unit_price,
+          service.total_price,
+          service.service_date,
+          `"${(service.notes || '').replace(/"/g, '""')}"`,
+        ];
+        csvContent += row.join(',') + '\n';
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Guest_Services_Report_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      toast.success('Guest services report exported successfully');
+    } catch (error) {
+      console.error('Error exporting services report:', error);
+      toast.error('Failed to export services report');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const quickDateRanges = [
@@ -370,6 +542,44 @@ export function ReportsSettings() {
               </Card>
             </div>
           )}
+
+          {/* Export Options */}
+          <Separator />
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileSpreadsheet className="h-5 w-5" />
+                Export Options
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button 
+                  variant="outline" 
+                  onClick={exportFullGuestDetails}
+                  disabled={loading}
+                  className="flex-1"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Full Guest Details
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={exportGuestServicesReport}
+                  disabled={loading}
+                  className="flex-1"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Guest Services Report
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Full Guest Details: Includes all guest information (name, contact, address, passport, notes, booking stats).
+                <br />
+                Guest Services Report: Detailed breakdown of all services purchased per guest/booking.
+              </p>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
