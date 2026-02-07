@@ -256,6 +256,13 @@ export default function NewBooking() {
       const commissionAmt = bookingSource !== 'direct' ? calculateCommission() : null;
       const netOtaPrice = bookingSource !== 'direct' ? getOtaNetPrice() : null;
 
+      // Validate property is selected before creating booking
+      if (!selectedProperty?.id) {
+        toast.error('Property mismatch: Please select a property before creating a booking.');
+        setLoading(false);
+        return;
+      }
+
       // Create booking
       const { data: newBooking, error: bookingError } = await supabase.from('bookings').insert({
         guest_id: guestId,
@@ -272,7 +279,7 @@ export default function NewBooking() {
         commission_rate: bookingSource !== 'direct' ? parseFloat(commissionRate) || null : null,
         commission_amount: commissionAmt,
         ota_reference: bookingSource !== 'direct' ? otaReference.trim() || null : null,
-        property_id: selectedProperty?.id || null,
+        property_id: selectedProperty.id,
       } as any).select().single();
 
       if (bookingError) throw bookingError;
