@@ -4,13 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CalendarIcon, Download, TrendingUp, Users, BedDouble, Wallet, FileSpreadsheet } from 'lucide-react';
+import { CalendarIcon, Download, TrendingUp, Users, BedDouble, Wallet, FileSpreadsheet, AlertTriangle } from 'lucide-react';
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
+import { useProperty } from '@/hooks/useProperty';
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export function ReportsSettings() {
+  const { selectedProperty, showAllProperties } = useProperty();
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
@@ -23,15 +26,22 @@ export function ReportsSettings() {
     try {
       const fromDate = format(dateRange.from, 'yyyy-MM-dd');
       const toDate = format(dateRange.to, 'yyyy-MM-dd');
+      const propertyFilter = !showAllProperties && selectedProperty?.id;
 
       let data: any = {};
 
       if (reportType === 'revenue') {
-        const { data: payments } = await supabase
+        let query = supabase
           .from('payments')
-          .select('amount, method, created_at')
+          .select('amount, method, created_at, property_id')
           .gte('created_at', fromDate)
           .lte('created_at', toDate);
+        
+        if (propertyFilter) {
+          query = query.eq('property_id', selectedProperty.id);
+        }
+        
+        const { data: payments } = await query;
 
         const totalRevenue = payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
         const byMethod = payments?.reduce((acc: any, p) => {
@@ -42,35 +52,62 @@ export function ReportsSettings() {
         data = {
           type: 'Revenue Report',
           period: `${format(dateRange.from, 'PP')} - ${format(dateRange.to, 'PP')}`,
+          property: showAllProperties ? 'All Properties' : selectedProperty?.name || 'Unknown',
           totalRevenue,
           byMethod,
           transactionCount: payments?.length || 0,
         };
       } else if (reportType === 'occupancy') {
-        const { data: bookings } = await supabase
+        let bookingsQuery = supabase
           .from('bookings')
-          .select('status, check_in, check_out')
+          .select('status, check_in, check_out, property_id')
           .gte('check_in', fromDate)
           .lte('check_out', toDate);
+        
+        if (propertyFilter) {
+          bookingsQuery = bookingsQuery.eq('property_id', selectedProperty.id);
+        }
+        
+        const { data: bookings } = await bookingsQuery;
 
-        const { count: totalRooms } = await supabase
+        let roomsQuery = supabase
           .from('rooms')
           .select('*', { count: 'exact', head: true });
+        
+        if (propertyFilter) {
+          roomsQuery = roomsQuery.eq('property_id', selectedProperty.id);
+        }
+        
+        const { count: totalRooms } = await roomsQuery;
 
         data = {
           type: 'Occupancy Report',
           period: `${format(dateRange.from, 'PP')} - ${format(dateRange.to, 'PP')}`,
+          property: showAllProperties ? 'All Properties' : selectedProperty?.name || 'Unknown',
           totalRooms: totalRooms || 0,
           totalBookings: bookings?.length || 0,
           completedStays: bookings?.filter((b) => b.status === 'checked_out').length || 0,
           activeStays: bookings?.filter((b) => b.status === 'checked_in').length || 0,
         };
       } else if (reportType === 'guests') {
+        // For guests, we filter based on bookings for the selected property
         const { data: guests } = await supabase
           .from('guests')
           .select('id, name, created_at')
           .gte('created_at', fromDate)
           .lte('created_at', toDate);
+
+        // Filter guests by property through their bookings
+        let filteredGuests = guests || [];
+        if (propertyFilter) {
+          const { data: propertyBookings } = await supabase
+            .from('bookings')
+            .select('guest_id')
+            .eq('property_id', selectedProperty.id);
+          
+          const guestIdsWithPropertyBookings = new Set(propertyBookings?.map(b => b.guest_id) || []);
+          filteredGuests = filteredGuests.filter(g => guestIdsWithPropertyBookings.has(g.id));
+        }
 
         const { count: totalGuests } = await supabase
           .from('guests')
@@ -79,7 +116,8 @@ export function ReportsSettings() {
         data = {
           type: 'Guest Report',
           period: `${format(dateRange.from, 'PP')} - ${format(dateRange.to, 'PP')}`,
-          newGuests: guests?.length || 0,
+          property: showAllProperties ? 'All Properties' : selectedProperty?.name || 'Unknown',
+          newGuests: filteredGuests.length || 0,
           totalGuests: totalGuests || 0,
         };
       }
@@ -125,6 +163,8 @@ export function ReportsSettings() {
   const exportFullGuestDetails = async () => {
     setLoading(true);
     try {
+      const propertyFilter = !showAllProperties && selectedProperty?.id;
+      
       // Fetch all guests with their booking stats
       const { data: guests, error: guestsError } = await supabase
         .from('guests')
@@ -143,24 +183,39 @@ export function ReportsSettings() {
 
       if (guestsError) throw guestsError;
 
-      // Fetch booking counts and dates for each guest
+      // Fetch booking counts and dates for each guest, filtered by property
       const guestStats = await Promise.all(
         (guests || []).map(async (guest) => {
-          const { data: bookings } = await supabase
+          let bookingsQuery = supabase
             .from('bookings')
-            .select('id, check_in, check_out, total_amount')
+            .select('id, check_in, check_out, total_amount, property_id')
             .eq('guest_id', guest.id)
             .order('check_out', { ascending: false });
+          
+          if (propertyFilter) {
+            bookingsQuery = bookingsQuery.eq('property_id', selectedProperty.id);
+          }
+          
+          const { data: bookings } = await bookingsQuery;
 
           const bookingIds = (bookings || []).map(b => b.id).filter(Boolean);
-          const { data: services } = bookingIds.length > 0
-            ? await supabase
-                .from('guest_services')
-                .select('total_price, booking_id')
-                .in('booking_id', bookingIds)
-            : { data: [] };
+          let servicesData: any[] = [];
+          
+          if (bookingIds.length > 0) {
+            let servicesQuery = supabase
+              .from('guest_services')
+              .select('total_price, booking_id, property_id')
+              .in('booking_id', bookingIds);
+            
+            if (propertyFilter) {
+              servicesQuery = servicesQuery.eq('property_id', selectedProperty.id);
+            }
+            
+            const { data } = await servicesQuery;
+            servicesData = data || [];
+          }
 
-          const totalServices = (services || []).reduce((sum, s) => sum + Number(s.total_price), 0);
+          const totalServices = servicesData.reduce((sum, s) => sum + Number(s.total_price), 0);
           const lastBooking = bookings?.[0];
 
           return {
@@ -169,9 +224,15 @@ export function ReportsSettings() {
             last_checkin: lastBooking?.check_in || '',
             last_checkout: lastBooking?.check_out || '',
             total_services_value: totalServices,
+            hasPropertyBookings: (bookings?.length || 0) > 0,
           };
         })
       );
+
+      // Filter out guests with no bookings for this property
+      const filteredGuestStats = propertyFilter 
+        ? guestStats.filter(g => g.hasPropertyBookings)
+        : guestStats;
 
       // Generate CSV
       const headers = [
@@ -189,9 +250,10 @@ export function ReportsSettings() {
         'Total Services Value',
       ];
 
-      let csvContent = headers.join(',') + '\n';
+      let csvContent = `Property: ${showAllProperties ? 'All Properties' : selectedProperty?.name || 'Unknown'}\n\n`;
+      csvContent += headers.join(',') + '\n';
 
-      guestStats.forEach((guest) => {
+      filteredGuestStats.forEach((guest) => {
         const row = [
           guest.id,
           `"${(guest.name || '').replace(/"/g, '""')}"`,
@@ -209,11 +271,12 @@ export function ReportsSettings() {
         csvContent += row.join(',') + '\n';
       });
 
+      const propertySlug = selectedProperty?.name?.replace(/\s+/g, '_') || 'All';
       const blob = new Blob([csvContent], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Guest_Details_Full_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      a.download = `Guest_Details_${propertySlug}_${format(new Date(), 'yyyy-MM-dd')}.csv`;
       a.click();
       window.URL.revokeObjectURL(url);
       toast.success('Full guest details exported successfully');
@@ -228,7 +291,9 @@ export function ReportsSettings() {
   const exportGuestServicesReport = async () => {
     setLoading(true);
     try {
-      const { data: services, error } = await supabase
+      const propertyFilter = !showAllProperties && selectedProperty?.id;
+      
+      let query = supabase
         .from('guest_services')
         .select(`
           id,
@@ -237,14 +302,22 @@ export function ReportsSettings() {
           total_price,
           service_date,
           notes,
+          property_id,
           services (name),
           bookings (
             id,
             check_in,
+            property_id,
             guests (name)
           )
         `)
         .order('service_date', { ascending: false });
+      
+      if (propertyFilter) {
+        query = query.eq('property_id', selectedProperty.id);
+      }
+      
+      const { data: services, error } = await query;
 
       if (error) throw error;
 
@@ -260,7 +333,8 @@ export function ReportsSettings() {
         'Notes',
       ];
 
-      let csvContent = headers.join(',') + '\n';
+      let csvContent = `Property: ${showAllProperties ? 'All Properties' : selectedProperty?.name || 'Unknown'}\n\n`;
+      csvContent += headers.join(',') + '\n';
 
       (services || []).forEach((service: any) => {
         const row = [
@@ -277,11 +351,12 @@ export function ReportsSettings() {
         csvContent += row.join(',') + '\n';
       });
 
+      const propertySlug = selectedProperty?.name?.replace(/\s+/g, '_') || 'All';
       const blob = new Blob([csvContent], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Guest_Services_Report_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      a.download = `Guest_Services_${propertySlug}_${format(new Date(), 'yyyy-MM-dd')}.csv`;
       a.click();
       window.URL.revokeObjectURL(url);
       toast.success('Guest services report exported successfully');
@@ -314,6 +389,16 @@ export function ReportsSettings() {
 
   return (
     <div className="space-y-6">
+      {/* Property Indicator */}
+      <Alert className="border-info bg-info/10">
+        <AlertTriangle className="h-4 w-4 text-info" />
+        <AlertTitle className="text-info">Report Scope</AlertTitle>
+        <AlertDescription>
+          Reports are filtered by: <strong>{showAllProperties ? 'All Properties' : selectedProperty?.name || 'No property selected'}</strong>. 
+          Change the property in the header to generate reports for a different property.
+        </AlertDescription>
+      </Alert>
+
       {/* Date Range Selector */}
       <Card>
         <CardContent className="pt-6">

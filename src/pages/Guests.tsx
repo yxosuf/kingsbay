@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/table';
 import { Search, Eye, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useProperty } from '@/hooks/useProperty';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -24,12 +25,13 @@ interface Guest {
   phone: string | null;
   email: string | null;
   created_at: string;
-  bookings: { id: string; status: string }[];
+  bookings: { id: string; status: string; property_id: string | null }[];
 }
 
 export default function Guests() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { selectedProperty, showAllProperties } = useProperty();
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -38,11 +40,13 @@ export default function Guests() {
 
   useEffect(() => {
     fetchGuests();
-  }, []);
+  }, [selectedProperty, showAllProperties]);
 
   const fetchGuests = async () => {
     try {
-      const { data, error } = await supabase
+      // First, get guests who have bookings for the selected property
+      // This ensures proper property isolation for guests
+      let query = supabase
         .from('guests')
         .select(`
           id,
@@ -50,12 +54,27 @@ export default function Guests() {
           phone,
           email,
           created_at,
-          bookings (id, status)
+          bookings (id, status, property_id)
         `)
         .order('created_at', { ascending: false });
 
+      const { data, error } = await query;
+
       if (error) throw error;
-      setGuests(data || []);
+      
+      // Filter guests to only show those with bookings for the selected property
+      let filteredData = data || [];
+      if (!showAllProperties && selectedProperty?.id) {
+        filteredData = filteredData.filter(guest => 
+          guest.bookings?.some(b => b.property_id === selectedProperty.id)
+        ).map(guest => ({
+          ...guest,
+          // Also filter the bookings array to only show property-specific bookings
+          bookings: guest.bookings?.filter(b => b.property_id === selectedProperty.id) || []
+        }));
+      }
+      
+      setGuests(filteredData);
     } catch (error) {
       console.error('Error fetching guests:', error);
       toast.error('Failed to load guests');
