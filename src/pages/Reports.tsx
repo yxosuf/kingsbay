@@ -36,16 +36,21 @@ export default function Reports() {
       let data: any = {};
 
       if (reportType === 'revenue') {
-        // Get payments in date range
-        const { data: payments } = await supabase
-          .from('payments')
-          .select('amount, method, created_at')
+        // Get invoices in date range for revenue
+        const { data: invoices } = await supabase
+          .from('invoices')
+          .select('total_amount, room_charges, service_charges, tax_amount, payment_status, created_at')
           .gte('created_at', fromDate)
           .lte('created_at', toDate);
 
-        const totalRevenue = payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
-        const byMethod = payments?.reduce((acc: any, p) => {
-          acc[p.method] = (acc[p.method] || 0) + Number(p.amount);
+        const totalRevenue = invoices?.reduce((sum, i) => sum + Number(i.total_amount), 0) || 0;
+        const roomRevenue = invoices?.reduce((sum, i) => sum + Number(i.room_charges), 0) || 0;
+        const serviceRevenue = invoices?.reduce((sum, i) => sum + Number(i.service_charges), 0) || 0;
+        const taxCollected = invoices?.reduce((sum, i) => sum + Number(i.tax_amount), 0) || 0;
+        
+        const byStatus = invoices?.reduce((acc: any, i) => {
+          const status = i.payment_status || 'pending';
+          acc[status] = (acc[status] || 0) + Number(i.total_amount);
           return acc;
         }, {});
 
@@ -53,8 +58,11 @@ export default function Reports() {
           type: 'Revenue Report',
           period: `${format(dateRange.from, 'PP')} - ${format(dateRange.to, 'PP')}`,
           totalRevenue,
-          byMethod,
-          transactionCount: payments?.length || 0,
+          roomRevenue,
+          serviceRevenue,
+          taxCollected,
+          byStatus,
+          invoiceCount: invoices?.length || 0,
         };
       } else if (reportType === 'occupancy') {
         // Get bookings in date range
@@ -244,7 +252,7 @@ export default function Reports() {
             </div>
 
             {reportData && reportData.type === 'Revenue Report' && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-4">
@@ -267,26 +275,40 @@ export default function Reports() {
                         <TrendingUp className="h-6 w-6 text-info" />
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Transactions</p>
-                        <p className="text-2xl font-bold">{reportData.transactionCount}</p>
+                        <p className="text-sm text-muted-foreground">Invoices</p>
+                        <p className="text-2xl font-bold">{reportData.invoiceCount}</p>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
                 <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">By Payment Method</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {reportData.byMethod &&
-                      Object.entries(reportData.byMethod).map(([method, amount]) => (
-                        <div key={method} className="flex justify-between py-1">
-                          <span className="capitalize text-muted-foreground">{method}</span>
-                          <span className="font-medium">
-                            Rs. {(amount as number).toLocaleString()}
-                          </span>
-                        </div>
-                      ))}
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 rounded-xl bg-primary/10">
+                        <BedDouble className="h-6 w-6 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Room Revenue</p>
+                        <p className="text-2xl font-bold">
+                          Rs. {reportData.roomRevenue?.toLocaleString() || 0}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 rounded-xl bg-warning/10">
+                        <Users className="h-6 w-6 text-warning" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Service Revenue</p>
+                        <p className="text-2xl font-bold">
+                          Rs. {reportData.serviceRevenue?.toLocaleString() || 0}
+                        </p>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
