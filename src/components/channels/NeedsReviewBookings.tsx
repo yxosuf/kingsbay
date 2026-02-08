@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -63,7 +63,7 @@ interface Room {
   room_type: string;
 }
 
-export function NeedsReviewBookings() {
+export const NeedsReviewBookings = forwardRef<HTMLDivElement, object>(function NeedsReviewBookings(_props, ref) {
   const { selectedProperty } = useProperty();
   const [loading, setLoading] = useState(true);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -363,4 +363,4 @@ export function NeedsReviewBookings() {
       </Dialog>
     </>
   );
-}
+});
