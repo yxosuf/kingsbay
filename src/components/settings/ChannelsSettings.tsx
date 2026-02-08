@@ -12,6 +12,7 @@ import {
   ExternalLink,
   AlertTriangle,
   Map,
+  Mail,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
@@ -22,6 +23,7 @@ import { InventorySettings } from '@/components/channels/InventorySettings';
 import { SyncStatus } from '@/components/channels/SyncStatus';
 import { ChannelRoomMappings } from '@/components/channels/ChannelRoomMappings';
 import { NeedsReviewBookings } from '@/components/channels/NeedsReviewBookings';
+import { EmailImportSettings } from '@/components/channels/EmailImportSettings';
 import { format } from 'date-fns';
 
 interface ChannelConnection {
@@ -348,6 +350,10 @@ export function ChannelsSettings() {
             <LinkIcon className="h-4 w-4" />
             Channels
           </TabsTrigger>
+          <TabsTrigger value="email-import" className="flex items-center gap-2">
+            <Mail className="h-4 w-4" />
+            Email Import
+          </TabsTrigger>
           <TabsTrigger value="mappings" className="flex items-center gap-2">
             <Map className="h-4 w-4" />
             Room Mappings
@@ -426,6 +432,10 @@ export function ChannelsSettings() {
               </div>
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="email-import">
+          <EmailImportSettings />
         </TabsContent>
 
         <TabsContent value="mappings">

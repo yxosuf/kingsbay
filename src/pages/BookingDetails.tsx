@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { User, BedDouble, Calendar, CreditCard, ArrowLeft, Printer, Globe, Plus, CalendarPlus, Link as LinkIcon } from 'lucide-react';
+import { User, BedDouble, Calendar, CreditCard, ArrowLeft, Printer, Globe, Plus, CalendarPlus, Link as LinkIcon, Mail, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -40,6 +40,11 @@ interface BookingDetails {
   parent_booking_id: string | null;
   guest_id: string;
   room_id: string;
+  external_source: string | null;
+  external_booking_id: string | null;
+  imported_via: string | null;
+  needs_review: boolean | null;
+  review_reason: string | null;
   guests: {
     id: string;
     name: string;
@@ -413,8 +418,35 @@ export default function BookingDetails() {
                       {booking.booking_source.replace('_', '.')}
                     </p>
                   </div>
+                  {booking.needs_review && (
+                    <Badge variant="destructive" className="ml-auto">
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                      Needs Review
+                    </Badge>
+                  )}
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 gap-4">
+                  {booking.external_booking_id && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">External Booking ID</p>
+                      <p className="font-medium font-mono">{booking.external_booking_id}</p>
+                    </div>
+                  )}
+                  {booking.external_source && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Source</p>
+                      <p className="font-medium">{booking.external_source}</p>
+                    </div>
+                  )}
+                  {booking.imported_via && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Imported Via</p>
+                      <Badge variant="outline" className="mt-1">
+                        <Mail className="h-3 w-3 mr-1" />
+                        {booking.imported_via}
+                      </Badge>
+                    </div>
+                  )}
                   {booking.ota_reference && (
                     <div>
                       <p className="text-sm text-muted-foreground">OTA Reference</p>
@@ -441,6 +473,12 @@ export default function BookingDetails() {
                       <p className="font-medium text-success">
                         Rs. {Number(booking.ota_price).toLocaleString()}
                       </p>
+                    </div>
+                  )}
+                  {booking.review_reason && (
+                    <div className="col-span-2">
+                      <p className="text-sm text-muted-foreground">Review Reason</p>
+                      <p className="text-sm text-destructive">{booking.review_reason}</p>
                     </div>
                   )}
                 </CardContent>
