@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Bell, Menu } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Menu } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { PropertySelector } from './PropertySelector';
+import { NotificationBell } from './NotificationBell';
 import { useProperty } from '@/hooks/useProperty';
 
 interface AppHeaderProps {
@@ -53,10 +53,7 @@ export function AppHeader({ title }: AppHeaderProps) {
         </div>
 
         {/* Notification Bell */}
-        <Button variant="ghost" size="icon" className="relative h-8 w-8 sm:h-10 sm:w-10">
-          <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
-          <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-destructive" />
-        </Button>
+        <NotificationBell />
       </div>
     </header>
   );
