@@ -18,6 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { PropertyBadge } from '@/components/layout/PropertyBadge';
 
 interface Guest {
   id: string;
@@ -25,6 +26,7 @@ interface Guest {
   phone: string | null;
   email: string | null;
   created_at: string;
+  property_id: string | null;
   bookings: { id: string; status: string; property_id: string | null }[];
 }
 
@@ -44,8 +46,7 @@ export default function Guests() {
 
   const fetchGuests = async () => {
     try {
-      // First, get guests who have bookings for the selected property
-      // This ensures proper property isolation for guests
+      // Query guests with property_id filter directly for better performance
       let query = supabase
         .from('guests')
         .select(`
@@ -54,25 +55,27 @@ export default function Guests() {
           phone,
           email,
           created_at,
+          property_id,
           bookings (id, status, property_id)
         `)
         .order('created_at', { ascending: false });
+
+      // Filter by property_id directly on guests table
+      if (!showAllProperties && selectedProperty?.id) {
+        query = query.eq('property_id', selectedProperty.id);
+      }
 
       const { data, error } = await query;
 
       if (error) throw error;
       
-      // Filter guests to only show those with bookings for the selected property
-      let filteredData = data || [];
-      if (!showAllProperties && selectedProperty?.id) {
-        filteredData = filteredData.filter(guest => 
-          guest.bookings?.some(b => b.property_id === selectedProperty.id)
-        ).map(guest => ({
-          ...guest,
-          // Also filter the bookings array to only show property-specific bookings
-          bookings: guest.bookings?.filter(b => b.property_id === selectedProperty.id) || []
-        }));
-      }
+      // Filter bookings array to show property-specific bookings only
+      let filteredData = (data || []).map(guest => ({
+        ...guest,
+        bookings: !showAllProperties && selectedProperty?.id
+          ? guest.bookings?.filter(b => b.property_id === selectedProperty.id) || []
+          : guest.bookings || []
+      }));
       
       setGuests(filteredData);
     } catch (error) {
@@ -137,6 +140,12 @@ export default function Guests() {
   return (
     <DashboardLayout title="Guests">
       <div className="space-y-4 sm:space-y-6">
+        {/* Property Badge */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Viewing:</span>
+          <PropertyBadge />
+        </div>
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:justify-between sm:items-center">
           <div className="relative flex-1 sm:max-w-sm">
