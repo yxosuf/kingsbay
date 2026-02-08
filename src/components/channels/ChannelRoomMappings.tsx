@@ -33,6 +33,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { forwardRef } from 'react';
 
 interface RoomMapping {
   id: string;
@@ -55,7 +56,7 @@ interface ChannelConnection {
   channel_type: string;
 }
 
-export function ChannelRoomMappings() {
+export const ChannelRoomMappings = forwardRef<HTMLDivElement, object>(function ChannelRoomMappings(_props, ref) {
   const { selectedProperty } = useProperty();
   const [loading, setLoading] = useState(true);
   const [mappings, setMappings] = useState<RoomMapping[]>([]);
@@ -293,4 +294,4 @@ export function ChannelRoomMappings() {
       </CardContent>
     </Card>
   );
-}
+});
