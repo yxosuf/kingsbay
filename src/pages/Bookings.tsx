@@ -33,6 +33,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { PropertyBadge } from '@/components/layout/PropertyBadge';
 
 interface Booking {
   id: string;
@@ -266,6 +267,12 @@ export default function Bookings() {
   return (
     <DashboardLayout title="Bookings">
       <div className="space-y-4 sm:space-y-6">
+        {/* Property Badge */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Viewing:</span>
+          <PropertyBadge />
+        </div>
+
         {/* Header Actions */}
         <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 sm:justify-between">
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:flex-1">

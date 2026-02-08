@@ -17,6 +17,7 @@ import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { PropertyBadge } from '@/components/layout/PropertyBadge';
 
 export default function Reports() {
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
@@ -158,6 +159,11 @@ export default function Reports() {
   return (
     <DashboardLayout title="Reports">
       <div className="space-y-6">
+        {/* Property Badge */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Viewing:</span>
+          <PropertyBadge />
+        </div>
         {/* Date Range Selector */}
         <Card>
           <CardContent className="pt-6">

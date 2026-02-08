@@ -303,6 +303,7 @@ export type Database = {
           nationality: string | null
           notes: string | null
           phone: string | null
+          property_id: string | null
           updated_at: string
         }
         Insert: {
@@ -315,6 +316,7 @@ export type Database = {
           nationality?: string | null
           notes?: string | null
           phone?: string | null
+          property_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -327,9 +329,18 @@ export type Database = {
           nationality?: string | null
           notes?: string | null
           phone?: string | null
+          property_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "guests_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       invoices: {
         Row: {

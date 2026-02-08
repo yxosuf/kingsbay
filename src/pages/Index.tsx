@@ -26,6 +26,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useProperty } from '@/hooks/useProperty';
+import { PropertyBadge } from '@/components/layout/PropertyBadge';
 
 interface DashboardStats {
   activeGuests: number;
@@ -277,6 +278,12 @@ export default function Dashboard() {
   return (
     <DashboardLayout title="Dashboard">
       <div className="space-y-4 sm:space-y-6">
+        {/* Property Badge */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Viewing:</span>
+          <PropertyBadge />
+        </div>
+
         {/* KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {statCards.map((stat) => (
