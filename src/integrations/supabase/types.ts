@@ -464,6 +464,50 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          link: string | null
+          message: string | null
+          property_id: string | null
+          title: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          message?: string | null
+          property_id?: string | null
+          title: string
+          type?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          message?: string | null
+          property_id?: string | null
+          title?: string
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
