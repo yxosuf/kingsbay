@@ -105,19 +105,19 @@ export default function Dashboard() {
       if (propertyFilter) roomsQuery = roomsQuery.eq('property_id', selectedProperty.id);
       const { count: availableRooms } = await roomsQuery;
 
-      // Fetch total revenue this month
+      // Fetch total revenue this month (from invoices)
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
       
-      let paymentsQuery = supabase
-        .from('payments')
-        .select('amount, property_id')
+      let invoicesQuery = supabase
+        .from('invoices')
+        .select('total_amount, property_id')
         .gte('created_at', startOfMonth.toISOString());
-      if (propertyFilter) paymentsQuery = paymentsQuery.eq('property_id', selectedProperty.id);
-      const { data: payments } = await paymentsQuery;
+      if (propertyFilter) invoicesQuery = invoicesQuery.eq('property_id', selectedProperty.id);
+      const { data: invoices } = await invoicesQuery;
       
-      const totalRevenue = payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+      const totalRevenue = invoices?.reduce((sum, i) => sum + Number(i.total_amount), 0) || 0;
 
       // Fetch today's check-ins (arrivals)
       let checkInsQuery = supabase
