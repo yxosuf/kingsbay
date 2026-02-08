@@ -1,131 +1,91 @@
 
-# Add Notification Bell with Dropdown
 
-## Overview
+# Fix: Allow Booking Rooms After Guest Checkout
 
-This plan adds a functional notification bell icon to the AppHeader component that displays an unread count badge and a dropdown list of recent notifications. Staff will be able to view notifications, mark them as read, and navigate to related resources.
+## Problem Identified
 
-## Current State
+When attempting to create a new booking for a room that has a previous **checked-out** guest, the system incorrectly blocks the booking with the error:
 
-- **AppHeader (`src/components/layout/AppHeader.tsx`)**: Already has a placeholder Bell icon button with a static red dot indicator
-- **Notifications table**: Already exists with fields: `id`, `property_id`, `user_id`, `type`, `title`, `message`, `link`, `is_read`, `created_at`
-- **Sample data**: There are unread notifications in the database from the email import system (Booking.com/Airbnb imports)
-- **UI Components available**: Popover, ScrollArea, Button, Badge, Separator from shadcn/ui
+> "Room is already booked for these dates. Please choose different dates or another room."
 
-## Implementation Approach
+### Root Cause
 
-### 1. Create NotificationBell Component
+The database-level conflict detection function `check_booking_overlap()` only excludes bookings with status `cancelled` and `archived`, but **does NOT exclude `checked_out`** bookings.
 
-**File**: `src/components/layout/NotificationBell.tsx`
-
-A dedicated component that encapsulates all notification functionality:
-
-**Features**:
-- Fetches notifications from the database filtered by property
-- Displays unread count badge (animated pulse when unread)
-- Popover dropdown with scrollable notification list
-- "Mark all as read" button in the header
-- Individual notification items with:
-  - Icon based on notification type (info, warning, success)
-  - Title and message preview
-  - Relative timestamp (e.g., "5 min ago")
-  - Click to navigate and mark as read
-- Empty state when no notifications
-- Real-time updates using Supabase subscription
-
-**Component Structure**:
-```text
-NotificationBell
-+-- Button (trigger with Bell icon + badge)
-+-- Popover
-    +-- Header ("Notifications" + "Mark all read" button)
-    +-- Separator
-    +-- ScrollArea (max-height: 400px)
-        +-- Notification items (clickable)
-    +-- Footer ("View all notifications" link) [optional]
+**Current code (line 87 in the migration)**:
+```sql
+AND b.status NOT IN ('cancelled', 'archived')
 ```
 
-### 2. Update AppHeader
+This means a room with a checked-out booking from Feb 6-9 will still block a new booking for Feb 8-10, even though the guest has already left.
 
-**File**: `src/components/layout/AppHeader.tsx`
+### Verification
 
-Replace the static Bell button with the new `NotificationBell` component.
+Tested the function directly:
+- Room 102 has booking: Feb 6-9, status: `checked_out` (guest: yoosuf)
+- Attempting to book Feb 8-10 returns `has_overlap: true` - **incorrect behavior**
 
-**Changes**:
-- Remove the current placeholder Bell button implementation
-- Import and use the new `NotificationBell` component
-- Maintain the existing layout and spacing
+## Solution
+
+Update the `check_booking_overlap()` database function to also exclude `checked_out` status from conflict detection.
+
+### Changes Required
+
+**1. Update Database Function**
+
+Modify the `check_booking_overlap` function to exclude `checked_out` bookings:
+
+```sql
+-- Change FROM:
+AND b.status NOT IN ('cancelled', 'archived')
+
+-- Change TO:
+AND b.status NOT IN ('cancelled', 'archived', 'checked_out')
+```
+
+**2. Update Trigger Function**
+
+The `prevent_booking_overlap` trigger function (lines 111-113) also needs to skip `checked_out`:
+
+```sql
+-- Change FROM:
+IF NEW.status IN ('cancelled', 'archived') THEN
+
+-- Change TO:
+IF NEW.status IN ('cancelled', 'archived', 'checked_out') THEN
+```
 
 ### Technical Details
 
-**Data Fetching**:
-- Query notifications ordered by `created_at DESC` with limit of 20
-- Filter by `property_id` when a specific property is selected
-- Show all notifications when "All Properties" is selected
+**Database Migration**
 
-**Real-time Subscription**:
-- Subscribe to `postgres_changes` on the `notifications` table
-- Auto-refresh the list when new notifications arrive
-- Show toast when new notification comes in (optional enhancement)
+Create a new migration that:
+1. Replaces `check_booking_overlap()` function with updated status exclusion
+2. Replaces `prevent_booking_overlap()` trigger function with updated skip condition
 
-**Mark as Read Logic**:
-- Individual: Update `is_read = true` when clicking a notification
-- Bulk: Update all visible notifications when clicking "Mark all as read"
+**No Frontend Changes Required**
 
-**Type-based Icons**:
-| Type | Icon | Color |
-|------|------|-------|
-| `info` | Info | Blue |
-| `warning` | AlertTriangle | Amber |
-| `success` | CheckCircle | Green |
-| `error` | XCircle | Red |
-| default | Bell | Gray |
+The frontend `availabilityCheck.ts` already correctly filters to only check `['confirmed', 'checked_in', 'pending']` statuses, so no changes needed there.
 
-**Relative Time Display**:
-- Use `formatDistanceToNow` from `date-fns` for human-readable timestamps
-- Examples: "5 min ago", "2 hours ago", "yesterday"
+### Expected Behavior After Fix
 
-**Responsive Design**:
-- Popover width: 320px on mobile, 380px on desktop
-- Notification items truncate long messages with ellipsis
-- Touch-friendly tap targets (min 44px height per item)
+| Booking Status | Blocks New Booking? |
+|---------------|---------------------|
+| `pending` | Yes |
+| `confirmed` | Yes |
+| `checked_in` | Yes |
+| `checked_out` | **No** (fixed) |
+| `cancelled` | No |
+| `archived` | No |
 
-**Files to Create**:
-1. `src/components/layout/NotificationBell.tsx` - The main notification component
+### Files to Modify
 
-**Files to Modify**:
-1. `src/components/layout/AppHeader.tsx` - Replace placeholder with new component
+1. **Create**: New database migration to update both functions
 
-### Sample UI Design
+### Testing Plan
 
-```text
-+----------------------------------+
-| Notifications     [Mark all read]|
-+----------------------------------+
-| [!] New Airbnb Booking           |
-|     Sarah Wilson - 2026-03-01... |
-|     5 min ago                    |
-+----------------------------------+
-| [!] New Booking.com Booking      |
-|     Jane Doe - 2026-02-20 to...  |
-|     2 hours ago                  |
-+----------------------------------+
-|         No more notifications    |
-+----------------------------------+
-```
+After applying the fix:
+1. Find a room with a `checked_out` booking
+2. Try to create a new booking for overlapping dates
+3. Confirm the booking is accepted without error
 
-### Integration Points
-
-- Uses `useProperty` hook for property filtering (same pattern as other components)
-- Uses `useNavigate` from react-router-dom for navigation when clicking notifications
-- Uses `supabase` client for database queries and real-time subscriptions
-- Uses existing UI components (Button, Popover, ScrollArea, Badge, Separator)
-- Uses `formatDistanceToNow` from date-fns for relative timestamps
-
-### Edge Cases Handled
-
-- No notifications: Shows empty state message
-- Long notification messages: Truncated with ellipsis
-- Property switching: Refetches notifications for new property
-- Network errors: Shows error toast and allows retry
-- All notifications read: Hides the red badge
