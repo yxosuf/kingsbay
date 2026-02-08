@@ -18,6 +18,21 @@ interface ExtractedBooking {
   num_guests: number | null;
 }
 
+// Detect which OTA the email is from
+function detectOTASource(subject: string, fromEmail: string): 'booking.com' | 'airbnb' | 'unknown' {
+  const subjectLower = subject.toLowerCase();
+  const emailLower = fromEmail.toLowerCase();
+  
+  if (emailLower.includes('booking.com') || subjectLower.includes('booking.com')) {
+    return 'booking.com';
+  }
+  if (emailLower.includes('airbnb') || subjectLower.includes('airbnb')) {
+    return 'airbnb';
+  }
+  // Check body patterns
+  return 'unknown';
+}
+
 // Deterministic parsing patterns for Booking.com emails
 function parseBookingComEmail(subject: string, body: string): Partial<ExtractedBooking> {
   const result: Partial<ExtractedBooking> = {};
@@ -127,7 +142,7 @@ function parseBookingComEmail(subject: string, body: string): Partial<ExtractedB
 
   // Extract guest count - be more specific to avoid matching booking IDs
   const guestCountPatterns = [
-    /(\d{1,2})\s*guests?\b/i,  // 1-2 digit number followed by "guest(s)"
+    /(\d{1,2})\s*guests?\b/i,
     /guests?[:\s]+(\d{1,2})\b/i,
     /(\d{1,2})\s*adults?\b/i,
     /number\s+of\s+guests?[:\s]+(\d{1,2})/i,
@@ -136,7 +151,7 @@ function parseBookingComEmail(subject: string, body: string): Partial<ExtractedB
     const match = combinedText.match(pattern);
     if (match) {
       const count = parseInt(match[1]);
-      if (count > 0 && count <= 20) {  // Reasonable guest count
+      if (count > 0 && count <= 20) {
         result.num_guests = count;
         break;
       }
@@ -146,6 +161,166 @@ function parseBookingComEmail(subject: string, body: string): Partial<ExtractedB
   // Extract guest email
   const emailMatch = combinedText.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
   if (emailMatch && !emailMatch[0].includes('booking.com')) {
+    result.guest_email = emailMatch[0];
+  }
+
+  return result;
+}
+
+// Deterministic parsing patterns for Airbnb emails
+function parseAirbnbEmail(subject: string, body: string): Partial<ExtractedBooking> {
+  const result: Partial<ExtractedBooking> = {};
+  const combinedText = `${subject}\n${body}`;
+
+  // Detect status from subject
+  const subjectLower = subject.toLowerCase();
+  if (subjectLower.includes('reservation confirmed') || subjectLower.includes('new reservation') || subjectLower.includes('booking confirmed')) {
+    result.status = 'new';
+  } else if (subjectLower.includes('reservation updated') || subjectLower.includes('change') || subjectLower.includes('modified')) {
+    result.status = 'modified';
+  } else if (subjectLower.includes('cancel') || subjectLower.includes('cancelled')) {
+    result.status = 'cancelled';
+  }
+
+  // Extract Airbnb confirmation code (usually like HMXXXXXXXX or alphanumeric)
+  const confirmationPatterns = [
+    /confirmation\s*code[:\s]*([A-Z0-9]{8,12})/i,
+    /reservation\s*code[:\s]*([A-Z0-9]{8,12})/i,
+    /booking\s*code[:\s]*([A-Z0-9]{8,12})/i,
+    /HM[A-Z0-9]{6,10}/i,  // Airbnb format often starts with HM
+    /(?:code|#)[:\s]*([A-Z0-9]{8,12})/i,
+  ];
+  for (const pattern of confirmationPatterns) {
+    const match = combinedText.match(pattern);
+    if (match) {
+      result.booking_id = match[1] || match[0];
+      break;
+    }
+  }
+
+  // Extract dates - Airbnb uses formats like "Feb 15 - 18, 2026" or "February 15, 2026"
+  const dateRangePatterns = [
+    /([A-Za-z]+\s+\d{1,2})\s*[-–]\s*(\d{1,2})[,\s]+(\d{4})/i,  // "Feb 15 - 18, 2026"
+    /([A-Za-z]+\s+\d{1,2})[,\s]+(\d{4})\s*[-–]\s*([A-Za-z]+\s+\d{1,2})[,\s]+(\d{4})/i,  // "Feb 15, 2026 - Feb 18, 2026"
+  ];
+  
+  for (const pattern of dateRangePatterns) {
+    const match = combinedText.match(pattern);
+    if (match) {
+      if (match.length === 4) {
+        // Format: "Feb 15 - 18, 2026"
+        const startMonth = match[1];
+        const endDay = match[2];
+        const year = match[3];
+        result.check_in_date = parseDate(`${startMonth}, ${year}`);
+        // Extract month from startMonth for checkout
+        const monthMatch = startMonth.match(/([A-Za-z]+)/);
+        if (monthMatch) {
+          result.check_out_date = parseDate(`${monthMatch[1]} ${endDay}, ${year}`);
+        }
+      } else if (match.length === 5) {
+        // Format: "Feb 15, 2026 - Feb 18, 2026"
+        result.check_in_date = parseDate(`${match[1]}, ${match[2]}`);
+        result.check_out_date = parseDate(`${match[3]}, ${match[4]}`);
+      }
+      break;
+    }
+  }
+
+  // Fallback date patterns
+  if (!result.check_in_date) {
+    const checkInPatterns = [
+      /check[- ]?in[:\s]*([A-Za-z]+[\s,]+\d{1,2}[\s,]+\d{4})/i,
+      /arrives?[:\s]*([A-Za-z]+[\s,]+\d{1,2}[\s,]+\d{4})/i,
+      /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/,
+    ];
+    for (const pattern of checkInPatterns) {
+      const match = combinedText.match(pattern);
+      if (match) {
+        result.check_in_date = parseDate(match[1]);
+        break;
+      }
+    }
+  }
+
+  if (!result.check_out_date) {
+    const checkOutPatterns = [
+      /check[- ]?out[:\s]*([A-Za-z]+[\s,]+\d{1,2}[\s,]+\d{4})/i,
+      /departs?[:\s]*([A-Za-z]+[\s,]+\d{1,2}[\s,]+\d{4})/i,
+    ];
+    for (const pattern of checkOutPatterns) {
+      const match = combinedText.match(pattern);
+      if (match) {
+        result.check_out_date = parseDate(match[1]);
+        break;
+      }
+    }
+  }
+
+  // Extract guest name - Airbnb patterns
+  const guestNamePatterns = [
+    /(?:from|by)\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)?)/,
+    /guest[:\s]+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)?)/i,
+    /([A-Z][a-zA-Z]+)\s+(?:booked|reserved|is\s+arriving)/i,
+  ];
+  for (const pattern of guestNamePatterns) {
+    const match = combinedText.match(pattern);
+    if (match) {
+      let name = match[1].trim();
+      // Filter out common false positives
+      if (name.length > 2 && !['Airbnb', 'Your', 'The', 'This'].includes(name)) {
+        result.guest_name = name;
+        break;
+      }
+    }
+  }
+
+  // Extract listing/property name (Airbnb shows listing names)
+  const listingPatterns = [
+    /(?:at|for)\s+"([^"]+)"/i,
+    /listing[:\s]*([^\n]+)/i,
+    /property[:\s]*([^\n]+)/i,
+  ];
+  for (const pattern of listingPatterns) {
+    const match = combinedText.match(pattern);
+    if (match && match[1].trim().length > 2) {
+      result.room_type = match[1].trim();
+      break;
+    }
+  }
+
+  // Extract total payout/price
+  const pricePatterns = [
+    /(?:total|payout|you['']ll\s+earn)[:\s]*(?:Rs\.?|₹|USD|\$|EUR|€)?\s*([\d,]+(?:\.\d{2})?)/i,
+    /(?:Rs\.?|₹|USD|\$|EUR|€)\s*([\d,]+(?:\.\d{2})?)/i,
+  ];
+  for (const pattern of pricePatterns) {
+    const match = combinedText.match(pattern);
+    if (match) {
+      result.total_price = parseFloat(match[1].replace(/,/g, ''));
+      break;
+    }
+  }
+
+  // Extract guest count
+  const guestCountPatterns = [
+    /(\d{1,2})\s*guests?\b/i,
+    /guests?[:\s]+(\d{1,2})\b/i,
+  ];
+  for (const pattern of guestCountPatterns) {
+    const match = combinedText.match(pattern);
+    if (match) {
+      const count = parseInt(match[1]);
+      if (count > 0 && count <= 20) {
+        result.num_guests = count;
+        break;
+      }
+    }
+  }
+
+  // Extract guest email (if visible)
+  const emailMatch = combinedText.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
+  if (emailMatch && !emailMatch[0].includes('airbnb')) {
     result.guest_email = emailMatch[0];
   }
 
@@ -177,7 +352,7 @@ function parseDate(dateStr: string): string | null {
   return null;
 }
 
-async function parseWithAI(subject: string, body: string): Promise<ExtractedBooking | null> {
+async function parseWithAI(subject: string, body: string, otaSource: string): Promise<ExtractedBooking | null> {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
   if (!LOVABLE_API_KEY) {
     console.error('[Email Parser] LOVABLE_API_KEY not configured');
@@ -196,7 +371,7 @@ async function parseWithAI(subject: string, body: string): Promise<ExtractedBook
         messages: [
           {
             role: 'system',
-            content: `You are an email parser for hotel booking confirmations from Booking.com.
+            content: `You are an email parser for hotel/vacation rental booking confirmations from ${otaSource === 'airbnb' ? 'Airbnb' : 'Booking.com and similar OTAs'}.
 Extract the following fields from the email. Return ONLY a JSON object, no markdown, no explanation.
 
 Required fields:
@@ -205,7 +380,7 @@ Required fields:
 - check_in_date: YYYY-MM-DD format
 - check_out_date: YYYY-MM-DD format
 - guest_name: Full name of the guest
-- room_type: Room type or category
+- room_type: Room/listing type or name
 - total_price: Numeric value only (no currency symbols)
 - guest_email: Email if visible
 - guest_phone: Phone if visible
@@ -364,14 +539,23 @@ Deno.serve(async (req) => {
       propertyId,
     });
 
-    // Try deterministic parsing first
-    let extracted = parseBookingComEmail(subject, bodyText);
+    // Detect OTA source
+    const otaSource = detectOTASource(subject, fromEmail);
+    console.log('[Email Inbound] Detected OTA source:', otaSource);
+
+    // Try deterministic parsing first based on OTA
+    let extracted: Partial<ExtractedBooking>;
+    if (otaSource === 'airbnb') {
+      extracted = parseAirbnbEmail(subject, bodyText);
+    } else {
+      extracted = parseBookingComEmail(subject, bodyText);
+    }
     let usedAI = false;
 
     // If key fields are missing, try AI fallback
     if (!extracted.booking_id || !extracted.check_in_date || !extracted.check_out_date) {
       console.log('[Email Inbound] Trying AI fallback...');
-      const aiResult = await parseWithAI(subject, bodyText);
+      const aiResult = await parseWithAI(subject, bodyText, otaSource);
       if (aiResult) {
         extracted = { ...extracted, ...aiResult };
         usedAI = true;
@@ -589,12 +773,13 @@ Deno.serve(async (req) => {
 
     if (!guestId) {
       // Create placeholder guest
+      const otaName = otaSource === 'airbnb' ? 'Airbnb' : 'Booking.com';
       const { data: placeholderGuest, error: guestError } = await supabase
         .from('guests')
         .insert({
-          name: 'Booking.com Guest',
+          name: `${otaName} Guest`,
           property_id: propertyId,
-          notes: `Auto-imported from Booking.com email - ${extracted.booking_id}`,
+          notes: `Auto-imported from ${otaName} email - ${extracted.booking_id}`,
         })
         .select()
         .single();
@@ -613,6 +798,10 @@ Deno.serve(async (req) => {
         : 'Guest name not extracted from email';
     }
 
+    // Determine booking source based on OTA
+    const bookingSource = otaSource === 'airbnb' ? 'airbnb' as const : 'booking_com' as const;
+    const externalSource = otaSource === 'airbnb' ? 'airbnb_email' : 'booking.com_email';
+
     // Upsert booking
     const bookingData = {
       property_id: propertyId,
@@ -620,8 +809,8 @@ Deno.serve(async (req) => {
       guest_id: guestId!,
       check_in: extracted.check_in_date,
       check_out: extracted.check_out_date,
-      booking_source: 'booking_com' as const,
-      external_source: 'booking.com_email',
+      booking_source: bookingSource,
+      external_source: externalSource,
       external_booking_id: extracted.booking_id,
       imported_via: 'email',
       raw_email_id: messageId || null,
@@ -636,7 +825,7 @@ Deno.serve(async (req) => {
     const { data: existingBooking } = await supabase
       .from('bookings')
       .select('id')
-      .eq('external_source', 'booking.com_email')
+      .eq('external_source', externalSource)
       .eq('external_booking_id', extracted.booking_id!)
       .maybeSingle();
 
@@ -681,6 +870,23 @@ Deno.serve(async (req) => {
       .update({ parse_status: 'success' })
       .eq('id', logEntry?.id);
 
+    // Create notification for staff
+    const otaName = otaSource === 'airbnb' ? 'Airbnb' : 'Booking.com';
+    const notificationTitle = action === 'created' 
+      ? `New ${otaName} Booking` 
+      : `${otaName} Booking Updated`;
+    const notificationMessage = `${extracted.guest_name || 'Guest'} - ${extracted.check_in_date} to ${extracted.check_out_date}${needsReview ? ' (Needs Review)' : ''}`;
+    
+    await supabase
+      .from('notifications')
+      .insert({
+        property_id: propertyId,
+        type: needsReview ? 'warning' : 'info',
+        title: notificationTitle,
+        message: notificationMessage,
+        link: `/bookings/${bookingResult.id}`,
+      });
+
     console.log(`[Email Inbound] Booking ${action}:`, bookingResult.id);
 
     return new Response(
@@ -692,6 +898,7 @@ Deno.serve(async (req) => {
         reviewReason,
         extracted,
         usedAI,
+        otaSource,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
