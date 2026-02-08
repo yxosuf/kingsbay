@@ -1,109 +1,131 @@
 
-
-# Add Availability Calendar to Dashboard
+# Add Notification Bell with Dropdown
 
 ## Overview
 
-This plan adds a compact availability calendar widget to the Dashboard page, positioned below the "Today's Activity" section and the "USD Rate" widget. The calendar will show a 7-day overview of room availability in a condensed grid format, allowing staff to quickly see upcoming availability without navigating to the full Availability Calendar page.
+This plan adds a functional notification bell icon to the AppHeader component that displays an unread count badge and a dropdown list of recent notifications. Staff will be able to view notifications, mark them as read, and navigate to related resources.
 
 ## Current State
 
-- **Dashboard (`src/pages/Index.tsx`)**: Contains KPI cards, Today's Activity table, Weather widget, and USD Rate widget
-- **Full Availability Calendar (`src/pages/AvailabilityCalendar.tsx`)**: Detailed room-by-room grid with week/month views
-- The dashboard layout uses a 3-column grid on desktop (2 cols for activity, 1 col for widgets)
+- **AppHeader (`src/components/layout/AppHeader.tsx`)**: Already has a placeholder Bell icon button with a static red dot indicator
+- **Notifications table**: Already exists with fields: `id`, `property_id`, `user_id`, `type`, `title`, `message`, `link`, `is_read`, `created_at`
+- **Sample data**: There are unread notifications in the database from the email import system (Booking.com/Airbnb imports)
+- **UI Components available**: Popover, ScrollArea, Button, Badge, Separator from shadcn/ui
 
 ## Implementation Approach
 
-### 1. Create Dashboard Availability Widget Component
+### 1. Create NotificationBell Component
 
-**File**: `src/components/dashboard/DashboardAvailabilityCalendar.tsx`
+**File**: `src/components/layout/NotificationBell.tsx`
 
-Create a new compact availability calendar component that:
-- Shows next 7 days horizontally
-- Displays rooms vertically with status indicators
-- Uses the same data fetching logic as the full calendar but simplified
-- Includes a "View Full Calendar" link to `/availability`
-- Fits within the dashboard's card-based design
+A dedicated component that encapsulates all notification functionality:
 
-**Key Features**:
-- Compact grid: Room names (left) x 7 days (columns)
-- Color-coded cells: Available (green), Reserved (amber), Occupied (red), Blocked/Maintenance (gray)
-- Condensed legend at the bottom
-- Loading skeleton while fetching
-- Respects property filter from `useProperty` hook
+**Features**:
+- Fetches notifications from the database filtered by property
+- Displays unread count badge (animated pulse when unread)
+- Popover dropdown with scrollable notification list
+- "Mark all as read" button in the header
+- Individual notification items with:
+  - Icon based on notification type (info, warning, success)
+  - Title and message preview
+  - Relative timestamp (e.g., "5 min ago")
+  - Click to navigate and mark as read
+- Empty state when no notifications
+- Real-time updates using Supabase subscription
 
-### 2. Update Dashboard Layout
-
-**File**: `src/pages/Index.tsx`
-
-Modify the dashboard grid to include the new calendar widget:
-
+**Component Structure**:
 ```text
-Current Layout:
-+---------------------------+---------------+
-| Today's Activity (2 cols) | Weather       |
-|                           | USD Rate      |
-+---------------------------+---------------+
-
-New Layout:
-+---------------------------+---------------+
-| Today's Activity (2 cols) | Weather       |
-|                           | USD Rate      |
-+---------------------------+---------------+
-| Availability Calendar (full width)        |
-+-------------------------------------------+
+NotificationBell
++-- Button (trigger with Bell icon + badge)
++-- Popover
+    +-- Header ("Notifications" + "Mark all read" button)
+    +-- Separator
+    +-- ScrollArea (max-height: 400px)
+        +-- Notification items (clickable)
+    +-- Footer ("View all notifications" link) [optional]
 ```
+
+### 2. Update AppHeader
+
+**File**: `src/components/layout/AppHeader.tsx`
+
+Replace the static Bell button with the new `NotificationBell` component.
+
+**Changes**:
+- Remove the current placeholder Bell button implementation
+- Import and use the new `NotificationBell` component
+- Maintain the existing layout and spacing
 
 ### Technical Details
 
-**Data Fetching Strategy**:
-- Reuse the logic from `AvailabilityCalendar.tsx` but scoped to 7 days
-- Fetch rooms for selected property
-- Fetch bookings overlapping with the 7-day range
-- Fetch room_availability blocks for the date range
-- Calculate cell status (available/reserved/occupied/blocked/maintenance)
+**Data Fetching**:
+- Query notifications ordered by `created_at DESC` with limit of 20
+- Filter by `property_id` when a specific property is selected
+- Show all notifications when "All Properties" is selected
 
-**Component Structure**:
-```
-DashboardAvailabilityCalendar
-├── Card wrapper with title + "View All" link
-├── Loading skeleton (when loading)
-├── Compact grid table
-│   ├── Header row with day names (Mon-Sun)
-│   └── Room rows with status cells
-└── Condensed legend
-```
+**Real-time Subscription**:
+- Subscribe to `postgres_changes` on the `notifications` table
+- Auto-refresh the list when new notifications arrive
+- Show toast when new notification comes in (optional enhancement)
+
+**Mark as Read Logic**:
+- Individual: Update `is_read = true` when clicking a notification
+- Bulk: Update all visible notifications when clicking "Mark all as read"
+
+**Type-based Icons**:
+| Type | Icon | Color |
+|------|------|-------|
+| `info` | Info | Blue |
+| `warning` | AlertTriangle | Amber |
+| `success` | CheckCircle | Green |
+| `error` | XCircle | Red |
+| default | Bell | Gray |
+
+**Relative Time Display**:
+- Use `formatDistanceToNow` from `date-fns` for human-readable timestamps
+- Examples: "5 min ago", "2 hours ago", "yesterday"
 
 **Responsive Design**:
-- On mobile: Horizontal scroll for the 7-day grid
-- Smaller cell sizes (h-6 instead of h-10)
-- Room names truncated with tooltip on hover
+- Popover width: 320px on mobile, 380px on desktop
+- Notification items truncate long messages with ellipsis
+- Touch-friendly tap targets (min 44px height per item)
 
 **Files to Create**:
-1. `src/components/dashboard/DashboardAvailabilityCalendar.tsx` - The compact calendar widget
+1. `src/components/layout/NotificationBell.tsx` - The main notification component
 
 **Files to Modify**:
-1. `src/pages/Index.tsx` - Import and add the widget below existing content
+1. `src/components/layout/AppHeader.tsx` - Replace placeholder with new component
 
-### Sample UI Preview
+### Sample UI Design
 
 ```text
-+------------------------------------------------+
-| Room Availability (7 Days)     [View Full →]   |
-+------------------------------------------------+
-|        | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
-| Room 1 |  ✓  |  R  |  R  |  R  |  ✓  |  ✓  |  ✓  |
-| Room 2 |  O  |  O  |  ✓  |  ✓  |  ✓  |  R  |  R  |
-| Room 3 |  ✕  |  ✕  |  ✕  |  ✓  |  ✓  |  ✓  |  ✓  |
-+------------------------------------------------+
-| ✓ Available  R Reserved  O Occupied  ✕ Blocked |
-+------------------------------------------------+
++----------------------------------+
+| Notifications     [Mark all read]|
++----------------------------------+
+| [!] New Airbnb Booking           |
+|     Sarah Wilson - 2026-03-01... |
+|     5 min ago                    |
++----------------------------------+
+| [!] New Booking.com Booking      |
+|     Jane Doe - 2026-02-20 to...  |
+|     2 hours ago                  |
++----------------------------------+
+|         No more notifications    |
++----------------------------------+
 ```
 
-### Integration with Existing Code
+### Integration Points
 
-- Uses `useProperty` hook for property filtering (same as full calendar)
-- Uses same Supabase queries pattern from `AvailabilityCalendar.tsx`
-- Uses same status color scheme for consistency
-- Uses existing UI components (Card, Button, Badge, cn utility)
+- Uses `useProperty` hook for property filtering (same pattern as other components)
+- Uses `useNavigate` from react-router-dom for navigation when clicking notifications
+- Uses `supabase` client for database queries and real-time subscriptions
+- Uses existing UI components (Button, Popover, ScrollArea, Badge, Separator)
+- Uses `formatDistanceToNow` from date-fns for relative timestamps
 
+### Edge Cases Handled
+
+- No notifications: Shows empty state message
+- Long notification messages: Truncated with ellipsis
+- Property switching: Refetches notifications for new property
+- Network errors: Shows error toast and allows retry
+- All notifications read: Hides the red badge
