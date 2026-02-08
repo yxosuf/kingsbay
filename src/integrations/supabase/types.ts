@@ -28,12 +28,14 @@ export type Database = {
           external_source: string | null
           guest_id: string
           id: string
+          imported_via: string | null
           needs_review: boolean | null
           num_guests: number | null
           ota_price: number | null
           ota_reference: string | null
           parent_booking_id: string | null
           property_id: string | null
+          raw_email_id: string | null
           review_reason: string | null
           room_id: string
           special_requests: string | null
@@ -54,12 +56,14 @@ export type Database = {
           external_source?: string | null
           guest_id: string
           id?: string
+          imported_via?: string | null
           needs_review?: boolean | null
           num_guests?: number | null
           ota_price?: number | null
           ota_reference?: string | null
           parent_booking_id?: string | null
           property_id?: string | null
+          raw_email_id?: string | null
           review_reason?: string | null
           room_id: string
           special_requests?: string | null
@@ -80,12 +84,14 @@ export type Database = {
           external_source?: string | null
           guest_id?: string
           id?: string
+          imported_via?: string | null
           needs_review?: boolean | null
           num_guests?: number | null
           ota_price?: number | null
           ota_reference?: string | null
           parent_booking_id?: string | null
           property_id?: string | null
+          raw_email_id?: string | null
           review_reason?: string | null
           room_id?: string
           special_requests?: string | null
@@ -224,6 +230,59 @@ export type Database = {
             columns: ["internal_room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_ingest_logs: {
+        Row: {
+          created_at: string
+          extracted: Json | null
+          from_email: string | null
+          id: string
+          message_id: string | null
+          parse_error: string | null
+          parse_status: string
+          property_id: string | null
+          provider: string
+          raw_text: string | null
+          received_at: string
+          subject: string | null
+        }
+        Insert: {
+          created_at?: string
+          extracted?: Json | null
+          from_email?: string | null
+          id?: string
+          message_id?: string | null
+          parse_error?: string | null
+          parse_status?: string
+          property_id?: string | null
+          provider: string
+          raw_text?: string | null
+          received_at?: string
+          subject?: string | null
+        }
+        Update: {
+          created_at?: string
+          extracted?: Json | null
+          from_email?: string | null
+          id?: string
+          message_id?: string | null
+          parse_error?: string | null
+          parse_status?: string
+          property_id?: string | null
+          provider?: string
+          raw_text?: string | null
+          received_at?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_ingest_logs_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
         ]
