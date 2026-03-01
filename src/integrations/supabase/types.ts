@@ -17,8 +17,12 @@ export type Database = {
       bookings: {
         Row: {
           booking_source: Database["public"]["Enums"]["booking_source"]
+          cancel_reason: string | null
+          cancelled_at: string | null
           check_in: string
           check_out: string
+          checked_in_at: string | null
+          checked_out_at: string | null
           commission_amount: number | null
           commission_rate: number | null
           created_at: string
@@ -27,9 +31,11 @@ export type Database = {
           external_room_type_id: string | null
           external_source: string | null
           guest_id: string
+          hold_expires_at: string | null
           id: string
           imported_via: string | null
           needs_review: boolean | null
+          no_show_at: string | null
           num_guests: number | null
           ota_price: number | null
           ota_reference: string | null
@@ -45,8 +51,12 @@ export type Database = {
         }
         Insert: {
           booking_source?: Database["public"]["Enums"]["booking_source"]
+          cancel_reason?: string | null
+          cancelled_at?: string | null
           check_in: string
           check_out: string
+          checked_in_at?: string | null
+          checked_out_at?: string | null
           commission_amount?: number | null
           commission_rate?: number | null
           created_at?: string
@@ -55,9 +65,11 @@ export type Database = {
           external_room_type_id?: string | null
           external_source?: string | null
           guest_id: string
+          hold_expires_at?: string | null
           id?: string
           imported_via?: string | null
           needs_review?: boolean | null
+          no_show_at?: string | null
           num_guests?: number | null
           ota_price?: number | null
           ota_reference?: string | null
@@ -73,8 +85,12 @@ export type Database = {
         }
         Update: {
           booking_source?: Database["public"]["Enums"]["booking_source"]
+          cancel_reason?: string | null
+          cancelled_at?: string | null
           check_in?: string
           check_out?: string
+          checked_in_at?: string | null
+          checked_out_at?: string | null
           commission_amount?: number | null
           commission_rate?: number | null
           created_at?: string
@@ -83,9 +99,11 @@ export type Database = {
           external_room_type_id?: string | null
           external_source?: string | null
           guest_id?: string
+          hold_expires_at?: string | null
           id?: string
           imported_via?: string | null
           needs_review?: boolean | null
+          no_show_at?: string | null
           num_guests?: number | null
           ota_price?: number | null
           ota_reference?: string | null
@@ -351,44 +369,116 @@ export type Database = {
           },
         ]
       }
+      guest_view_logs: {
+        Row: {
+          guest_id: string
+          id: string
+          property_id: string | null
+          user_id: string
+          viewed_at: string
+        }
+        Insert: {
+          guest_id: string
+          id?: string
+          property_id?: string | null
+          user_id: string
+          viewed_at?: string
+        }
+        Update: {
+          guest_id?: string
+          id?: string
+          property_id?: string | null
+          user_id?: string
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_view_logs_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_view_logs_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guests: {
         Row: {
           address: string | null
+          blacklist_reason: string | null
+          country: string | null
           created_at: string
           email: string | null
+          guest_type: Database["public"]["Enums"]["guest_type"]
           id: string
           id_passport: string | null
+          is_blacklisted: boolean
+          is_vip: boolean
           name: string
           nationality: string | null
+          nic_number: string | null
           notes: string | null
+          passport_number: string | null
+          passport_photo_path: string | null
+          passport_photo_uploaded_at: string | null
           phone: string | null
           property_id: string | null
+          total_spent: number
+          total_stays: number
           updated_at: string
         }
         Insert: {
           address?: string | null
+          blacklist_reason?: string | null
+          country?: string | null
           created_at?: string
           email?: string | null
+          guest_type?: Database["public"]["Enums"]["guest_type"]
           id?: string
           id_passport?: string | null
+          is_blacklisted?: boolean
+          is_vip?: boolean
           name: string
           nationality?: string | null
+          nic_number?: string | null
           notes?: string | null
+          passport_number?: string | null
+          passport_photo_path?: string | null
+          passport_photo_uploaded_at?: string | null
           phone?: string | null
           property_id?: string | null
+          total_spent?: number
+          total_stays?: number
           updated_at?: string
         }
         Update: {
           address?: string | null
+          blacklist_reason?: string | null
+          country?: string | null
           created_at?: string
           email?: string | null
+          guest_type?: Database["public"]["Enums"]["guest_type"]
           id?: string
           id_passport?: string | null
+          is_blacklisted?: boolean
+          is_vip?: boolean
           name?: string
           nationality?: string | null
+          nic_number?: string | null
           notes?: string | null
+          passport_number?: string | null
+          passport_photo_path?: string | null
+          passport_photo_uploaded_at?: string | null
           phone?: string | null
           property_id?: string | null
+          total_spent?: number
+          total_stays?: number
           updated_at?: string
         }
         Relationships: [
@@ -638,6 +728,7 @@ export type Database = {
         Row: {
           auto_close_at: number
           created_at: string
+          hold_timeout_hours: number
           id: string
           property_id: string
           safety_buffer: number
@@ -647,6 +738,7 @@ export type Database = {
         Insert: {
           auto_close_at?: number
           created_at?: string
+          hold_timeout_hours?: number
           id?: string
           property_id: string
           safety_buffer?: number
@@ -656,6 +748,7 @@ export type Database = {
         Update: {
           auto_close_at?: number
           created_at?: string
+          hold_timeout_hours?: number
           id?: string
           property_id?: string
           safety_buffer?: number
@@ -729,7 +822,9 @@ export type Database = {
           created_at: string
           description: string | null
           floor: number | null
+          housekeeping_status: Database["public"]["Enums"]["housekeeping_status"]
           id: string
+          last_checkout_at: string | null
           max_guests: number | null
           price: number
           property_id: string | null
@@ -743,7 +838,9 @@ export type Database = {
           created_at?: string
           description?: string | null
           floor?: number | null
+          housekeeping_status?: Database["public"]["Enums"]["housekeeping_status"]
           id?: string
+          last_checkout_at?: string | null
           max_guests?: number | null
           price?: number
           property_id?: string | null
@@ -757,7 +854,9 @@ export type Database = {
           created_at?: string
           description?: string | null
           floor?: number | null
+          housekeeping_status?: Database["public"]["Enums"]["housekeeping_status"]
           id?: string
+          last_checkout_at?: string | null
           max_guests?: number | null
           price?: number
           property_id?: string | null
@@ -944,6 +1043,8 @@ export type Database = {
         | "checked_out"
         | "cancelled"
         | "archived"
+        | "no_show"
+        | "needs_review"
       channel_type:
         | "direct"
         | "booking_com"
@@ -951,6 +1052,8 @@ export type Database = {
         | "agoda"
         | "expedia"
         | "other_ota"
+      guest_type: "local" | "international"
+      housekeeping_status: "clean" | "dirty" | "cleaning"
       payment_method: "cash" | "card" | "bank_transfer" | "online"
       payment_status: "pending" | "partial" | "paid"
       property_type: "hotel" | "villa" | "resort" | "apartment" | "guesthouse"
@@ -1107,6 +1210,8 @@ export const Constants = {
         "checked_out",
         "cancelled",
         "archived",
+        "no_show",
+        "needs_review",
       ],
       channel_type: [
         "direct",
@@ -1116,6 +1221,8 @@ export const Constants = {
         "expedia",
         "other_ota",
       ],
+      guest_type: ["local", "international"],
+      housekeeping_status: ["clean", "dirty", "cleaning"],
       payment_method: ["cash", "card", "bank_transfer", "online"],
       payment_status: ["pending", "partial", "paid"],
       property_type: ["hotel", "villa", "resort", "apartment", "guesthouse"],
