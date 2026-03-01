@@ -22,6 +22,9 @@ import { ExtendStayDialog } from '@/components/booking/ExtendStayDialog';
 import { AddServiceDialog } from '@/components/booking/AddServiceDialog';
 import { PrintableInvoice } from '@/components/invoice/PrintableInvoice';
 import { useReactToPrint } from 'react-to-print';
+import { BookingTimeline } from '@/components/booking/BookingTimeline';
+import { BookingStatusBadge } from '@/components/booking/BookingStatusBadge';
+import { AdminStatusOverride } from '@/components/booking/AdminStatusOverride';
 
 interface BookingDetails {
   id: string;
@@ -72,7 +75,7 @@ export default function BookingDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const isCheckout = location.pathname.includes('/checkout');
 
   const [booking, setBooking] = useState<BookingDetails | null>(null);
@@ -232,11 +235,17 @@ export default function BookingDetails() {
 
       if (bookingError) throw bookingError;
 
-      // Update room status
+      // Update room status to dirty (housekeeping)
       await supabase
         .from('rooms')
-        .update({ status: 'available' })
+        .update({ status: 'available', housekeeping_status: 'dirty', last_checkout_at: new Date().toISOString() })
         .eq('id', booking.rooms?.id);
+
+      // Update booking with checkout timestamp
+      await supabase
+        .from('bookings')
+        .update({ checked_out_at: new Date().toISOString() })
+        .eq('id', booking.id);
 
       setInvoiceNumber(invoice.invoice_number);
       toast.success('Guest checked out successfully. Invoice created.');
@@ -251,19 +260,7 @@ export default function BookingDetails() {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, string> = {
-      pending: 'bg-warning/20 text-warning-foreground border-warning',
-      confirmed: 'bg-info/20 text-info border-info',
-      checked_in: 'bg-success/20 text-success border-success',
-      checked_out: 'bg-muted text-muted-foreground',
-      cancelled: 'bg-destructive/20 text-destructive border-destructive',
-    };
-
-    return (
-      <Badge variant="outline" className={variants[status] || ''}>
-        {status.replace('_', ' ')}
-      </Badge>
-    );
+    return <BookingStatusBadge status={status} needsReview={booking?.needs_review} />;
   };
 
   if (loading) {
@@ -558,7 +555,27 @@ export default function BookingDetails() {
           </div>
 
           {/* Summary */}
-          <div>
+          <div className="space-y-6">
+            {/* Timeline */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Booking Timeline</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <BookingTimeline booking={booking as any} />
+                {isAdmin && (
+                  <div className="pt-4 border-t">
+                    <AdminStatusOverride
+                      bookingId={booking.id}
+                      currentStatus={booking.status}
+                      onSuccess={fetchBookingDetails}
+                    />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Billing Summary */}
             <Card className="sticky top-20">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
