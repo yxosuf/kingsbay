@@ -1,268 +1,113 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Plus, Search, Eye, LogIn, LogOut, X, BookOpen, AlertTriangle } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Plus, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { PropertyBadge } from '@/components/layout/PropertyBadge';
+import { BookingTable, type BookingRow } from '@/components/booking/BookingTable';
 
-interface Booking {
-  id: string;
-  check_in: string;
-  check_out: string;
-  status: string;
-  num_guests: number;
-  total_amount: number;
-  room_id: string;
-  property_id: string | null;
-  booking_source: string;
-  needs_review: boolean;
-  review_reason: string | null;
-  guests: { name: string; phone: string } | null;
-  rooms: { room_number: string; room_type: string } | null;
-}
+type TabKey = 'today' | 'upcoming' | 'inhouse' | 'past' | 'cancelled' | 'needs_review' | 'all';
+
+const TAB_LABELS: Record<TabKey, string> = {
+  today: 'Today',
+  upcoming: 'Upcoming',
+  inhouse: 'In-house',
+  past: 'Past',
+  cancelled: 'Cancelled',
+  needs_review: 'Needs Review',
+  all: 'All',
+};
 
 export default function Bookings() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { selectedProperty, showAllProperties } = useProperty();
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const { isAdmin } = useAuth();
+  const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState(searchParams.get('filter') || 'all');
-  const isMobile = useIsMobile();
-  const [cancelConfirm, setCancelConfirm] = useState<{ open: boolean; booking: Booking | null }>({
-    open: false,
-    booking: null,
+  const [activeTab, setActiveTab] = useState<TabKey>(() => {
+    const filter = searchParams.get('filter');
+    if (filter && Object.keys(TAB_LABELS).includes(filter)) return filter as TabKey;
+    return 'today';
   });
 
-  useEffect(() => {
-    fetchBookings();
-  }, [statusFilter, selectedProperty, showAllProperties]);
+  const today = new Date().toISOString().split('T')[0];
 
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async () => {
+    setLoading(true);
     try {
       let query = supabase
         .from('bookings')
         .select(`
-          id,
-          check_in,
-          check_out,
-          status,
-          num_guests,
-          total_amount,
-          room_id,
-          property_id,
-          booking_source,
-          needs_review,
-          review_reason,
+          id, check_in, check_out, status, num_guests, total_amount,
+          room_id, property_id, booking_source, needs_review, review_reason,
           guests (name, phone),
           rooms (room_number, room_type)
         `)
         .order('created_at', { ascending: false });
 
-      // Filter by property
+      // Property filter
       if (!showAllProperties && selectedProperty?.id) {
         query = query.eq('property_id', selectedProperty.id);
       }
 
-      if (statusFilter === 'today') {
-        const today = new Date().toISOString().split('T')[0];
-        query = query.eq('check_in', today);
-      } else if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter as any);
+      // Tab-specific filters
+      switch (activeTab) {
+        case 'today':
+          // Arrivals today OR departures today with active status
+          query = query.or(`and(check_in.eq.${today},status.in.(confirmed,pending)),and(check_out.eq.${today},status.eq.checked_in)`);
+          break;
+        case 'upcoming':
+          query = query.gt('check_in', today).eq('status', 'confirmed');
+          break;
+        case 'inhouse':
+          query = query.eq('status', 'checked_in');
+          break;
+        case 'past':
+          query = query.eq('status', 'checked_out');
+          break;
+        case 'cancelled':
+          query = query.in('status', ['cancelled', 'no_show']);
+          break;
+        case 'needs_review':
+          query = query.eq('status', 'needs_review');
+          break;
+        case 'all':
+          // No additional filter
+          break;
       }
 
       const { data, error } = await query;
       if (error) throw error;
-      setBookings(data || []);
+      setBookings((data as BookingRow[]) || []);
     } catch (error) {
       console.error('Error fetching bookings:', error);
       toast.error('Failed to load bookings');
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, selectedProperty, showAllProperties, today]);
 
-  const handleCheckIn = async (bookingId: string, roomId: string) => {
-    try {
-      const { error: bookingError } = await supabase
-        .from('bookings')
-        .update({ status: 'checked_in' })
-        .eq('id', bookingId);
-
-      if (bookingError) throw bookingError;
-
-      const { error: roomError } = await supabase
-        .from('rooms')
-        .update({ status: 'occupied' })
-        .eq('id', roomId);
-
-      if (roomError) throw roomError;
-
-      toast.success('Guest checked in successfully');
-      fetchBookings();
-    } catch (error) {
-      toast.error('Failed to check in guest');
-    }
-  };
-
-  const handleCancelClick = (booking: Booking) => {
-    setCancelConfirm({ open: true, booking });
-  };
-
-  const handleCancelConfirm = async () => {
-    if (!cancelConfirm.booking) return;
-    
-    try {
-      const { error } = await supabase
-        .from('bookings')
-        .update({ status: 'cancelled' })
-        .eq('id', cancelConfirm.booking.id);
-
-      if (error) throw error;
-      toast.success('Booking cancelled');
-      setCancelConfirm({ open: false, booking: null });
-      fetchBookings();
-    } catch (error) {
-      toast.error('Failed to cancel booking');
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, string> = {
-      pending: 'bg-warning/20 text-warning-foreground border-warning',
-      confirmed: 'bg-info/20 text-info border-info',
-      checked_in: 'bg-success/20 text-success border-success',
-      checked_out: 'bg-muted text-muted-foreground',
-      cancelled: 'bg-destructive/20 text-destructive border-destructive',
-    };
-
-    return (
-      <Badge variant="outline" className={variants[status] || ''}>
-        {status.replace('_', ' ')}
-      </Badge>
-    );
-  };
+  useEffect(() => {
+    fetchBookings();
+  }, [fetchBookings]);
 
   const filteredBookings = bookings.filter(
-    (booking) =>
-      booking.guests?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.rooms?.room_number?.toLowerCase().includes(searchTerm.toLowerCase())
+    (b) =>
+      b.guests?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      b.rooms?.room_number?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const renderMobileCard = (booking: Booking) => (
-    <div className="space-y-3">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <p className="font-medium truncate">{booking.guests?.name || 'Unknown'}</p>
-            {booking.needs_review && (
-              <Badge variant="destructive" className="shrink-0 flex items-center gap-1 text-xs">
-                <AlertTriangle className="h-3 w-3" />
-                Review
-              </Badge>
-            )}
-          </div>
-          <p className="text-sm text-muted-foreground">{booking.guests?.phone}</p>
-        </div>
-        {getStatusBadge(booking.status)}
-      </div>
-      
-      <div className="grid grid-cols-2 gap-2 text-sm">
-        <div>
-          <p className="text-muted-foreground">Room</p>
-          <p className="font-medium">
-            {booking.rooms?.room_number || 'N/A'} 
-            <span className="text-muted-foreground capitalize"> · {booking.rooms?.room_type}</span>
-          </p>
-        </div>
-        <div>
-          <p className="text-muted-foreground">Amount</p>
-          <p className="font-medium">Rs. {booking.total_amount?.toLocaleString() || '0'}</p>
-        </div>
-        <div>
-          <p className="text-muted-foreground">Check-in</p>
-          <p className="font-medium">{new Date(booking.check_in).toLocaleDateString()}</p>
-        </div>
-        <div>
-          <p className="text-muted-foreground">Check-out</p>
-          <p className="font-medium">{new Date(booking.check_out).toLocaleDateString()}</p>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2 pt-2 border-t">
-        <Button
-          variant="outline"
-          size="sm"
-          className="flex-1"
-          onClick={() => navigate(`/bookings/${booking.id}`)}
-        >
-          <Eye className="h-4 w-4 mr-1" />
-          View
-        </Button>
-        {(booking.status === 'pending' || booking.status === 'confirmed') && (
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-success border-success hover:bg-success/10"
-              onClick={() => handleCheckIn(booking.id, booking.room_id)}
-            >
-              <LogIn className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-destructive border-destructive hover:bg-destructive/10"
-              onClick={() => handleCancelClick(booking)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </>
-        )}
-        {booking.status === 'checked_in' && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-warning border-warning hover:bg-warning/10"
-            onClick={() => navigate(`/bookings/${booking.id}/checkout`)}
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-    </div>
-  );
+  const tabs: TabKey[] = ['today', 'upcoming', 'inhouse', 'past', 'cancelled', 'needs_review'];
+  if (isAdmin) tabs.push('all');
 
   return (
     <DashboardLayout title="Bookings">
@@ -275,30 +120,14 @@ export default function Bookings() {
 
         {/* Header Actions */}
         <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 sm:justify-between">
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:flex-1">
-            <div className="relative flex-1 sm:max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search guest or room..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-40">
-                <SelectValue placeholder="Filter status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Bookings</SelectItem>
-                <SelectItem value="today">Today's Arrivals</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="confirmed">Confirmed</SelectItem>
-                <SelectItem value="checked_in">Checked In</SelectItem>
-                <SelectItem value="checked_out">Checked Out</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="relative flex-1 sm:max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search guest or room..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
           <Button onClick={() => navigate('/bookings/new')} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
@@ -306,155 +135,34 @@ export default function Bookings() {
           </Button>
         </div>
 
-        {/* Bookings Content */}
-        <Card>
-          <CardHeader className="pb-3 sm:pb-6">
-            <CardTitle className="text-base sm:text-lg">All Bookings</CardTitle>
-          </CardHeader>
-          <CardContent className="px-3 sm:px-6">
-            {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              </div>
-            ) : filteredBookings.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No bookings found.</p>
-              </div>
-            ) : isMobile ? (
-              <div className="space-y-3">
-                {filteredBookings.map((booking) => (
-                  <Card key={booking.id} className="border-border/50">
-                    <CardContent className="p-4">
-                      {renderMobileCard(booking)}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Guest</TableHead>
-                    <TableHead>Room</TableHead>
-                    <TableHead>Check-in</TableHead>
-                    <TableHead>Check-out</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredBookings.map((booking) => (
-                    <TableRow key={booking.id}>
-                      <TableCell>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">{booking.guests?.name || 'Unknown'}</p>
-                            {booking.needs_review && (
-                              <Badge variant="destructive" className="flex items-center gap-1 text-xs">
-                                <AlertTriangle className="h-3 w-3" />
-                                Review
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground">{booking.guests?.phone}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p>Room {booking.rooms?.room_number || 'N/A'}</p>
-                          <p className="text-sm text-muted-foreground capitalize">
-                            {booking.rooms?.room_type}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>{new Date(booking.check_in).toLocaleDateString()}</TableCell>
-                      <TableCell>{new Date(booking.check_out).toLocaleDateString()}</TableCell>
-                      <TableCell>{getStatusBadge(booking.status)}</TableCell>
-                      <TableCell>Rs. {booking.total_amount?.toLocaleString() || '0'}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => navigate(`/bookings/${booking.id}`)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          {(booking.status === 'pending' || booking.status === 'confirmed') && (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-success"
-                                onClick={() => handleCheckIn(booking.id, booking.room_id)}
-                              >
-                                <LogIn className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-destructive"
-                                onClick={() => handleCancelClick(booking)}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
-                          {booking.status === 'checked_in' && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-warning"
-                              onClick={() => navigate(`/bookings/${booking.id}/checkout`)}
-                            >
-                              <LogOut className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabKey)}>
+          <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-muted/50 p-1">
+            {tabs.map((tab) => (
+              <TabsTrigger key={tab} value={tab} className="text-xs sm:text-sm">
+                {TAB_LABELS[tab]}
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-      {/* Cancel Confirmation Dialog */}
-      <Dialog 
-        open={cancelConfirm.open} 
-        onOpenChange={(open) => !open && setCancelConfirm({ open: false, booking: null })}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Cancel Booking</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to cancel this booking? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          {cancelConfirm.booking && (
-            <div className="py-4 space-y-2">
-              <p><strong>Guest:</strong> {cancelConfirm.booking.guests?.name || 'Unknown'}</p>
-              <p><strong>Room:</strong> {cancelConfirm.booking.rooms?.room_number || 'N/A'}</p>
-              <p><strong>Dates:</strong> {new Date(cancelConfirm.booking.check_in).toLocaleDateString()} - {new Date(cancelConfirm.booking.check_out).toLocaleDateString()}</p>
-            </div>
-          )}
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setCancelConfirm({ open: false, booking: null })}
-            >
-              Keep Booking
-            </Button>
-            <Button variant="destructive" onClick={handleCancelConfirm}>
-              Cancel Booking
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          {tabs.map((tab) => (
+            <TabsContent key={tab} value={tab}>
+              <Card>
+                <CardHeader className="pb-3 sm:pb-6">
+                  <CardTitle className="text-base sm:text-lg">{TAB_LABELS[tab]} Bookings</CardTitle>
+                </CardHeader>
+                <CardContent className="px-3 sm:px-6">
+                  <BookingTable
+                    bookings={filteredBookings}
+                    loading={loading}
+                    onActionComplete={fetchBookings}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          ))}
+        </Tabs>
+      </div>
     </DashboardLayout>
   );
 }
