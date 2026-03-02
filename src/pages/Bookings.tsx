@@ -29,7 +29,7 @@ export default function Bookings() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { selectedProperty, showAllProperties } = useProperty();
-  const { isAdmin } = useAuth();
+  const { isAdmin, canWrite } = useAuth();
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -129,10 +129,12 @@ export default function Bookings() {
               className="pl-10"
             />
           </div>
-          <Button onClick={() => navigate('/bookings/new')} className="w-full sm:w-auto">
-            <Plus className="h-4 w-4 mr-2" />
-            New Booking
-          </Button>
+          {canWrite && (
+            <Button onClick={() => navigate('/bookings/new')} className="w-full sm:w-auto">
+              <Plus className="h-4 w-4 mr-2" />
+              New Booking
+            </Button>
+          )}
         </div>
 
         {/* Tabs */}

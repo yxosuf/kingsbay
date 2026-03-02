@@ -28,6 +28,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useProperty } from '@/hooks/useProperty';
 import { PropertyBadge } from '@/components/layout/PropertyBadge';
+import { useAuth } from '@/hooks/useAuth';
 
 interface DashboardStats {
   activeGuests: number;
@@ -58,6 +59,7 @@ interface ExchangeRate {
 export default function Dashboard() {
   const navigate = useNavigate();
   const { selectedProperty, showAllProperties, properties } = useProperty();
+  const { canWrite } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({
     activeGuests: 0,
     totalRevenue: 0,
@@ -376,7 +378,7 @@ export default function Dashboard() {
                               <Eye className="h-4 w-4 mr-1" />
                               View
                             </Button>
-                            {activity.type === 'check_in' && (activity.status === 'pending' || activity.status === 'confirmed') && (
+                            {canWrite && activity.type === 'check_in' && (activity.status === 'pending' || activity.status === 'confirmed') && (
                               <Button 
                                 variant="outline" 
                                 size="sm"
@@ -386,7 +388,7 @@ export default function Dashboard() {
                                 <LogIn className="h-4 w-4" />
                               </Button>
                             )}
-                            {activity.type === 'check_out' && activity.status === 'checked_in' && (
+                            {canWrite && activity.type === 'check_out' && activity.status === 'checked_in' && (
                               <Button 
                                 variant="outline" 
                                 size="sm"
@@ -446,7 +448,7 @@ export default function Dashboard() {
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
-                              {activity.type === 'check_in' && (activity.status === 'pending' || activity.status === 'confirmed') && (
+                              {canWrite && activity.type === 'check_in' && (activity.status === 'pending' || activity.status === 'confirmed') && (
                                 <Button 
                                   variant="ghost" 
                                   size="icon"
@@ -456,7 +458,7 @@ export default function Dashboard() {
                                   <LogIn className="h-4 w-4" />
                                 </Button>
                               )}
-                              {activity.type === 'check_out' && activity.status === 'checked_in' && (
+                              {canWrite && activity.type === 'check_out' && activity.status === 'checked_in' && (
                                 <Button 
                                   variant="ghost" 
                                   size="icon"

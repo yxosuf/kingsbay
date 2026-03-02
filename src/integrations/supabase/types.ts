@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          property_id: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          property_id?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          property_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           booking_source: Database["public"]["Enums"]["booking_source"]
@@ -727,6 +762,8 @@ export type Database = {
       property_inventory_settings: {
         Row: {
           auto_close_at: number
+          checkin_time: string
+          checkout_time: string
           created_at: string
           hold_timeout_hours: number
           id: string
@@ -737,6 +774,8 @@ export type Database = {
         }
         Insert: {
           auto_close_at?: number
+          checkin_time?: string
+          checkout_time?: string
           created_at?: string
           hold_timeout_hours?: number
           id?: string
@@ -747,6 +786,8 @@ export type Database = {
         }
         Update: {
           auto_close_at?: number
+          checkin_time?: string
+          checkout_time?: string
           created_at?: string
           hold_timeout_hours?: number
           id?: string
@@ -1016,6 +1057,7 @@ export type Database = {
           has_overlap: boolean
         }[]
       }
+      clear_property_data: { Args: { p_property_id: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["staff_role"]
@@ -1027,6 +1069,7 @@ export type Database = {
       is_front_desk: { Args: never; Returns: boolean }
       is_manager: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
+      is_viewer: { Args: never; Returns: boolean }
     }
     Enums: {
       booking_source:
@@ -1063,7 +1106,7 @@ export type Database = {
         | "transport"
         | "facilities"
         | "special_request"
-      staff_role: "admin" | "front_desk" | "manager"
+      staff_role: "admin" | "front_desk" | "manager" | "viewer"
       sync_direction: "inbound" | "outbound"
       sync_frequency: "realtime" | "5min" | "15min" | "hourly"
       sync_result_status: "success" | "failed" | "partial"
@@ -1233,7 +1276,7 @@ export const Constants = {
         "facilities",
         "special_request",
       ],
-      staff_role: ["admin", "front_desk", "manager"],
+      staff_role: ["admin", "front_desk", "manager", "viewer"],
       sync_direction: ["inbound", "outbound"],
       sync_frequency: ["realtime", "5min", "15min", "hourly"],
       sync_result_status: ["success", "failed", "partial"],

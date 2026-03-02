@@ -33,7 +33,6 @@ const mainNavItems = [
   { title: 'Bookings', url: '/bookings', icon: BookOpen },
   { title: 'Room Status', url: '/rooms', icon: BedDouble },
   { title: 'Availability', url: '/availability', icon: CalendarPlus },
-  { title: 'Guests', url: '/guests', icon: Users },
 ];
 
 const systemNavItems = [
