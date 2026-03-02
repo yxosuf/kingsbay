@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -38,6 +39,7 @@ type ActionDialog =
 
 export function BookingQuickActions({ booking, onActionComplete, compact = false }: BookingQuickActionsProps) {
   const navigate = useNavigate();
+  const { canWrite } = useAuth();
   const [actionDialog, setActionDialog] = useState<ActionDialog>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [processing, setProcessing] = useState(false);
@@ -117,10 +119,10 @@ export function BookingQuickActions({ booking, onActionComplete, compact = false
     navigate(`/bookings/${booking.id}/checkout`);
   };
 
-  const canCheckIn = booking.status === 'pending' || booking.status === 'confirmed';
-  const canCheckOut = booking.status === 'checked_in';
-  const canCancel = booking.status === 'pending' || booking.status === 'confirmed' || booking.status === 'needs_review';
-  const canNoShow = booking.status === 'confirmed' || booking.status === 'pending';
+  const canCheckIn = canWrite && (booking.status === 'pending' || booking.status === 'confirmed');
+  const canCheckOut = canWrite && booking.status === 'checked_in';
+  const canCancel = canWrite && (booking.status === 'pending' || booking.status === 'confirmed' || booking.status === 'needs_review');
+  const canNoShow = canWrite && (booking.status === 'confirmed' || booking.status === 'pending');
 
   const size = compact ? 'icon' as const : 'sm' as const;
   const variant = compact ? 'ghost' as const : 'outline' as const;

@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
-type StaffRole = 'admin' | 'front_desk' | 'manager';
+type StaffRole = 'admin' | 'front_desk' | 'manager' | 'viewer';
 
 /**
  * Auth context interface providing user authentication and role information.
@@ -32,6 +32,10 @@ interface AuthContextType {
   isManager: boolean;
   /** @description UI-only flag - actual front desk permissions enforced via RLS policies */
   isFrontDesk: boolean;
+  /** @description UI-only flag - viewer is read-only, enforced via RLS policies */
+  isViewer: boolean;
+  /** @description True if user can perform write operations (not a viewer) */
+  canWrite: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -147,6 +151,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAdmin: role === 'admin',
     isManager: role === 'manager',
     isFrontDesk: role === 'front_desk',
+    isViewer: role === 'viewer',
+    canWrite: role !== null && role !== 'viewer',
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

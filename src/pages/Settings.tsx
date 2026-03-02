@@ -29,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, UserPlus, Trash2, Shield, Hotel, Users, Clock, UtensilsCrossed, Link2, FileText } from 'lucide-react';
+import { Plus, UserPlus, Trash2, Shield, Hotel, Users, Clock, UtensilsCrossed, Link2, FileText, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -37,6 +37,9 @@ import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
 import { ServicesSettings } from '@/components/settings/ServicesSettings';
 import { ChannelsSettings } from '@/components/settings/ChannelsSettings';
 import { ReportsSettings } from '@/components/settings/ReportsSettings';
+import { GuestsSettings } from '@/components/settings/GuestsSettings';
+import { DangerZoneSettings } from '@/components/settings/DangerZoneSettings';
+import { HotelSettings } from '@/components/settings/HotelSettings';
 
 interface StaffMember {
   user_id: string;
@@ -52,7 +55,9 @@ interface PendingUser {
 }
 
 export default function Settings() {
-  const { isAdmin, user } = useAuth();
+  const { isAdmin, user, canWrite } = useAuth();
+  const searchParams = new URLSearchParams(window.location.search);
+  const initialTab = searchParams.get('tab') || 'users';
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -253,6 +258,7 @@ export default function Settings() {
       admin: 'bg-destructive/20 text-destructive border-destructive',
       manager: 'bg-warning/20 text-warning-foreground border-warning',
       front_desk: 'bg-info/20 text-info border-info',
+      viewer: 'bg-muted text-muted-foreground border-muted-foreground/30',
     };
 
     return (
@@ -265,7 +271,7 @@ export default function Settings() {
   return (
     <DashboardLayout title="Settings">
       <div className="space-y-6">
-        <Tabs defaultValue="users">
+        <Tabs defaultValue={initialTab}>
           <TabsList className="flex-wrap h-auto gap-1">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
@@ -279,6 +285,10 @@ export default function Settings() {
             <TabsTrigger value="staff" className="flex items-center gap-2">
               <Shield className="h-4 w-4" />
               Staff
+            </TabsTrigger>
+            <TabsTrigger value="guests" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Guests
             </TabsTrigger>
             <TabsTrigger value="services" className="flex items-center gap-2">
               <UtensilsCrossed className="h-4 w-4" />
@@ -296,6 +306,12 @@ export default function Settings() {
               <Hotel className="h-4 w-4" />
               Hotel
             </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="danger" className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-4 w-4" />
+                Danger Zone
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* Users Tab */}
@@ -435,6 +451,7 @@ export default function Settings() {
                                   <SelectItem value="admin">Admin</SelectItem>
                                   <SelectItem value="manager">Manager</SelectItem>
                                   <SelectItem value="front_desk">Front Desk</SelectItem>
+                                  <SelectItem value="viewer">Viewer</SelectItem>
                                 </SelectContent>
                               </Select>
                             ) : (
@@ -500,9 +517,24 @@ export default function Settings() {
                       </p>
                     </div>
                   </div>
+                  <div className="flex items-start gap-4">
+                    {getRoleBadge('viewer')}
+                    <div>
+                      <p className="font-medium">Viewer</p>
+                      <p className="text-sm text-muted-foreground">
+                        Read-only access. Can view dashboard, bookings, availability, guests, 
+                        and reports. Cannot create, edit, or delete anything.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Guests Tab */}
+          <TabsContent value="guests" className="mt-6">
+            <GuestsSettings />
           </TabsContent>
 
           {/* Services Tab */}
@@ -522,41 +554,15 @@ export default function Settings() {
 
           {/* Hotel Tab */}
           <TabsContent value="hotel" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Hotel className="h-5 w-5" />
-                  Hotel Information
-                </CardTitle>
-                <CardDescription>
-                  Configure your hotel details and settings
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Hotel Name</Label>
-                    <Input value="King's Bay Villa" disabled />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Location</Label>
-                    <Input value="Colombo, Sri Lanka" disabled />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Tax Rate (%)</Label>
-                    <Input value="10" disabled />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Currency</Label>
-                    <Input value="LKR (Rs.)" disabled />
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Contact support to update hotel information.
-                </p>
-              </CardContent>
-            </Card>
+            <HotelSettings />
           </TabsContent>
+
+          {/* Danger Zone Tab */}
+          {isAdmin && (
+            <TabsContent value="danger" className="mt-6">
+              <DangerZoneSettings />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 
@@ -589,6 +595,7 @@ export default function Settings() {
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="manager">Manager</SelectItem>
                   <SelectItem value="front_desk">Front Desk</SelectItem>
+                  <SelectItem value="viewer">Viewer</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -637,6 +644,7 @@ export default function Settings() {
                   <SelectItem value="admin">Admin - Full access</SelectItem>
                   <SelectItem value="manager">Manager - Manage bookings & reports</SelectItem>
                   <SelectItem value="front_desk">Front Desk - Basic operations</SelectItem>
+                  <SelectItem value="viewer">Viewer - Read-only access</SelectItem>
                 </SelectContent>
               </Select>
             </div>
