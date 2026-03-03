@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
 import { EditGuestDialog } from '@/components/guest/EditGuestDialog';
+import { useAuth } from '@/hooks/useAuth';
 
 interface GuestDetails {
   id: string;
@@ -54,6 +55,7 @@ interface GuestService {
 }
 
 export default function GuestDetails() {
+  const { canWrite } = useAuth();
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -208,14 +210,16 @@ export default function GuestDetails() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <Button variant="ghost" onClick={() => navigate('/guests')}>
+          <Button variant="ghost" onClick={() => navigate('/settings?tab=guests')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Guests
           </Button>
-          <Button variant="outline" onClick={() => setShowEditDialog(true)}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Guest
-          </Button>
+          {canWrite && (
+            <Button variant="outline" onClick={() => setShowEditDialog(true)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Guest
+            </Button>
+          )}
         </div>
 
         {/* Guest Info Card */}

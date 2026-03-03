@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.booking-email-inbound]
 verify_jwt = false
+
+[functions.hold-timeout-release]
+verify_jwt = false

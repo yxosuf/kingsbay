@@ -14,8 +14,9 @@ import { ChevronLeft, ChevronRight, Calendar, AlertTriangle } from 'lucide-react
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { toast } from 'sonner';
-import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday, addWeeks, subWeeks, startOfMonth, endOfMonth } from 'date-fns';
+import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isToday, addWeeks, subWeeks, startOfMonth, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { toDateString, isDateInBookingRange } from '@/lib/dateUtils';
 
 interface Room {
   id: string;
@@ -31,6 +32,7 @@ interface Booking {
   check_in: string;
   check_out: string;
   status: string;
+  hold_expires_at: string | null;
   guest: {
     name: string;
   };
@@ -101,6 +103,7 @@ export default function AvailabilityCalendar() {
       setRooms(roomData || []);
 
       // Fetch bookings for the date range
+      // Include needs_review for hold display
       const { data: bookingData, error: bookingError } = await supabase
         .from('bookings')
         .select(`
@@ -109,12 +112,13 @@ export default function AvailabilityCalendar() {
           check_in,
           check_out,
           status,
+          hold_expires_at,
           guest:guests(name)
         `)
         .eq('property_id', selectedProperty.id)
-        .lte('check_in', endDate)
-        .gte('check_out', startDate)
-        .in('status', ['confirmed', 'checked_in', 'pending']);
+        .lt('check_in', endDate)
+        .gt('check_out', startDate)
+        .in('status', ['confirmed', 'checked_in', 'pending', 'needs_review']);
 
       if (bookingError) throw bookingError;
       setBookings((bookingData || []).map(b => ({
@@ -159,7 +163,8 @@ export default function AvailabilityCalendar() {
     : rooms.filter(r => r.room_type === selectedRoomType);
 
   const getCellStatus = (room: Room, date: Date) => {
-    const dateStr = format(date, 'yyyy-MM-dd');
+    // Use safe local date string for comparisons
+    const dateStr = toDateString(date);
 
     // Check for manual blocks in room_availability
     const block = availability.find(
@@ -173,23 +178,43 @@ export default function AvailabilityCalendar() {
       };
     }
 
-    // Check for bookings
+    // Check for bookings using string comparison: [check_in, check_out)
     const booking = bookings.find(b => {
-      const checkIn = new Date(b.check_in);
-      const checkOut = new Date(b.check_out);
-      return b.room_id === room.id && date >= checkIn && date < checkOut;
+      if (b.room_id !== room.id) return false;
+      // needs_review: only block if hold has NOT expired
+      if (b.status === 'needs_review') {
+        if (!b.hold_expires_at) return false;
+        if (new Date(b.hold_expires_at) <= new Date()) return false;
+      }
+      return isDateInBookingRange(dateStr, b.check_in, b.check_out);
     });
 
     if (booking) {
-      const isCheckInDay = isSameDay(date, new Date(booking.check_in));
-      const isLastDay = isSameDay(addDays(date, 1), new Date(booking.check_out));
+      const isCheckInDay = dateStr === booking.check_in;
+      const isLastNight = (() => {
+        // Last blocked night = day before check_out
+        const co = booking.check_out;
+        const nextDay = toDateString(addDays(date, 1));
+        return nextDay === co;
+      })();
       
+      if (booking.status === 'needs_review') {
+        return {
+          status: 'held',
+          guestName: booking.guest?.name || 'Pending Review',
+          bookingId: booking.id,
+          isStart: isCheckInDay,
+          isEnd: isLastNight,
+          color: 'bg-orange-500/20 text-orange-700 dark:text-orange-400 border-orange-500/30',
+        };
+      }
+
       return {
         status: booking.status === 'checked_in' ? 'occupied' : 'reserved',
         guestName: booking.guest?.name || 'Guest',
         bookingId: booking.id,
         isStart: isCheckInDay,
-        isEnd: isLastDay,
+        isEnd: isLastNight,
         color: booking.status === 'checked_in' 
           ? 'bg-destructive/20 text-destructive-foreground border-destructive/30'
           : 'bg-warning/20 text-warning-foreground border-warning/30',
@@ -410,6 +435,7 @@ export default function AvailabilityCalendar() {
                                 {cell.status === 'occupied' && 'O'}
                                 {cell.status === 'blocked' && '✕'}
                                 {cell.status === 'maintenance' && 'M'}
+                                {cell.status === 'held' && 'H'}
                               </div>
                             </td>
                           );
@@ -442,6 +468,10 @@ export default function AvailabilityCalendar() {
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded bg-muted flex items-center justify-center text-muted-foreground text-xs">M</div>
                 <span className="text-sm">Maintenance</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded bg-orange-500/20 flex items-center justify-center text-orange-700 text-xs">H</div>
+                <span className="text-sm">Held (Needs Review)</span>
               </div>
             </div>
           </CardContent>

@@ -49,6 +49,7 @@ export default function Bookings() {
         .select(`
           id, check_in, check_out, status, num_guests, total_amount,
           room_id, property_id, booking_source, needs_review, review_reason,
+          hold_expires_at,
           guests (name, phone),
           rooms (room_number, room_type)
         `)
