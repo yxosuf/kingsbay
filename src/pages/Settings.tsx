@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -56,8 +57,8 @@ interface PendingUser {
 
 export default function Settings() {
   const { isAdmin, user, canWrite } = useAuth();
-  const searchParams = new URLSearchParams(window.location.search);
-  const initialTab = searchParams.get('tab') || 'users';
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'users';
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -271,7 +272,7 @@ export default function Settings() {
   return (
     <DashboardLayout title="Settings">
       <div className="space-y-6">
-        <Tabs defaultValue={initialTab}>
+        <Tabs value={activeTab} onValueChange={(v) => setSearchParams({ tab: v })}>
           <TabsList className="flex-wrap h-auto gap-1">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />

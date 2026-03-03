@@ -12,8 +12,9 @@ import {
 import { Calendar, ArrowRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
-import { format, addDays, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
+import { format, addDays, eachDayOfInterval, isToday } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { toDateString, isDateInBookingRange } from '@/lib/dateUtils';
 
 interface Room {
   id: string;
@@ -28,6 +29,7 @@ interface Booking {
   check_in: string;
   check_out: string;
   status: string;
+  hold_expires_at: string | null;
   guest: {
     name: string;
   };
@@ -81,7 +83,7 @@ export function DashboardAvailabilityCalendar() {
       if (roomError) throw roomError;
       setRooms(roomData || []);
 
-      // Fetch bookings for the date range
+      // Fetch bookings for the date range (include needs_review for hold display)
       const { data: bookingData, error: bookingError } = await supabase
         .from('bookings')
         .select(`
@@ -90,12 +92,13 @@ export function DashboardAvailabilityCalendar() {
           check_in,
           check_out,
           status,
+          hold_expires_at,
           guest:guests(name)
         `)
         .eq('property_id', selectedProperty.id)
-        .lte('check_in', endDate)
-        .gte('check_out', startDate)
-        .in('status', ['confirmed', 'checked_in', 'pending']);
+        .lt('check_in', endDate)
+        .gt('check_out', startDate)
+        .in('status', ['confirmed', 'checked_in', 'pending', 'needs_review']);
 
       if (bookingError) throw bookingError;
       setBookings((bookingData || []).map(b => ({
@@ -121,7 +124,7 @@ export function DashboardAvailabilityCalendar() {
   };
 
   const getCellStatus = (room: Room, date: Date) => {
-    const dateStr = format(date, 'yyyy-MM-dd');
+    const dateStr = toDateString(date);
 
     // Check for manual blocks
     const block = availability.find(
@@ -136,14 +139,26 @@ export function DashboardAvailabilityCalendar() {
       };
     }
 
-    // Check for bookings
+    // Check for bookings using string comparison: [check_in, check_out)
     const booking = bookings.find(b => {
-      const checkIn = new Date(b.check_in);
-      const checkOut = new Date(b.check_out);
-      return b.room_id === room.id && date >= checkIn && date < checkOut;
+      if (b.room_id !== room.id) return false;
+      // needs_review: only block if hold has NOT expired
+      if (b.status === 'needs_review') {
+        if (!b.hold_expires_at) return false;
+        if (new Date(b.hold_expires_at) <= new Date()) return false;
+      }
+      return isDateInBookingRange(dateStr, b.check_in, b.check_out);
     });
 
     if (booking) {
+      if (booking.status === 'needs_review') {
+        return {
+          status: 'held',
+          label: 'H',
+          tooltip: `${booking.guest?.name || 'Guest'} (Hold - Needs Review)`,
+          className: 'bg-orange-500/20 text-orange-700 dark:text-orange-400',
+        };
+      }
       const isOccupied = booking.status === 'checked_in';
       return {
         status: isOccupied ? 'occupied' : 'reserved',

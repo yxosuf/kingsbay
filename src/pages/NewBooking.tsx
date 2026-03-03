@@ -26,6 +26,7 @@ import { z } from 'zod';
 import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
 import { ServiceSelector, SelectedService } from '@/components/booking/ServiceSelector';
 import { checkRoomAvailability } from '@/lib/availabilityCheck';
+import { countries, getDialCodeByCountry } from '@/lib/countryData';
 
 const bookingSchema = z.object({
   guestName: z.string().trim().min(2, 'Guest name is required'),
@@ -75,6 +76,8 @@ export default function NewBooking() {
   const [numGuests, setNumGuests] = useState(1);
   const [specialRequests, setSpecialRequests] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [guestNationality, setGuestNationality] = useState('Sri Lanka');
+  const [phoneCountryCode, setPhoneCountryCode] = useState('+94');
 
   // Additional services state
   const [selectedServices, setSelectedServices] = useState<SelectedService[]>([]);
@@ -236,13 +239,17 @@ export default function NewBooking() {
 
       // Create new guest if not selected from existing
       if (!guestId) {
+        const fullPhone = `${phoneCountryCode} ${guestPhone.trim()}`.trim();
         const { data: newGuest, error: guestError } = await supabase
           .from('guests')
           .insert({
             name: guestName.trim(),
-            phone: guestPhone.trim(),
+            phone: fullPhone,
             email: guestEmail.trim() || null,
             id_passport: guestIdPassport.trim() || null,
+            nationality: guestNationality || null,
+            country: guestNationality || 'Sri Lanka',
+            property_id: selectedProperty?.id || null,
           })
           .select()
           .single();
@@ -422,14 +429,45 @@ export default function NewBooking() {
                     />
                   </div>
                   <div className="space-y-2">
+                    <Label htmlFor="guestNationality">Nationality / Country</Label>
+                    <Select 
+                      value={guestNationality} 
+                      onValueChange={(v) => {
+                        setGuestNationality(v);
+                        const dialCode = getDialCodeByCountry(v);
+                        setPhoneCountryCode(dialCode);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select country" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[300px]">
+                        {countries.map((c) => (
+                          <SelectItem key={c.code} value={c.name}>
+                            {c.name} ({c.dialCode})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="guestPhone">Phone *</Label>
-                    <Input
-                      id="guestPhone"
-                      value={guestPhone}
-                      onChange={(e) => setGuestPhone(e.target.value)}
-                      placeholder="+94 77 123 4567"
-                      required
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        className="w-20 shrink-0"
+                        value={phoneCountryCode}
+                        onChange={(e) => setPhoneCountryCode(e.target.value)}
+                        placeholder="+94"
+                      />
+                      <Input
+                        id="guestPhone"
+                        value={guestPhone}
+                        onChange={(e) => setGuestPhone(e.target.value)}
+                        placeholder="77 123 4567"
+                        required
+                        className="flex-1"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="guestEmail">Email</Label>

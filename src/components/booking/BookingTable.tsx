@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -11,7 +12,8 @@ import {
 import { BookingStatusBadge } from './BookingStatusBadge';
 import { BookingQuickActions } from './BookingQuickActions';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Clock } from 'lucide-react';
+import { parseLocalDate } from '@/lib/dateUtils';
 
 export interface BookingRow {
   id: string;
@@ -25,8 +27,33 @@ export interface BookingRow {
   booking_source: string;
   needs_review: boolean;
   review_reason: string | null;
+  hold_expires_at?: string | null;
   guests: { name: string; phone: string } | null;
   rooms: { room_number: string; room_type: string } | null;
+}
+
+function HoldCountdown({ expiresAt }: { expiresAt: string }) {
+  const expiry = new Date(expiresAt);
+  const now = new Date();
+  const diffMs = expiry.getTime() - now.getTime();
+  
+  if (diffMs <= 0) {
+    return (
+      <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive text-xs">
+        Expired – requires manual review
+      </Badge>
+    );
+  }
+  
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+  
+  return (
+    <Badge variant="outline" className="bg-orange-500/10 text-orange-700 border-orange-500 text-xs gap-1">
+      <Clock className="h-3 w-3" />
+      {hours}h {mins}m remaining
+    </Badge>
+  );
 }
 
 interface BookingTableProps {
@@ -62,12 +89,17 @@ export function BookingTable({ bookings, loading, onActionComplete }: BookingTab
         {bookings.map((booking) => (
           <Card key={booking.id} className="border-border/50">
             <CardContent className="p-4 space-y-3">
-              <div className="flex items-start justify-between gap-2">
+              <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <p className="font-medium truncate">{booking.guests?.name || 'Unknown'}</p>
                   <p className="text-sm text-muted-foreground">{booking.guests?.phone}</p>
                 </div>
-                <BookingStatusBadge status={booking.status} needsReview={booking.needs_review} />
+                <div className="flex flex-col items-end gap-1">
+                  <BookingStatusBadge status={booking.status} needsReview={booking.needs_review} />
+                  {booking.status === 'needs_review' && booking.hold_expires_at && (
+                    <HoldCountdown expiresAt={booking.hold_expires_at} />
+                  )}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
@@ -128,10 +160,15 @@ export function BookingTable({ bookings, loading, onActionComplete }: BookingTab
                 <p className="text-sm text-muted-foreground capitalize">{booking.rooms?.room_type}</p>
               </div>
             </TableCell>
-            <TableCell>{new Date(booking.check_in).toLocaleDateString()}</TableCell>
-            <TableCell>{new Date(booking.check_out).toLocaleDateString()}</TableCell>
+            <TableCell>{parseLocalDate(booking.check_in).toLocaleDateString()}</TableCell>
+            <TableCell>{parseLocalDate(booking.check_out).toLocaleDateString()}</TableCell>
             <TableCell>
-              <BookingStatusBadge status={booking.status} needsReview={booking.needs_review} />
+              <div className="flex flex-col gap-1">
+                <BookingStatusBadge status={booking.status} needsReview={booking.needs_review} />
+                {booking.status === 'needs_review' && booking.hold_expires_at && (
+                  <HoldCountdown expiresAt={booking.hold_expires_at} />
+                )}
+              </div>
             </TableCell>
             <TableCell>Rs. {booking.total_amount?.toLocaleString() || '0'}</TableCell>
             <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
