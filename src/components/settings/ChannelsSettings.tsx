@@ -8,11 +8,15 @@ import {
   Settings2, 
   Activity, 
   Link2,
-  LinkIcon,
   ExternalLink,
   AlertTriangle,
   Map,
   Mail,
+  Plus,
+  Plug,
+  ClipboardList,
+  Package,
+  ScrollText,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
@@ -24,7 +28,8 @@ import { SyncStatus } from '@/components/channels/SyncStatus';
 import { ChannelRoomMappings } from '@/components/channels/ChannelRoomMappings';
 import { NeedsReviewBookings } from '@/components/channels/NeedsReviewBookings';
 import { EmailImportSettings } from '@/components/channels/EmailImportSettings';
-import { format } from 'date-fns';
+import { format, differenceInMinutes } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface ChannelConnection {
   id: string;
@@ -76,12 +81,24 @@ export function ChannelsSettings() {
   const [inventorySettings, setInventorySettings] = useState<InventorySettingsData | null>(null);
   const [syncLogs, setSyncLogs] = useState<SyncLog[]>([]);
   const [syncing, setSyncing] = useState(false);
+  const [reviewCount, setReviewCount] = useState(0);
 
   useEffect(() => {
     if (selectedProperty?.id) {
       fetchData();
+      fetchReviewCount();
     }
   }, [selectedProperty?.id]);
+
+  const fetchReviewCount = async () => {
+    if (!selectedProperty?.id) return;
+    const { count } = await supabase
+      .from('bookings')
+      .select('*', { count: 'exact', head: true })
+      .eq('property_id', selectedProperty.id)
+      .eq('needs_review', true);
+    setReviewCount(count || 0);
+  };
 
   const fetchData = async () => {
     if (!selectedProperty?.id) return;
@@ -267,6 +284,17 @@ export function ChannelsSettings() {
     };
   };
 
+  // Determine last sync freshness
+  const getLastSyncStatus = () => {
+    if (!syncLogs[0]?.created_at) return { label: 'Never', color: 'text-destructive' };
+    const mins = differenceInMinutes(new Date(), new Date(syncLogs[0].created_at));
+    if (mins < 30) return { label: format(new Date(syncLogs[0].created_at), 'HH:mm'), color: 'text-success' };
+    if (mins < 120) return { label: format(new Date(syncLogs[0].created_at), 'HH:mm'), color: 'text-warning' };
+    return { label: format(new Date(syncLogs[0].created_at), 'HH:mm'), color: 'text-destructive' };
+  };
+
+  const lastSync = getLastSyncStatus();
+
   if (!selectedProperty) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -277,104 +305,133 @@ export function ChannelsSettings() {
 
   return (
     <div className="space-y-6">
-      {/* Header Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
+      {/* Overview Stats */}
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardContent className="pt-4">
+          <CardContent className="pt-4 pb-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Active Channels</p>
-                <p className="text-2xl font-bold">{enabledChannels.length}</p>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Active Channels</p>
+                <p className={cn(
+                  "text-2xl font-bold mt-1",
+                  enabledChannels.length > 0 ? "text-success" : "text-destructive"
+                )}>
+                  {enabledChannels.length}
+                </p>
               </div>
-              <Link2 className="h-5 w-5 text-muted-foreground" />
+              <div className={cn(
+                "p-2 rounded-xl",
+                enabledChannels.length > 0 ? "bg-success/10" : "bg-destructive/10"
+              )}>
+                <Link2 className={cn("h-5 w-5", enabledChannels.length > 0 ? "text-success" : "text-destructive")} />
+              </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="pt-4">
+          <CardContent className="pt-4 pb-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Safety Buffer</p>
-                <p className="text-2xl font-bold">{inventorySettings?.safety_buffer ?? 1}</p>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Safety Buffer</p>
+                <p className="text-2xl font-bold mt-1">{inventorySettings?.safety_buffer ?? 1}</p>
               </div>
-              <Settings2 className="h-5 w-5 text-muted-foreground" />
+              <div className="p-2 rounded-xl bg-muted">
+                <Settings2 className="h-5 w-5 text-muted-foreground" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="pt-4">
+          <CardContent className="pt-4 pb-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Sync Frequency</p>
-                <p className="text-2xl font-bold capitalize">
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Sync Frequency</p>
+                <p className="text-2xl font-bold capitalize mt-1">
                   {inventorySettings?.sync_frequency?.replace('min', ' min') || 'Hourly'}
                 </p>
               </div>
-              <RefreshCw className="h-5 w-5 text-muted-foreground" />
+              <div className="p-2 rounded-xl bg-muted">
+                <RefreshCw className="h-5 w-5 text-muted-foreground" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="pt-4">
+          <CardContent className="pt-4 pb-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Last Sync</p>
-                <p className="text-2xl font-bold">
-                  {syncLogs[0]?.created_at 
-                    ? format(new Date(syncLogs[0].created_at), 'HH:mm')
-                    : 'Never'}
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Last Sync</p>
+                <p className={cn("text-2xl font-bold mt-1", lastSync.color)}>
+                  {lastSync.label}
                 </p>
               </div>
-              <Activity className="h-5 w-5 text-muted-foreground" />
+              <div className="p-2 rounded-xl bg-muted">
+                <Activity className="h-5 w-5 text-muted-foreground" />
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
+      {/* Sync Now aligned right */}
       <div className="flex justify-end">
         <Button 
           onClick={handleManualSync} 
           disabled={syncing || enabledChannels.length === 0}
         >
-          <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+          <RefreshCw className={cn("h-4 w-4 mr-2", syncing && "animate-spin")} />
           {syncing ? 'Syncing...' : 'Sync Now'}
         </Button>
       </div>
 
-      <Tabs defaultValue="channels" className="space-y-4">
-        <TabsList className="flex flex-wrap">
-          <TabsTrigger value="channels" className="flex items-center gap-2">
-            <LinkIcon className="h-4 w-4" />
-            Channels
+      {/* Tabs with renamed labels */}
+      <Tabs defaultValue="connections" className="space-y-4">
+        <TabsList className="flex flex-wrap h-auto gap-1 bg-transparent p-0">
+          <TabsTrigger value="connections" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-xl">
+            <Plug className="h-4 w-4" />
+            Connections
           </TabsTrigger>
-          <TabsTrigger value="email-import" className="flex items-center gap-2">
+          <TabsTrigger value="email-intake" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-xl">
             <Mail className="h-4 w-4" />
-            Email Import
+            Email Intake
           </TabsTrigger>
-          <TabsTrigger value="mappings" className="flex items-center gap-2">
+          <TabsTrigger value="room-mapping" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-xl">
             <Map className="h-4 w-4" />
-            Room Mappings
+            Room Mapping
           </TabsTrigger>
-          <TabsTrigger value="review" className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4" />
-            Needs Review
+          <TabsTrigger value="review-queue" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-xl">
+            <ClipboardList className="h-4 w-4" />
+            Review Queue
+            {reviewCount > 0 && (
+              <Badge variant="destructive" className="h-5 min-w-5 px-1.5 flex items-center justify-center text-xs">
+                {reviewCount}
+              </Badge>
+            )}
           </TabsTrigger>
-          <TabsTrigger value="inventory" className="flex items-center gap-2">
-            <Settings2 className="h-4 w-4" />
-            Inventory
+          <TabsTrigger value="inventory-rules" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-xl">
+            <Package className="h-4 w-4" />
+            Inventory Rules
           </TabsTrigger>
-          <TabsTrigger value="logs" className="flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            Logs
+          <TabsTrigger value="sync-logs" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-xl">
+            <ScrollText className="h-4 w-4" />
+            Sync Logs
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="channels" className="space-y-4">
+        {/* Connections */}
+        <TabsContent value="connections" className="space-y-6">
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Connected Channels</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Connected Channels</h3>
+              {availableChannels.length > 0 && (
+                <div className="text-sm text-muted-foreground">
+                  {availableChannels.length} channel{availableChannels.length !== 1 ? 's' : ''} available
+                </div>
+              )}
+            </div>
             {loading ? (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {[1, 2, 3].map(i => (
@@ -409,12 +466,15 @@ export function ChannelsSettings() {
 
           {availableChannels.length > 0 && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Add Channel</h3>
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Plus className="h-5 w-5" />
+                Add Channel
+              </h3>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {availableChannels.map(option => (
                   <Card 
                     key={option.type} 
-                    className="cursor-pointer hover:border-primary transition-colors"
+                    className="cursor-pointer hover:border-primary transition-colors group"
                     onClick={() => handleCreateChannel(option.type)}
                   >
                     <CardContent className="flex items-center gap-4 p-4">
@@ -423,9 +483,7 @@ export function ChannelsSettings() {
                         <h4 className="font-medium">{option.name}</h4>
                         <p className="text-sm text-muted-foreground">{option.description}</p>
                       </div>
-                      <Button variant="ghost" size="icon">
-                        <ExternalLink className="h-4 w-4" />
-                      </Button>
+                      <ExternalLink className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                     </CardContent>
                   </Card>
                 ))}
@@ -434,26 +492,26 @@ export function ChannelsSettings() {
           )}
         </TabsContent>
 
-        <TabsContent value="email-import">
+        <TabsContent value="email-intake">
           <EmailImportSettings />
         </TabsContent>
 
-        <TabsContent value="mappings">
+        <TabsContent value="room-mapping">
           <ChannelRoomMappings />
         </TabsContent>
 
-        <TabsContent value="review">
+        <TabsContent value="review-queue">
           <NeedsReviewBookings />
         </TabsContent>
 
-        <TabsContent value="inventory">
+        <TabsContent value="inventory-rules">
           <InventorySettings
             settings={inventorySettings}
             onSave={handleSaveInventorySettings}
           />
         </TabsContent>
 
-        <TabsContent value="logs">
+        <TabsContent value="sync-logs">
           <SyncStatus 
             logs={syncLogs}
             channels={channels}
