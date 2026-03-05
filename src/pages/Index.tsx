@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toDateString } from '@/lib/dateUtils';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -90,7 +91,7 @@ export default function Dashboard() {
       const { count: activeGuests } = await activeGuestsQuery;
 
       // Fetch today's arrivals
-      const today = new Date().toISOString().split('T')[0];
+      const today = toDateString(new Date());
       let arrivalsQuery = supabase
         .from('bookings')
         .select('*', { count: 'exact', head: true })
@@ -99,13 +100,26 @@ export default function Dashboard() {
       if (propertyFilter) arrivalsQuery = arrivalsQuery.eq('property_id', selectedProperty.id);
       const { count: arrivalsToday } = await arrivalsQuery;
 
-      // Fetch available rooms
-      let roomsQuery = supabase
+      // Fetch available rooms dynamically: total rooms minus rooms with active bookings today
+      let totalRoomsQuery = supabase
         .from('rooms')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'available');
-      if (propertyFilter) roomsQuery = roomsQuery.eq('property_id', selectedProperty.id);
-      const { count: availableRooms } = await roomsQuery;
+        .select('id')
+        .neq('status', 'maintenance');
+      if (propertyFilter) totalRoomsQuery = totalRoomsQuery.eq('property_id', selectedProperty.id);
+      const { data: allRooms } = await totalRoomsQuery;
+      const totalRoomCount = allRooms?.length || 0;
+
+      // Find rooms with blocking bookings for today using [check_in, check_out)
+      let blockedQuery = supabase
+        .from('bookings')
+        .select('room_id')
+        .in('status', ['confirmed', 'checked_in', 'pending', 'needs_review'])
+        .lte('check_in', today)
+        .gt('check_out', today);
+      if (propertyFilter) blockedQuery = blockedQuery.eq('property_id', selectedProperty.id);
+      const { data: blockedBookings } = await blockedQuery;
+      const blockedRoomIds = new Set(blockedBookings?.map(b => b.room_id) || []);
+      const availableRooms = totalRoomCount - blockedRoomIds.size;
 
       // Fetch total revenue this month (from invoices)
       const startOfMonth = new Date();
@@ -199,10 +213,28 @@ export default function Dashboard() {
   };
 
   const fetchExchangeRate = async () => {
-    // Using approximate rate - in production, call real API via edge function
-    setExchangeRate({
-      usdToLkr: 309.06,
-    });
+    try {
+      // Try to fetch from property_inventory_settings or use fallback
+      const propertyId = selectedProperty?.id;
+      if (propertyId) {
+        const { data } = await supabase
+          .from('property_inventory_settings')
+          .select('*')
+          .eq('property_id', propertyId)
+          .maybeSingle();
+        // If we have a stored rate, use it; otherwise use fallback
+        // The fx_usd_lkr_rate column may not exist yet, so fallback gracefully
+        const rate = (data as any)?.fx_usd_lkr_rate;
+        if (rate) {
+          setExchangeRate({ usdToLkr: Number(rate) });
+          return;
+        }
+      }
+      // Fallback to approximate rate
+      setExchangeRate({ usdToLkr: 309.06 });
+    } catch {
+      setExchangeRate({ usdToLkr: 309.06 });
+    }
   };
 
   const handleCheckIn = async (bookingId: string) => {
