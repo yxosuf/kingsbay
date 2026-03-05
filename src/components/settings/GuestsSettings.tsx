@@ -63,6 +63,7 @@ export function GuestsSettings() {
           id, name, phone, email, created_at, property_id,
           bookings (id, status, property_id)
         `)
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (!showAllProperties && selectedProperty?.id) {
@@ -92,20 +93,19 @@ export function GuestsSettings() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
+      // Soft delete: set deleted_at instead of hard deleting
       const { error } = await supabase
         .from('guests')
-        .delete()
+        .update({ deleted_at: new Date().toISOString() } as any)
         .eq('id', deleteTarget.id);
 
       if (error) throw error;
-      toast.success(`Guest "${deleteTarget.name}" deleted`);
+      toast.success(`Guest "${deleteTarget.name}" archived`);
       setDeleteTarget(null);
       fetchGuests();
     } catch (error: any) {
-      console.error('Error deleting guest:', error);
-      toast.error(error.message?.includes('violates foreign key')
-        ? 'Cannot delete guest with existing bookings. Cancel or archive bookings first.'
-        : 'Failed to delete guest');
+      console.error('Error archiving guest:', error);
+      toast.error('Failed to archive guest');
     } finally {
       setDeleting(false);
     }
@@ -249,10 +249,10 @@ export function GuestsSettings() {
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Guest</AlertDialogTitle>
+            <AlertDialogTitle>Archive Guest</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to permanently delete <strong>{deleteTarget?.name}</strong>?
-              This cannot be undone. Guests with active bookings cannot be deleted.
+              Are you sure you want to archive <strong>{deleteTarget?.name}</strong>?
+              The guest will be hidden from the list but booking history will be preserved.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -262,7 +262,7 @@ export function GuestsSettings() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleting}
             >
-              {deleting ? 'Deleting...' : 'Delete Guest'}
+              {deleting ? 'Archiving...' : 'Archive Guest'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
