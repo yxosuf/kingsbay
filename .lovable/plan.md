@@ -1,588 +1,394 @@
-# Plan: Comprehensive State Assessment and Fixes
+# Villa PMS — Full Master Plan Implementation (Merged + Correct)
 
-## Current State Summary
-
-After reviewing the codebase, here is what is already working and what needs attention:
-
-### Already Working
-
-- **Date logic**: `dateUtils.ts` correctly implements `[check_in, check_out)` with string comparison
-- **Guests redirect**: `/guests` properly redirects to `/settings?tab=guests`
-- **Settings vertical nav**: Working with section grouping and tab aliases
-- **Hotel Settings**: Check-in/check-out time configuration
-- **GuestsSettings**: Full guest list with search, property filtering, admin delete
-- **Hold-timeout-release edge function**: Deployed
-- **Viewer role enforcement**: `canWrite` flag used across booking pages
-
-### Issues to Fix
-
-**1. Dashboard `today` date uses timezone-unsafe method (line 93 of Index.tsx)**
-
-```js
-const today = new Date().toISOString().split('T')[0]; // UTC-based, can shift dates
-```
-
-Should use `toDateString(new Date())` from `dateUtils.ts`.
-
-**2. Dashboard exchange rate is hardcoded/stale**  
-`fetchExchangeRate` likely uses a cached or hardcoded value instead of fetching from DB. Need to verify and fix.
-
-**3. Guest delete is hard delete, not soft delete**  
-`GuestsSettings.tsx` line 96 does `.delete()` instead of updating `deleted_at`. Per project rules, it should be soft delete to preserve booking history.
-
-**4.** `no_show` **status missing from availability exclusion in some queries**
-The availability calendar fetches only `['confirmed', 'checked_in', 'pending', 'needs_review']` which is correct (no_show excluded). But the `check_booking_overlap` DB function may still not exclude `no_show`. The plan from `.lovable/plan.md` was to fix this but may not have been applied.
-
-**5. Channel Manager page exists as standalone route** `/channels` **but also embedded in Settings**
-There's both `src/pages/ChannelManager.tsx` at `/channels` route AND `ChannelsSettings` embedded in Settings. The sidebar doesn't link to `/channels`. This is fine but the standalone page could be removed or kept as-is.
-
-## Implementation Plan
-
-### Task 1: Fix guest soft delete
-
-- In `src/components/settings/GuestsSettings.tsx`, change `handleDeleteGuest` from `.delete()` to `.update({ deleted_at: new Date().toISOString() })`
-- Add `deleted_at` filter to `fetchGuests` query: `.is('deleted_at', null)`
-- Update the confirmation dialog text to say "archive" instead of "permanently delete"
-
-### Task 2: Fix Dashboard exchange rate to fetch from DB
-
-- In `src/pages/Index.tsx`, update `fetchExchangeRate` to query `property_inventory_settings` or a dedicated FX table for the latest rate instead of using a hardcoded value
-
-### Task 3: Fix Dashboard available rooms calculation
-
-- Instead of counting `rooms.status = 'available'`, count total rooms minus rooms with active bookings for today using the same `[check_in, check_out)` logic
-
-### Task 4: Verify DB overlap function includes checked_out and no_show exclusions
-
-- The `.lovable/plan.md` documents this fix but it may not have been applied yet. Create a migration if needed to ensure `check_booking_overlap` excludes `checked_out` and `no_show`.
-
-### What This Does NOT Change
-
-- No database schema changes (except possibly the overlap function fix)
-- No route changes
-- No RLS policy changes
-- No edge function changes
-
-&nbsp;
-
-# VILLA PMS — FULL MASTER PLAN (ALL FEATURES MERGED, NOTHING LOST)
-
-This is the **complete** merged plan from our whole chat: booking lifecycle + rooms/availability fixes + guests + security + payments/accounting + notifications + channel safety + settings refactor + system health monitor.
-
-**Non‑negotiable:** keep **ALL flows consistent** across **Bookings, Rooms, Availability Calendar, Dashboard, Guests, Reports, Settings, Channel Manager** with **strict multi‑property isolation**.
+This plan merges Lovable’s current plan with **all missing requirements** from our past chats.  
+**Rule:** No flow breaks. Every change must stay consistent across **Bookings, Rooms, Availability Calendar, Dashboard, Guests (in Settings), Reports**, and **Multi-property**.
 
 ---
 
-## 0) Global Rules (Must Follow Everywhere)
+## Current State Assessment
 
-1. **Multi‑property isolation**
+### Already Implemented (Confirmed)
 
-- Every query must be scoped by `property_id` (unless admin explicitly selects “All properties”).
-- Never allow cross‑property joins that leak data.
+- Booking lifecycle UI: tabs + quick actions + timestamps + timeline + admin override
+- Guests moved under **Settings** + `/guests` redirect exists
+- Viewer role exists in UI (`canWrite`) + buttons hidden
+- Danger Zone “Clear Property Data” exists with password confirmation (per property)
+- Hold-timeout-release edge function exists (deployed) but must be verified end-to-end
+- Booking form has country/nationality UI partially
+- Settings sidebar + tab aliases exist
+- Checkout/checkin time settings exist (11:00 default)
+- Housekeeping_status exists (dirty/cleaning/clean/inspected)
+- Some date logic uses `[check_in, check_out)` but **your calendar still shows wrong blocking**, so we treat it as **NOT fully fixed**
 
-2. **Date rule (hotel stay nights)**
+### Critical Security Issue (Must Fix)
 
-- A stay blocks nights in **[check_in_date, check_out_date)**.
-- The **check_out_date is NOT an occupied night**.
-
-3. **Blocking statuses**
-
-- Availability is blocked only by bookings with status: `pending`, `confirmed`, `checked_in`, and `needs_review` **only while hold is active**.
-- NOT blocked by: `cancelled`, `checked_out`, `no_show`, expired holds.
-
-4. **No breaking changes**
-
-- Migrations must be safe.
-- Migrate existing data with sensible defaults.
-
-5. **Roles + RLS must match UI**
-
-- UI restrictions must be enforced by backend policies too.
+**Viewer role RLS is broken**: if DB policies allow write using `is_staff()` and viewer is considered staff, viewer can write via API. Must be fixed in Phase 1.
 
 ---
 
-## 1) Booking Lifecycle + Clean Bookings Tab (Clutter Fix)
+# Global Rules (Non-Negotiable)
 
-### 1.1 Booking statuses
-
-Allowed:
-
-- `pending` (optional)
-- `confirmed`
-- `checked_in`
-- `checked_out`
-- `cancelled`
-- `no_show`
-- `needs_review`
-- `needs_review_expired` (recommended) OR reuse cancelled with reason “hold expired”
-
-### 1.2 Booking columns (ensure exist)
-
-- `status` TEXT/ENUM default `confirmed`
-- `checked_in_at`, `checked_out_at`, `cancelled_at`, `no_show_at` timestamptz
-- `cancel_reason` text
-- `updated_at` timestamptz default now()
-- `hold_expires_at` timestamptz (for needs_review holds)
-
-### 1.3 Bookings page views (tabs)
-
-- **Today:** arrivals today + departures today (only active statuses)
-- **Upcoming:** future `confirmed`
-- **In‑house:** `checked_in`
-- **Past:** `checked_out`
-- **Cancelled:** `cancelled` + `no_show`
-- **Needs Review:** `needs_review` + `needs_review_expired`
-- **All:** admin only
-
-### 1.4 Quick actions (row/card)
-
-- Check‑in → set `status=checked_in`, set `checked_in_at=now()`
-- Check‑out → set `status=checked_out`, set `checked_out_at=now()`, trigger housekeeping flow
-- Cancel → set `status=cancelled`, set `cancelled_at=now()`, require reason
-- No‑show → set `status=no_show`, set `no_show_at=now()`
-
-### 1.5 Booking detail page
-
-- Status badge
-- Timeline (created → check‑in → check‑out/cancel/no‑show)
-- Admin override status (requires audit note)
+1. **Multi-property isolation everywhere** (selectedProperty scope unless admin chooses all).
+2. **All date logic uses** `[check_in, check_out)` (checkout day is NOT occupied).
+3. **Calendar & occupancy comparisons must use date-only strings** (`YYYY-MM-DD`) and property timezone (**Asia/Colombo**).
+4. **Do not rely on room.status='occupied'** for occupancy; derive from bookings + housekeeping.
+5. **needs_review hold blocks temporarily only** (hybrid hold system) and must auto-release.
+6. **Guests must live in Settings**, guest details must show **services purchased** + totals.
+7. **Testing-phase master clear** must be safe, per-property, admin-password protected, and logs actions.
 
 ---
 
-## 2) Checkout Rule (11:00 AM) + Adjustable Per Property
+# Phase 1 — Critical Fixes (Do these first)
 
-### 2.1 Property settings
+## 1) Fix Viewer Role RLS (Security — CRITICAL)
 
-Add to `property_inventory_settings` (or dedicated settings table):
+**Goal:** Viewer can read only; can’t create/edit/delete via API.
 
-- `checkout_time` time default `11:00`
-- `checkin_time` time default `14:00`
+### DB Migration
 
-### 2.2 UI logic
+- Create `is_write_staff()` returns true only for `admin`, `manager`, `front_desk` (NOT viewer)
+- Update RLS policies:
+  - INSERT/UPDATE/DELETE must use `is_write_staff()`
+  - SELECT remains `is_staff()` (viewer can read)
 
-- On checkout date **before** checkout_time: show **Due Out Today**
-- After staff processes checkout: booking becomes `checked_out`
+Apply to:  
+`bookings`, `guests`, `guest_services`, `invoices`, `payments`, `booking_transactions` (if exists), `room_availability`, `audit_logs`, `email_ingest_logs`, `notifications`, `ledger_*` (if added)
 
 ---
 
-## 3) Rooms Operational Layer + Housekeeping Board (Fix “Room not available after checkout”)
+## 2) Fix Availability Calendar Bug (Your screenshot issue) — CRITICAL
 
-### 3.1 Separate concepts
+**Problem:** “1 night blocks wrong days / blocks checkout day / shows only one wrong day”
 
-- **Booking status** controls availability.
-- **Housekeeping status** controls readiness.
+### Hard Rule
 
-### 3.2 Rooms fields
+A booking blocks only if:  
+`cellDateStr >= check_in_date AND cellDateStr < check_out_date`
 
-- `housekeeping_status` enum: `dirty | cleaning | clean | inspected` (default `clean`)
-- `last_checkout_at` timestamptz
-- Optional: `cleaning_started_at`, `cleaning_completed_at`, `inspected_by`, `assigned_to`
+### Implementation Requirements
 
-### 3.3 Rooms page derived states
+- Treat booking check_in/check_out as **DATE type** (you confirmed DB is DATE) ✅
+- In frontend:
+  - Always compare using **date strings** `YYYY-MM-DD`, not raw JS Date comparisons
+  - Use helpers:
+    - `toDateString(date, tz='Asia/Colombo')`
+    - `isDateInBookingRange(dateStr, checkInStr, checkOutStr)`
+- Apply fixes consistently in:
+  - `AvailabilityCalendar.tsx`
+  - `DashboardAvailabilityCalendar.tsx`
+  - any occupancy tiles / “available rooms today” logic
+  - any “overlap check” UI logic (frontend checks)
 
-Use bookings where status in (`pending`,`confirmed`,`checked_in`,`needs_review` with active hold) and apply [check_in, check_out) logic:
+### Status Blocking Rules
 
-- Occupied: `checked_in` and today < check_out
-- Due Out Today: `checked_in` and today == check_out (consider checkout_time)
-- Arriving Today: `confirmed` and today == check_in
-- Held: `needs_review` with active hold
-- Dirty/Cleaning/Clean/Inspected based on housekeeping board
-- Available: no active booking AND housekeeping is `clean` or `inspected`
+Block availability only for:
 
-### 3.4 Checkout flow
+- `confirmed`, `checked_in`, `pending`
+- `needs_review` only if hold is active (see Phase 1 #3)
 
-When checkout:
+Never block for:
 
-- booking → `checked_out`, set `checked_out_at`
-- room housekeeping → `dirty`, set `last_checkout_at`
-- availability auto releases because `checked_out` does not block
+- `cancelled`, `checked_out`, `no_show`
+- `needs_review` after hold expired
 
-### 3.5 Cleaning timer (NEW request)
+---
 
-**Requested logic:** after checkout, room shows **Cleaning or Maintenance for 1.5 hours**, then auto sets to Available.
+## 3) Complete Hybrid Hold System End-to-End (Missing / not reliable)
 
-Implement:
+**Goal:** `needs_review` blocks temporarily, then auto-releases.
 
-- Add `auto_cleaning_minutes` per property (default 90)
-- Add `cleaning_until` timestamptz on rooms
+### DB Rules
+
+Ensure bookings has:
+
+- `hold_expires_at timestamptz`  
+Property settings has:
+- `hold_timeout_hours int default 4`
+
+When status becomes `needs_review`:
+
+- set `hold_expires_at = now() + interval (hold_timeout_hours)`
+
+### Auto-release Job (Required)
+
+Implement scheduled job:
+
+- pg_cron recommended (or scheduled edge function)
+- runs every 10–15 minutes
+
+Logic:
+
+- Find bookings where:
+  - status = `needs_review`
+  - hold_expires_at < now()
+- Update status to `needs_review_expired` (preferred)
+  - If enum update is hard, fallback: `cancelled` + reason “Hold expired — auto-released”
+- Ensure expired holds **no longer block availability**
+- Log releases into:
+  - `hold_release_logs` table OR `email_ingest_logs` with provider `hold-timeout-release`
+
+### UI Requirements
+
+- Needs Review tab shows countdown (time remaining)
+- When expired shows badge: **Expired — requires manual review**
+- Calendar shows “Held” while active, and normal availability after expiry
+
+---
+
+## 4) Cleaning Timer Automation (Your new requested logic)
+
+**Goal:** When checkout happens, room stays “Cleaning” or “Maintenance” for **90 minutes**, then becomes available automatically.
+
+### DB Migration
+
+Add to rooms:
+
+- `auto_cleaning_minutes int default 90`
+- `cleaning_until timestamptz null`
 
 On checkout:
 
-- set `housekeeping_status='cleaning'`
-- set `cleaning_started_at=now()`
-- set `cleaning_until = now() + interval '90 minutes'` (or property setting)
+- booking: `status = checked_out`, `checked_out_at = now()`
+- room: set `housekeeping_status = 'cleaning'`
+- room: set `cleaning_until = now() + auto_cleaning_minutes minutes`
+- room: set `last_checkout_at = now()`
 
-Auto job (every 10–30 min):
+### Scheduled Job
 
-- if `housekeeping_status='cleaning'` AND `cleaning_until < now()` then set `housekeeping_status='clean'` (or `inspected` if you want)
+Edge function or pg_cron runs every 10–15 minutes:
 
-Make sure Rooms tab + Availability calendar reflect changes.
+- find rooms where:
+  - housekeeping_status='cleaning'
+  - cleaning_until < now()
+- set housekeeping_status='clean'
+- clear cleaning_until
 
----
+### UI
 
-## 4) Availability Calendar “1 Night = 2 Days” Bug (CRITICAL)
+- Rooms tab shows countdown: “Cleaning — 1h 12m left”
+- Availability calendar should treat room as:
+  - **available inventory** depends on booking rules, BUT you can also show a visual “Cleaning” badge (operational)
 
-### 4.1 Standardize date handling
-
-- DB check_in/check_out are **DATE type** (you confirmed).
-- Treat them as **date strings** `YYYY-MM-DD` in UI.
-
-### 4.2 Cell block logic (must be identical everywhere)
-
-For each cell `cellDateStr`:
-
-- Block if: `cellDateStr >= check_in AND cellDateStr < check_out`
-- Never use `<= check_out`.
-
-### 4.3 Timezone drift prevention
-
-- When converting JS Dates to strings, normalize in **Asia/Colombo**.
-- Prefer string compare to avoid `new Date('YYYY-MM-DD')` shifting.
-
-### 4.4 Blocking statuses
-
-- Block: `pending, confirmed, checked_in`
-- Block: `needs_review` ONLY if hold still active
-- Don’t block: `cancelled, checked_out, no_show, needs_review_expired`
+> Important: availability blocking stays based on booking status/date range. Cleaning is operational status, not booking block.
 
 ---
 
-## 5) Hybrid Hold System for needs_review (MISSING FEATURE)
+## 5) Rooms Page: Fully Derived Status (No “rooms.status=occupied” hacks)
 
-Goal: `needs_review` bookings temporarily block availability then auto‑release.
+Derive room display based on:
 
-### 5.1 DB
+- housekeeping_status + maintenance
+- bookings in active statuses and `[check_in, check_out)` rule
 
-- `hold_timeout_hours` in `property_inventory_settings` default 4
-- `hold_expires_at` in bookings
+Display states:
 
-When booking becomes `needs_review`:
-
-- set `hold_expires_at = now() + (hold_timeout_hours hours)`
-
-### 5.2 Scheduled auto‑release
-
-Implement ONE:
-
-- **pg_cron** job (preferred) OR scheduled edge function
-
-Every 15 minutes:
-
-- find bookings where `status='needs_review'` AND `hold_expires_at < now()`
-- set status to `needs_review_expired` OR `cancelled` with reason “Hold expired – auto released”
-- ensure availability is released
-- log to `hold_release_logs` OR `email_ingest_logs` with provider `hold-timeout-release`
-
-### 5.3 UI
-
-- Needs Review list shows countdown
-- Expired shows badge “Expired – requires manual review”
+- Occupied (checked_in and today < check_out)
+- Due Out Today (checked_in and check_out = today; before checkout_time)
+- Arriving Today (confirmed and check_in=today)
+- Cleaning (housekeeping_status='cleaning')
+- Dirty (housekeeping_status='dirty')
+- Inspected / Clean
+- Maintenance (room.status = maintenance)
 
 ---
 
-## 6) USD/LKR Dual Display + FX Update Bug
+## 6) Guests must be complete in Settings (No broken flows)
 
-### 6.1 DB
+### Navigation + Routes
 
-Keep base amounts in LKR.  
-Add:
+- Remove Guests from main nav
+- Add Settings tab: `Guests`
+- `/guests` route redirects to `/settings?tab=guests`
+- Back buttons always go back to Settings Guests
 
-- `fx_usd_lkr_rate` numeric
-- `fx_updated_at` timestamptz
+### Guest Details Requirements
 
-### 6.2 UI
+When you click a guest:
 
-- Primary: LKR amount
-- Secondary under it: `~ USD` computed using latest rate
-
-### 6.3 Fix “rate not updating”
-
-- Dashboard must fetch latest rate from DB (no stale caching)
-- Add admin input in Settings to update FX
+- Show full guest details
+- Show booking history timeline
+- Show **services purchased** + totals (must be accurate per booking)
+- Show revenue summary per guest
+- VIP + blacklist toggles (admin)
+- Passport section with secure photo
 
 ---
 
-## 7) Guests Management (Local/International) + Move Guests to Settings
+## 7) Guest Retention (Hide after 1 month, soft delete after 13 months)
 
-### 7.1 Navigation change
+### DB
 
-- Remove Guests from main sidebar
-- Add Settings → Guests
+Ensure guests has:
 
-### 7.2 Guest fields
+- `archived_at timestamptz`
+- `deleted_at timestamptz`
 
-Add to guests:
+### Rules
 
-- `guest_type` enum: local | international
+- Auto-archive: 1 month after last checkout
+- Auto-soft-delete: 13 months after last checkout
+- Keep bookings/reports intact (do not break history)
+
+### UI
+
+Filters:
+
+- Active / Archived / Deleted  
+Admin actions:
+- Restore archived/deleted
+
+### Scheduled Job
+
+Daily job per property.
+
+---
+
+## 8) Booking Form: Nationality + Phone Code (Must be “All countries”)
+
+### UI
+
+- Nationality / Country selector (full list + dial code)
+- Auto fill phone code:
+  - Sri Lanka +94, India +91, etc for all countries
+- Manual override allowed
+
+### Storage fields
+
+Store in guests:
+
 - `country`
-- `passport_number` (encrypted later)
-- `nic_number` (encrypted later)
-- `address` (encrypted later)
-- `is_vip`, `is_blacklisted`, `blacklist_reason`
-- `total_stays`, `total_spent`
-- `passport_photo_path`, `passport_photo_uploaded_at`
-
-### 7.3 Guest type logic
-
-- Country = Sri Lanka → local
-- Else → international
-- Allow manual override
-
-### 7.4 Required fields
-
-- international → passport required
-- local → NIC required
-
-### 7.5 Guest profile page must show
-
-- Full details
-- Booking history timeline
-- Services purchased + totals
-
----
-
-## 8) Passport Photo Upload + Secure Storage
-
-- Private bucket: `guest-documents`
-- Path: `{property_id}/{guest_id}/passport.{ext}`
-- Use signed URLs (5 minutes)
-- Staff/admin same property only
-- Export reports only show yes/no (not the image)
-
-Optional:
-
-- auto delete passport photo 30 days after checkout
-
----
-
-## 9) Guest Retention (Guests not disappearing)
-
-Goal: Guests list shouldn’t be infinite.
-
-### 9.1 DB
-
-Add:
-
-- `archived_at` timestamptz
-- `deleted_at` timestamptz (soft delete)
-
-### 9.2 Rules
-
-- Auto‑archive 1 month after last checkout
-- Auto soft‑delete 13 months after last checkout
-- Keep bookings/reports intact
-
-### 9.3 UI
-
-- Filters: Active / Archived / Deleted
-- Admin can restore (clear archived_at/deleted_at)
-
-### 9.4 Scheduled job
-
-Daily job per property using pg_cron or edge function.
-
----
-
-## 10) Roles + Viewer Role (Read‑Only)
-
-Add role: `viewer`
-
-Viewer CAN:
-
-- see dashboard
-- see bookings
-- see availability
-- see guests
-- see reports
-
-Viewer CANNOT:
-
-- create/edit bookings
-- check-in/out
-- cancel/no-show
-- edit guests
-- change settings
-- delete anything
-
-Must be enforced by:
-
-- Backend RLS policies
-- UI button hiding/disable
-
----
-
-## 11) Danger Zone: Clear Property Data (Testing Phase)
-
-Admin‑only Settings → Danger Zone:
-
-Button: **Clear Property Data**
-
-Flow:
-
-- double confirm
-- ask admin password (re-auth) to confirm
-- run RPC `clear_property_data(p_property_id)`
-- clears: guests, bookings, transactions, services logs, availability history, notifications, reports/revenue records for selected property
-- keeps: property record + rooms + settings + users
-- logs action to `audit_logs`
-
-**Multi-property safe:** affects selected property only.
-
----
-
-## 12) New Booking Form Improvements (Nationality + Phone Code)
-
-Add fields:
-
-- nationality/country selector
-- auto dial code
-- manual dial code edit
-
-Store:
-
 - `phone_country_code`
 - `phone_number`
 - `phone_e164` computed
 
-Behavior:
-
-- Sri Lanka → +94
-- India → +91
-- Support all countries
+Also store nationality/country on guest.
 
 ---
 
-## 13) Front Desk Mode (Reception Speed)
+## 9) USD/LKR Dual Display + FX Rate Update Fix
 
-Create **Front Desk Mode** page:
+### DB
+
+Add to property_inventory_settings:
+
+- `fx_usd_lkr_rate numeric default 310`
+- `fx_updated_at timestamptz`
+
+### UI
+
+- Everywhere money appears:
+  - show LKR as primary
+  - show USD approx under it using latest FX rate
+- Dashboard FX bug fix:
+  - always fetch latest rate from DB (no stale caching)
+
+---
+
+## 10) Testing Tool: Danger Zone Clear Property Data (You’re testing now)
+
+Must remain:
+
+- admin-only
+- requires password confirm
+- double confirmation
+- per selected property only
+- logs action to audit_logs
+
+Must clear:
+
+- guests, bookings, services usage, invoices/payments, availability history, reports/revenue, notifications, channel sync logs (property-scoped)
+
+Must NOT delete:
+
+- property itself
+- rooms definitions (optional: reset housekeeping status)
+- staff users
+
+---
+
+# Phase 2 — Operational Upgrades (Next)
+
+## 11) Front Desk Speed Mode
+
+Route `/front-desk`  
+Shows:
 
 - Today Arrivals
-- In-House
+- In-house
 - Today Departures
-- Pending Payments
+- Pending payments
 
-Booking card quick actions:
+Card quick actions:
 
-- Check-in
-- Check-out
-- Add Service
-- Take Payment
-- Extend Stay
-- Cancel / No-show
-
-Performance:
-
-- eager load guest + room + balance summary
+- check-in/out
+- add service
+- take payment
+- extend stay
+- cancel/no-show
 
 Auto guest detection:
 
-- link guest if same phone/passport
+- match by phone/passport/NIC → link existing guest
 
 ---
 
-## 14) Overbooking / Channel Sync Safety
+## 12) Overbooking / Channel Sync Safety
 
-- Conflict detection before confirming booking
-- Room booking lock (30 seconds) during creation
-- Channel manager dashboard: last sync, errors, conflicts
-- Optional inventory safety buffer
-
----
-
-## 15) Money / Payments System + Transaction Ledger
-
-Create table `booking_transactions`:
-
-- booking_id, property_id, amount, currency, transaction_type, payment_method, created_at
-
-Rules:
-
-- show total
-- payments received
-- outstanding
-- allow partial payments + refunds
-- track OTA commission
+- overlap checks + hard DB guard
+- 30-second booking lock
+- channel manager dashboard:
+  - last sync time, sync errors, conflicts detected
+- optional inventory safety buffer
 
 ---
 
-## 16) Operations Notifications
+## 13) Housekeeping Board
 
-Table `notifications`:
-
-- property_id, title, message, level, created_at, read_at
-
-Bell in header + dashboard alerts.
-
----
-
-## 17) Data Quality
-
-- duplicate detection (phone/passport)
-- merge option
-- required fields (passport/NIC based on guest_type)
-- bookings archive view (example: >90 days)
-- search by name/phone/passport/NIC/booking id/room
+Board statuses:  
+Dirty → Cleaning → Clean → Inspected  
+Fields:  
+assigned_to, cleaning_started_at, cleaning_completed_at, inspected_by  
+Rules:  
+checkout → Dirty (or Cleaning if using timer workflow)
 
 ---
 
-## 18) Settings Page Refactor (UI/Structure Only)
+## 14) Notifications System
 
-Goal: fix blank sections and improve Settings UX without breaking existing logic.
+In-app bell + dashboard alerts:
 
-Must:
-
-- Ensure all tabs render their components: property, guests, services, channels, reports, security
-- Keep old URLs: `?tab=users`, `?tab=hotel`, `?tab=danger`
-
-UX:
-
-- collapse main app sidebar on /settings, restore on exit
-- sticky settings nav + sticky settings header
-- sticky segmented sub-tabs inside Channel Manager with badge counts
+- arrivals
+- checkout due 11:00
+- hold expiring
+- cleaning completed
+- cancellation received
+- sync failures
 
 ---
 
-## 19) System Health Monitor (Admin Only) + Accounting Layer
+## 15) Data Quality System
 
-### 19.1 Location
+- duplicate detection (same phone/passport)
+- merge tool (admin)
+- required fields per guest_type
+- booking archive view older than N days (configurable)
+- improved search (name/phone/passport/NIC/booking ID/room)
 
-Settings tab:
+---
 
-- `/settings?tab=system-health`
+# Phase 3 — Business/Finance (Later)
 
-### 19.2 Backend
+## 16) Booking Transactions Ledger (Operational Money)
 
-RPC:
+Create `booking_transactions` table:  
+payment/refund/commission/adjustment  
+Show booking balance:
 
-- `system_health_check(p_property_id uuid)`
+- total, paid, outstanding
 
-Returns JSON with grouped checks and details.
+---
 
-### 19.3 Checks
-
-Core Data Integrity:
-
-- Property Isolation
-- Overlap Prevention
-
-Financial Engine:
-
-- Commission Accuracy
-- Tax Engine
-- Card Surcharge
-- FX Currency Sync freshness
-
-Operational Systems:
-
-- Cleaning timer job
-- Hold auto release
-
-Sync & Automation:
-
-- iCal Idempotency
-- Retention job status
-
-### 19.4 Accounting Layer (Double-entry minimal)
+## 17) Accounting Layer (Double Entry)
 
 Tables:
 
@@ -590,61 +396,64 @@ Tables:
 - ledger_entries
 - ledger_lines
 
-Rule:
+Rules:
 
-- every entry balanced: SUM(debit)=SUM(credit)
+- all entries balanced (sum debit = sum credit)
+- multi-property safe
 
-Auto posting rules:
+Auto posting:
 
-- Booking confirmed → AR / Revenue
-- Tax → Tax payable
-- Commission → Commission expense / OTA payable
-- Payment → Cash/Bank/Card / AR
-- Refund → reverse
-
-Accounting diagnostics:
-
-- ledger balance
-- booking revenue reconciliation
-- tax payable reconciliation
-- commission reconciliation
-- payments vs AR
-- orphan accounting rows
+- booking confirmed (AR / Revenue)
+- tax (Tax payable)
+- commission (Commission expense / OTA payable)
+- payments (Cash/Bank/Card / AR)
+- refunds reverse entries
 
 ---
 
-## 20) Remaining Known Bug/Gap Checklist
+# Phase 4 — System Health Monitor (Admin, Settings)
 
-Must verify after implementation:
+## 18) System Health Monitor + Accounting Diagnostics
 
-1. Booking Mar 3 → Mar 4 blocks ONLY Mar 3 (calendar + dashboard)
-2. checked_out/cancelled/no_show never block availability
-3. needs_review blocks only until hold expiry
-4. checkout triggers dirty/cleaning state correctly and releases availability
-5. rooms become available after cleaning timer completion + no active booking
-6. Guests in Settings tab render correctly and details show services purchased
-7. Viewer role cannot do any writes (UI + RLS)
-8. FX rate changes immediately reflect on dashboard
-9. Danger Zone clears only selected property
-10. System Health monitor returns PASS/FAIL with details
+Route:  
+`/settings?tab=system-health`
+
+Admin-only button:  
+“Run Full System Check”
+
+Backend RPC:  
+`system_health_check(p_property_id uuid)` returns JSON PASS/FAIL per check.
+
+Must include checks:
+
+- Property isolation
+- Overlap prevention
+- iCal idempotency
+- Commission accuracy
+- Tax engine
+- Card surcharge
+- Cleaning timer job
+- Hold auto release job
+- FX sync freshness
+- Guest retention job
+- Accounting reconciliations (ledger balance, revenue/tax/commission/payment reconciliation)
+
+Optional:
+
+- store history in system_health_logs
 
 ---
 
-# DELIVERABLES
+# Deliverables Checklist (Must Complete)
 
-1. Safe DB migrations + data migration scripts
-2. Edge functions / RPC for holds + retention + cleaning timer + system health
-3. Updated UI flows across Bookings/Rooms/Calendar/Dashboard/Settings/Guests
-4. RLS policy updates for viewer role + admin-only features
-5. Test checklist in PR summary
+- Safe migrations + no breaking changes
+- Fix calendar bug end-to-end (your screenshot case)
+- Hold system fully working + scheduled
+- Cleaning timer fully working + scheduled
+- Viewer role locked down in RLS (no API bypass)
+- Guests in Settings fully wired + full detail + services purchased
+- Guest retention scheduled job
+- FX dual display + rate updates
+- Test checklist in PR summary
 
 ---
-
-# FINAL DECISION (Hold Behavior)
-
-**Choose Option A (Recommended):**
-
-- `needs_review` blocks availability **temporarily** until `hold_expires_at`.
-- After expiry, auto mark `needs_review_expired` (or cancel w/ reason) and release availability.
-
-Reason: prevents overbooking while still preventing permanent locks.
