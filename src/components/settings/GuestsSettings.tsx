@@ -13,6 +13,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -22,7 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Search, Eye, User, Trash2 } from 'lucide-react';
+import { Search, Eye, User, Trash2, RotateCcw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { useAuth } from '@/hooks/useAuth';
@@ -37,8 +44,12 @@ interface Guest {
   email: string | null;
   created_at: string;
   property_id: string | null;
+  archived_at: string | null;
+  deleted_at: string | null;
   bookings: { id: string; status: string; property_id: string | null }[];
 }
+
+type GuestFilter = 'active' | 'archived' | 'deleted' | 'all';
 
 export function GuestsSettings() {
   const navigate = useNavigate();
@@ -47,24 +58,40 @@ export function GuestsSettings() {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filter, setFilter] = useState<GuestFilter>('active');
   const [deleteTarget, setDeleteTarget] = useState<Guest | null>(null);
   const [deleting, setDeleting] = useState(false);
   const isMobile = useIsMobile();
 
   useEffect(() => {
     fetchGuests();
-  }, [selectedProperty, showAllProperties]);
+  }, [selectedProperty, showAllProperties, filter]);
 
   const fetchGuests = async () => {
     try {
       let query = supabase
         .from('guests')
         .select(`
-          id, name, phone, email, created_at, property_id,
+          id, name, phone, email, created_at, property_id, archived_at, deleted_at,
           bookings (id, status, property_id)
         `)
-        .is('deleted_at', null)
         .order('created_at', { ascending: false });
+
+      // Apply filter
+      switch (filter) {
+        case 'active':
+          query = query.is('deleted_at', null).is('archived_at', null);
+          break;
+        case 'archived':
+          query = query.is('deleted_at', null).not('archived_at', 'is', null);
+          break;
+        case 'deleted':
+          query = query.not('deleted_at', 'is', null);
+          break;
+        case 'all':
+          // No filter
+          break;
+      }
 
       if (!showAllProperties && selectedProperty?.id) {
         query = query.eq('property_id', selectedProperty.id);
@@ -75,12 +102,14 @@ export function GuestsSettings() {
 
       const filteredData = (data || []).map(guest => ({
         ...guest,
+        archived_at: (guest as any).archived_at || null,
+        deleted_at: (guest as any).deleted_at || null,
         bookings: !showAllProperties && selectedProperty?.id
           ? guest.bookings?.filter(b => b.property_id === selectedProperty.id) || []
           : guest.bookings || []
       }));
 
-      setGuests(filteredData);
+      setGuests(filteredData as Guest[]);
     } catch (error) {
       console.error('Error fetching guests:', error);
       toast.error('Failed to load guests');
@@ -93,7 +122,6 @@ export function GuestsSettings() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      // Soft delete: set deleted_at instead of hard deleting
       const { error } = await supabase
         .from('guests')
         .update({ deleted_at: new Date().toISOString() } as any)
@@ -111,6 +139,22 @@ export function GuestsSettings() {
     }
   };
 
+  const handleRestore = async (guest: Guest) => {
+    try {
+      const { error } = await supabase
+        .from('guests')
+        .update({ archived_at: null, deleted_at: null } as any)
+        .eq('id', guest.id);
+
+      if (error) throw error;
+      toast.success(`Guest "${guest.name}" restored`);
+      fetchGuests();
+    } catch (error) {
+      console.error('Error restoring guest:', error);
+      toast.error('Failed to restore guest');
+    }
+  };
+
   const getActiveBooking = (guest: Guest) =>
     guest.bookings?.find((b) => b.status === 'checked_in');
 
@@ -121,6 +165,14 @@ export function GuestsSettings() {
       guest.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const getGuestStatusBadge = (guest: Guest) => {
+    if (guest.deleted_at) return <Badge variant="destructive">Deleted</Badge>;
+    if (guest.archived_at) return <Badge variant="secondary">Archived</Badge>;
+    const active = getActiveBooking(guest);
+    if (active) return <Badge className="bg-success/20 text-success border-success">Checked In</Badge>;
+    return <Badge variant="secondary">Active</Badge>;
+  };
+
   return (
     <>
       <div className="space-y-4">
@@ -129,19 +181,34 @@ export function GuestsSettings() {
           <PropertyBadge />
         </div>
 
-        <div className="relative flex-1 sm:max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by name, phone, or email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1 sm:max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name, phone, or email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={filter} onValueChange={(v) => setFilter(v as GuestFilter)}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="archived">Archived</SelectItem>
+              <SelectItem value="deleted">Deleted</SelectItem>
+              <SelectItem value="all">All</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <Card>
           <CardHeader className="pb-3 sm:pb-6">
-            <CardTitle className="text-base sm:text-lg">All Guests</CardTitle>
+            <CardTitle className="text-base sm:text-lg">
+              {filter === 'active' ? 'Active' : filter === 'archived' ? 'Archived' : filter === 'deleted' ? 'Deleted' : 'All'} Guests
+            </CardTitle>
           </CardHeader>
           <CardContent className="px-3 sm:px-6">
             {loading ? (
@@ -155,43 +222,41 @@ export function GuestsSettings() {
               </div>
             ) : isMobile ? (
               <div className="space-y-3">
-                {filteredGuests.map((guest) => {
-                  const activeBooking = getActiveBooking(guest);
-                  return (
-                    <Card key={guest.id} className="border-border/50">
-                      <CardContent className="p-4">
-                        <div className="space-y-3">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0 flex-1">
-                              <p className="font-medium truncate">{guest.name}</p>
-                              <p className="text-sm text-muted-foreground">{guest.phone || 'No phone'}</p>
-                            </div>
-                            {activeBooking ? (
-                              <Badge className="bg-success/20 text-success border-success shrink-0">Checked In</Badge>
-                            ) : (
-                              <Badge variant="secondary" className="shrink-0">Not Staying</Badge>
+                {filteredGuests.map((guest) => (
+                  <Card key={guest.id} className="border-border/50">
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium truncate">{guest.name}</p>
+                            <p className="text-sm text-muted-foreground">{guest.phone || 'No phone'}</p>
+                          </div>
+                          {getGuestStatusBadge(guest)}
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t">
+                          <p className="text-sm text-muted-foreground">
+                            {guest.bookings?.length || 0} booking{guest.bookings?.length !== 1 ? 's' : ''}
+                          </p>
+                          <div className="flex gap-1">
+                            <Button variant="outline" size="sm" onClick={() => navigate(`/guests/${guest.id}`)}>
+                              <Eye className="h-4 w-4 mr-1" /> View
+                            </Button>
+                            {isAdmin && (guest.archived_at || guest.deleted_at) && (
+                              <Button variant="outline" size="sm" onClick={() => handleRestore(guest)}>
+                                <RotateCcw className="h-4 w-4 mr-1" /> Restore
+                              </Button>
+                            )}
+                            {isAdmin && !guest.deleted_at && (
+                              <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteTarget(guest)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             )}
                           </div>
-                          <div className="flex items-center justify-between pt-2 border-t">
-                            <p className="text-sm text-muted-foreground">
-                              {guest.bookings?.length || 0} booking{guest.bookings?.length !== 1 ? 's' : ''}
-                            </p>
-                            <div className="flex gap-1">
-                              <Button variant="outline" size="sm" onClick={() => navigate(`/guests/${guest.id}`)}>
-                                <Eye className="h-4 w-4 mr-1" /> View
-                              </Button>
-                              {isAdmin && (
-                                <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteTarget(guest)}>
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
-                          </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             ) : (
               <Table>
@@ -205,40 +270,36 @@ export function GuestsSettings() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredGuests.map((guest) => {
-                    const activeBooking = getActiveBooking(guest);
-                    return (
-                      <TableRow key={guest.id}>
-                        <TableCell className="font-medium">{guest.name}</TableCell>
-                        <TableCell>
-                          <div>
-                            <p>{guest.phone || 'No phone'}</p>
-                            <p className="text-sm text-muted-foreground">{guest.email || 'No email'}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>{guest.bookings?.length || 0}</TableCell>
-                        <TableCell>
-                          {activeBooking ? (
-                            <Badge className="bg-success/20 text-success border-success">Checked In</Badge>
-                          ) : (
-                            <Badge variant="secondary">Not Staying</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => navigate(`/guests/${guest.id}`)}>
-                              <Eye className="h-4 w-4" />
+                  {filteredGuests.map((guest) => (
+                    <TableRow key={guest.id}>
+                      <TableCell className="font-medium">{guest.name}</TableCell>
+                      <TableCell>
+                        <div>
+                          <p>{guest.phone || 'No phone'}</p>
+                          <p className="text-sm text-muted-foreground">{guest.email || 'No email'}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>{guest.bookings?.length || 0}</TableCell>
+                      <TableCell>{getGuestStatusBadge(guest)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => navigate(`/guests/${guest.id}`)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {isAdmin && (guest.archived_at || guest.deleted_at) && (
+                            <Button variant="ghost" size="icon" onClick={() => handleRestore(guest)}>
+                              <RotateCcw className="h-4 w-4" />
                             </Button>
-                            {isAdmin && (
-                              <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteTarget(guest)}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                          )}
+                          {isAdmin && !guest.deleted_at && (
+                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteTarget(guest)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             )}

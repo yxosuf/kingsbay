@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.hold-timeout-release]
 verify_jwt = false
+
+[functions.cleaning-timer-release]
+verify_jwt = false

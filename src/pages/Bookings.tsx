@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { PropertyBadge } from '@/components/layout/PropertyBadge';
 import { BookingTable, type BookingRow } from '@/components/booking/BookingTable';
+import { toDateString } from '@/lib/dateUtils';
 
 type TabKey = 'today' | 'upcoming' | 'inhouse' | 'past' | 'cancelled' | 'needs_review' | 'all';
 
@@ -39,7 +40,7 @@ export default function Bookings() {
     return 'today';
   });
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = toDateString(new Date());
 
   const fetchBookings = useCallback(async () => {
     setLoading(true);

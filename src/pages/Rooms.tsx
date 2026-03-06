@@ -21,14 +21,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Edit, Trash2, BedDouble, Wrench } from 'lucide-react';
+import { Plus, Edit, Trash2, BedDouble, Wrench, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useProperty } from '@/hooks/useProperty';
 import { toast } from 'sonner';
 import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
+import { toDateString } from '@/lib/dateUtils';
 
 type RoomStatus = 'available' | 'occupied' | 'reserved' | 'maintenance';
+type DerivedStatus = 'occupied' | 'due_out' | 'arriving' | 'cleaning' | 'dirty' | 'maintenance' | 'available';
 
 interface Room {
   id: string;
@@ -41,21 +43,35 @@ interface Room {
   description: string | null;
   amenities: string[] | null;
   property_id: string | null;
+  housekeeping_status: string;
+  cleaning_until: string | null;
+}
+
+interface RoomBooking {
+  room_id: string;
+  check_in: string;
+  check_out: string;
+  status: string;
+  guests: { name: string } | null;
 }
 
 const roomTypes = ['standard', 'double', 'deluxe', 'suite', 'family', 'penthouse', 'apartment'];
-const statusColors: Record<RoomStatus, string> = {
-  available: 'bg-success/20 text-success border-success',
-  occupied: 'bg-destructive/20 text-destructive border-destructive',
-  reserved: 'bg-warning/20 text-warning-foreground border-warning',
-  maintenance: 'bg-muted text-muted-foreground border-muted-foreground',
+
+const derivedStatusConfig: Record<DerivedStatus, { label: string; color: string }> = {
+  occupied: { label: 'Occupied', color: 'bg-destructive/20 text-destructive border-destructive' },
+  due_out: { label: 'Due Out Today', color: 'bg-warning/20 text-warning-foreground border-warning' },
+  arriving: { label: 'Arriving Today', color: 'bg-info/20 text-info border-info' },
+  cleaning: { label: 'Cleaning', color: 'bg-orange-500/20 text-orange-700 border-orange-500' },
+  dirty: { label: 'Dirty', color: 'bg-amber-500/20 text-amber-700 border-amber-500' },
+  maintenance: { label: 'Maintenance', color: 'bg-muted text-muted-foreground border-muted-foreground' },
+  available: { label: 'Available', color: 'bg-success/20 text-success border-success' },
 };
 
 export default function Rooms() {
-  // NOTE: isAdmin is for UI visibility only. Security is enforced by RLS policies on the database.
-  const { isAdmin } = useAuth();
+  const { isAdmin, canWrite } = useAuth();
   const { selectedProperty, showAllProperties } = useProperty();
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [bookings, setBookings] = useState<RoomBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
@@ -69,30 +85,156 @@ export default function Rooms() {
   const [floor, setFloor] = useState('');
   const [description, setDescription] = useState('');
 
+  const today = toDateString(new Date());
+
   useEffect(() => {
     fetchRooms();
   }, [selectedProperty, showAllProperties]);
 
   const fetchRooms = async () => {
     try {
-      let query = supabase
+      let roomQuery = supabase
         .from('rooms')
         .select('*')
         .order('room_number');
       
       if (!showAllProperties && selectedProperty?.id) {
-        query = query.eq('property_id', selectedProperty.id);
+        roomQuery = roomQuery.eq('property_id', selectedProperty.id);
       }
 
-      const { data, error } = await query;
+      const { data: roomData, error: roomError } = await roomQuery;
+      if (roomError) throw roomError;
+      setRooms((roomData as Room[]) || []);
 
-      if (error) throw error;
-      setRooms((data as Room[]) || []);
+      // Fetch today's active bookings for derived status
+      let bookingQuery = supabase
+        .from('bookings')
+        .select('room_id, check_in, check_out, status, guests(name)')
+        .in('status', ['confirmed', 'checked_in', 'pending', 'needs_review'])
+        .lte('check_in', today)
+        .gt('check_out', today);
+
+      if (!showAllProperties && selectedProperty?.id) {
+        bookingQuery = bookingQuery.eq('property_id', selectedProperty.id);
+      }
+
+      // Also fetch arriving today (check_in = today, not yet in range query above for future check_in)
+      let arrivingQuery = supabase
+        .from('bookings')
+        .select('room_id, check_in, check_out, status, guests(name)')
+        .eq('check_in', today)
+        .in('status', ['confirmed', 'pending']);
+
+      if (!showAllProperties && selectedProperty?.id) {
+        arrivingQuery = arrivingQuery.eq('property_id', selectedProperty.id);
+      }
+
+      // Fetch departing today
+      let departingQuery = supabase
+        .from('bookings')
+        .select('room_id, check_in, check_out, status, guests(name)')
+        .eq('check_out', today)
+        .eq('status', 'checked_in');
+
+      if (!showAllProperties && selectedProperty?.id) {
+        departingQuery = departingQuery.eq('property_id', selectedProperty.id);
+      }
+
+      const [{ data: activeData }, { data: arrivingData }, { data: departingData }] = await Promise.all([
+        bookingQuery, arrivingQuery, departingQuery
+      ]);
+
+      const allBookings = [
+        ...(activeData || []),
+        ...(arrivingData || []),
+        ...(departingData || []),
+      ].map(b => ({
+        ...b,
+        guests: Array.isArray(b.guests) ? b.guests[0] : b.guests
+      }));
+
+      // Deduplicate by room_id + status
+      const seen = new Set<string>();
+      const deduped = allBookings.filter(b => {
+        const key = `${b.room_id}-${b.check_in}-${b.status}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      setBookings(deduped as RoomBooking[]);
     } catch (error) {
       console.error('Error fetching rooms:', error);
       toast.error('Failed to load rooms');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getDerivedStatus = (room: Room): { status: DerivedStatus; guestName?: string } => {
+    // Maintenance takes priority
+    if (room.status === 'maintenance') {
+      return { status: 'maintenance' };
+    }
+
+    // Check for due out today (checked_in + check_out == today)
+    const departingBooking = bookings.find(
+      b => b.room_id === room.id && b.status === 'checked_in' && b.check_out === today
+    );
+    if (departingBooking) {
+      return { status: 'due_out', guestName: departingBooking.guests?.name };
+    }
+
+    // Check for occupied (checked_in and today < check_out)
+    const occupiedBooking = bookings.find(
+      b => b.room_id === room.id && b.status === 'checked_in' && b.check_out > today
+    );
+    if (occupiedBooking) {
+      return { status: 'occupied', guestName: occupiedBooking.guests?.name };
+    }
+
+    // Check for arriving today
+    const arrivingBooking = bookings.find(
+      b => b.room_id === room.id && b.check_in === today && (b.status === 'confirmed' || b.status === 'pending')
+    );
+    if (arrivingBooking) {
+      return { status: 'arriving', guestName: arrivingBooking.guests?.name };
+    }
+
+    // Housekeeping status
+    if (room.housekeeping_status === 'cleaning') {
+      return { status: 'cleaning' };
+    }
+    if (room.housekeeping_status === 'dirty') {
+      return { status: 'dirty' };
+    }
+
+    return { status: 'available' };
+  };
+
+  const getCleaningCountdown = (room: Room): string | null => {
+    if (room.housekeeping_status !== 'cleaning' || !room.cleaning_until) return null;
+    const until = new Date(room.cleaning_until);
+    const now = new Date();
+    const diff = until.getTime() - now.getTime();
+    if (diff <= 0) return 'Ready';
+    const mins = Math.floor(diff / 60000);
+    const hrs = Math.floor(mins / 60);
+    const remainMins = mins % 60;
+    return hrs > 0 ? `${hrs}h ${remainMins}m left` : `${remainMins}m left`;
+  };
+
+  const handleMarkClean = async (roomId: string) => {
+    try {
+      const { error } = await supabase
+        .from('rooms')
+        .update({ housekeeping_status: 'clean', cleaning_until: null } as any)
+        .eq('id', roomId);
+      if (error) throw error;
+      toast.success('Room marked as clean');
+      fetchRooms();
+    } catch (error) {
+      toast.error('Failed to update housekeeping status');
     }
   };
 
@@ -191,14 +333,19 @@ export default function Rooms() {
     }
   };
 
-  const groupedRooms = rooms.reduce((acc, room) => {
-    const status = room.status;
-    if (!acc[status]) acc[status] = [];
-    acc[status].push(room);
-    return acc;
-  }, {} as Record<RoomStatus, Room[]>);
+  // Group by derived status
+  const roomsWithDerived = rooms.map(room => ({
+    room,
+    derived: getDerivedStatus(room),
+    cleaningCountdown: getCleaningCountdown(room),
+  }));
 
-  const statusOrder: RoomStatus[] = ['available', 'occupied', 'reserved', 'maintenance'];
+  const statusOrder: DerivedStatus[] = ['due_out', 'occupied', 'arriving', 'cleaning', 'dirty', 'maintenance', 'available'];
+
+  const statusCounts = statusOrder.reduce((acc, s) => {
+    acc[s] = roomsWithDerived.filter(r => r.derived.status === s).length;
+    return acc;
+  }, {} as Record<DerivedStatus, number>);
 
   return (
     <DashboardLayout title="Room Status">
@@ -206,13 +353,13 @@ export default function Rooms() {
         {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
           <div className="flex flex-wrap gap-2 sm:gap-4">
-            {statusOrder.map((status) => (
+            {statusOrder.filter(s => statusCounts[s] > 0).map((status) => (
               <div key={status} className="flex items-center gap-1.5 sm:gap-2">
-                <Badge variant="outline" className={`${statusColors[status]} text-xs sm:text-sm`}>
-                  {status}
+                <Badge variant="outline" className={`${derivedStatusConfig[status].color} text-xs sm:text-sm`}>
+                  {derivedStatusConfig[status].label}
                 </Badge>
                 <span className="text-xs sm:text-sm text-muted-foreground">
-                  ({groupedRooms[status]?.length || 0})
+                  ({statusCounts[status]})
                 </span>
               </div>
             ))}
@@ -339,83 +486,108 @@ export default function Rooms() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {rooms.map((room) => (
-              <Card
-                key={room.id}
-                className={`relative overflow-hidden ${
-                  room.status === 'available'
-                    ? 'border-success/50'
-                    : room.status === 'occupied'
-                    ? 'border-destructive/50'
-                    : room.status === 'reserved'
-                    ? 'border-warning/50'
-                    : 'border-muted'
-                }`}
-              >
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">Room {room.room_number}</CardTitle>
-                    <Badge variant="outline" className={statusColors[room.status]}>
-                      {room.status}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground capitalize">{room.room_type}</p>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Rate</span>
-                    <span className="font-medium">Rs. {room.price.toLocaleString()}/night</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Max Guests</span>
-                    <span>{room.max_guests}</span>
-                  </div>
-                  {room.floor && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Floor</span>
-                      <span>{room.floor}</span>
+            {roomsWithDerived.map(({ room, derived, cleaningCountdown }) => {
+              const config = derivedStatusConfig[derived.status];
+              return (
+                <Card
+                  key={room.id}
+                  className={`relative overflow-hidden border-l-4 ${
+                    derived.status === 'available' ? 'border-l-success'
+                    : derived.status === 'occupied' ? 'border-l-destructive'
+                    : derived.status === 'due_out' ? 'border-l-warning'
+                    : derived.status === 'arriving' ? 'border-l-info'
+                    : derived.status === 'cleaning' ? 'border-l-orange-500'
+                    : derived.status === 'dirty' ? 'border-l-amber-500'
+                    : 'border-l-muted-foreground'
+                  }`}
+                >
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">Room {room.room_number}</CardTitle>
+                      <Badge variant="outline" className={config.color}>
+                        {config.label}
+                      </Badge>
                     </div>
-                  )}
-
-                  {/* Quick Actions */}
-                  <div className="flex gap-2 pt-2">
-                    <Select
-                      value={room.status}
-                      onValueChange={(value) => handleStatusChange(room.id, value as RoomStatus)}
-                    >
-                      <SelectTrigger className="flex-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="available">Available</SelectItem>
-                        <SelectItem value="occupied">Occupied</SelectItem>
-                        <SelectItem value="reserved">Reserved</SelectItem>
-                        <SelectItem value="maintenance">Maintenance</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {isAdmin && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEditDialog(room)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive"
-                          onClick={() => handleDelete(room.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </>
+                    <p className="text-sm text-muted-foreground capitalize">{room.room_type}</p>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Rate</span>
+                      <span className="font-medium">Rs. {room.price.toLocaleString()}/night</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Max Guests</span>
+                      <span>{room.max_guests}</span>
+                    </div>
+                    {room.floor && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Floor</span>
+                        <span>{room.floor}</span>
+                      </div>
                     )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    {derived.guestName && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Guest</span>
+                        <span className="font-medium truncate ml-2">{derived.guestName}</span>
+                      </div>
+                    )}
+                    {cleaningCountdown && (
+                      <div className="text-xs text-orange-600 font-medium">
+                        🧹 {cleaningCountdown}
+                      </div>
+                    )}
+
+                    {/* Quick Actions */}
+                    <div className="flex gap-2 pt-2">
+                      {canWrite && (derived.status === 'dirty' || derived.status === 'cleaning') && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => handleMarkClean(room.id)}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Mark Clean
+                        </Button>
+                      )}
+                      {isAdmin && (
+                        <Select
+                          value={room.status}
+                          onValueChange={(value) => handleStatusChange(room.id, value as RoomStatus)}
+                        >
+                          <SelectTrigger className="flex-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="available">Available</SelectItem>
+                            <SelectItem value="maintenance">Maintenance</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                      {isAdmin && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditDialog(room)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive"
+                            onClick={() => handleDelete(room.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
