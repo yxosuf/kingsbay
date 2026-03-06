@@ -287,6 +287,7 @@ export default function Dashboard() {
     {
       title: 'Total Revenue',
       value: `Rs. ${stats.totalRevenue.toLocaleString()}`,
+      subtitle: exchangeRate ? `~ $${Math.round(stats.totalRevenue / exchangeRate.usdToLkr).toLocaleString()} USD` : undefined,
       icon: Wallet,
       onClick: () => navigate('/reports?type=revenue'),
       color: 'text-success',
@@ -332,6 +333,9 @@ export default function Dashboard() {
                   <div className="space-y-1 min-w-0">
                     <p className="text-xs sm:text-sm text-muted-foreground truncate">{stat.title}</p>
                     <p className="text-lg sm:text-2xl font-bold text-foreground truncate">{stat.value}</p>
+                    {stat.subtitle && (
+                      <p className="text-xs text-muted-foreground">{stat.subtitle}</p>
+                    )}
                   </div>
                   <div className={`p-2 sm:p-3 rounded-xl ${stat.bgColor} self-start sm:self-auto shrink-0`}>
                     <stat.icon className={`h-5 w-5 sm:h-6 sm:w-6 ${stat.color}`} />

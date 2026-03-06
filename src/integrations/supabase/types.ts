@@ -446,9 +446,11 @@ export type Database = {
       guests: {
         Row: {
           address: string | null
+          archived_at: string | null
           blacklist_reason: string | null
           country: string | null
           created_at: string
+          deleted_at: string | null
           email: string | null
           guest_type: Database["public"]["Enums"]["guest_type"]
           id: string
@@ -470,9 +472,11 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          archived_at?: string | null
           blacklist_reason?: string | null
           country?: string | null
           created_at?: string
+          deleted_at?: string | null
           email?: string | null
           guest_type?: Database["public"]["Enums"]["guest_type"]
           id?: string
@@ -494,9 +498,11 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          archived_at?: string | null
           blacklist_reason?: string | null
           country?: string | null
           created_at?: string
+          deleted_at?: string | null
           email?: string | null
           guest_type?: Database["public"]["Enums"]["guest_type"]
           id?: string
@@ -765,6 +771,8 @@ export type Database = {
           checkin_time: string
           checkout_time: string
           created_at: string
+          fx_updated_at: string | null
+          fx_usd_lkr_rate: number | null
           hold_timeout_hours: number
           id: string
           property_id: string
@@ -777,6 +785,8 @@ export type Database = {
           checkin_time?: string
           checkout_time?: string
           created_at?: string
+          fx_updated_at?: string | null
+          fx_usd_lkr_rate?: number | null
           hold_timeout_hours?: number
           id?: string
           property_id: string
@@ -789,6 +799,8 @@ export type Database = {
           checkin_time?: string
           checkout_time?: string
           created_at?: string
+          fx_updated_at?: string | null
+          fx_usd_lkr_rate?: number | null
           hold_timeout_hours?: number
           id?: string
           property_id?: string
@@ -860,6 +872,8 @@ export type Database = {
       rooms: {
         Row: {
           amenities: string[] | null
+          auto_cleaning_minutes: number | null
+          cleaning_until: string | null
           created_at: string
           description: string | null
           floor: number | null
@@ -876,6 +890,8 @@ export type Database = {
         }
         Insert: {
           amenities?: string[] | null
+          auto_cleaning_minutes?: number | null
+          cleaning_until?: string | null
           created_at?: string
           description?: string | null
           floor?: number | null
@@ -892,6 +908,8 @@ export type Database = {
         }
         Update: {
           amenities?: string[] | null
+          auto_cleaning_minutes?: number | null
+          cleaning_until?: string | null
           created_at?: string
           description?: string | null
           floor?: number | null
@@ -1070,6 +1088,7 @@ export type Database = {
       is_manager: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
       is_viewer: { Args: never; Returns: boolean }
+      is_write_staff: { Args: never; Returns: boolean }
     }
     Enums: {
       booking_source:

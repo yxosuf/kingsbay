@@ -235,10 +235,17 @@ export default function BookingDetails() {
 
       if (bookingError) throw bookingError;
 
-      // Update room status to dirty (housekeeping)
+      // Update room: set housekeeping to cleaning with timer, release booking status
+      const cleaningMinutes = 90; // default, could fetch from property settings
+      const cleaningUntil = new Date(Date.now() + cleaningMinutes * 60 * 1000).toISOString();
       await supabase
         .from('rooms')
-        .update({ status: 'available', housekeeping_status: 'dirty', last_checkout_at: new Date().toISOString() })
+        .update({
+          status: 'available',
+          housekeeping_status: 'cleaning',
+          last_checkout_at: new Date().toISOString(),
+          cleaning_until: cleaningUntil,
+        } as any)
         .eq('id', booking.rooms?.id);
 
       // Update booking with checkout timestamp
