@@ -8,6 +8,7 @@ import { StatCard } from '@/components/front-desk/StatCard';
 import { SectionHeader } from '@/components/front-desk/SectionHeader';
 import { BookingCard, type FrontDeskBooking } from '@/components/front-desk/BookingCard';
 import { PaymentDialog } from '@/components/front-desk/PaymentDialog';
+import { PaymentStatusBadge } from '@/components/front-desk/PaymentStatusBadge';
 import { PropertyBadge } from '@/components/layout/PropertyBadge';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
@@ -61,7 +62,8 @@ export default function FrontDesk() {
         id, check_in, check_out, status, num_guests, total_amount,
         room_id, property_id, booking_source,
         guests (name, phone),
-        rooms (room_number, room_type)
+        rooms (room_number, room_type),
+        invoices (id, payment_status)
       `;
 
       let arrivalsQ = supabase
@@ -233,9 +235,12 @@ export default function FrontDesk() {
                     booking={b}
                     onActionComplete={fetchAll}
                     badge={
-                      <Badge variant="outline" className="text-xs">
-                        {b.booking_source.replace('_', '.')}
-                      </Badge>
+                      <>
+                        <Badge variant="outline" className="text-xs">
+                          {b.booking_source.replace('_', '.')}
+                        </Badge>
+                        <PaymentStatusBadge invoices={(b as any).invoices} />
+                      </>
                     }
                   />
                 ))
@@ -260,9 +265,12 @@ export default function FrontDesk() {
                     booking={b}
                     onActionComplete={fetchAll}
                     badge={
-                      <Badge variant="outline" className="text-xs flex items-center gap-1">
-                        <Clock className="h-3 w-3" /> Due Out
-                      </Badge>
+                      <>
+                        <Badge variant="outline" className="text-xs flex items-center gap-1">
+                          <Clock className="h-3 w-3" /> Due Out
+                        </Badge>
+                        <PaymentStatusBadge invoices={(b as any).invoices} />
+                      </>
                     }
                   />
                 ))
@@ -289,11 +297,14 @@ export default function FrontDesk() {
                       booking={b}
                       onActionComplete={fetchAll}
                       badge={
-                        <Badge variant="outline" className="text-xs">
-                          {nights === 0
-                            ? 'Due today'
-                            : `${nights} night${nights > 1 ? 's' : ''} left`}
-                        </Badge>
+                        <>
+                          <Badge variant="outline" className="text-xs">
+                            {nights === 0
+                              ? 'Due today'
+                              : `${nights} night${nights > 1 ? 's' : ''} left`}
+                          </Badge>
+                          <PaymentStatusBadge invoices={(b as any).invoices} />
+                        </>
                       }
                     />
                   );
