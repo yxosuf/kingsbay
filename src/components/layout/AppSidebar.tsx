@@ -24,9 +24,11 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { useState } from 'react';
 
 const mainNavItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
@@ -39,16 +41,16 @@ const mainNavItems = [
 
 const systemNavItems = [
   { title: 'Properties', url: '/properties', icon: Building2, adminOnly: true },
-  { title: 'Settings', url: '/settings', icon: Settings },
 ];
 
 export function AppSidebar() {
-  const { state, isMobile, setOpenMobile } = useSidebar();
+  const { state, isMobile, setOpenMobile, toggleSidebar } = useSidebar();
   const collapsed = state === 'collapsed';
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, profile, role, isAdmin } = useAuth();
   const { selectedProperty } = useProperty();
+  const [popoverOpen, setPopoverOpen] = useState(false);
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
@@ -64,7 +66,19 @@ export function AppSidebar() {
   };
 
   const handleSignOut = async () => {
+    setPopoverOpen(false);
     await signOut();
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
+  const handleSettingsClick = () => {
+    setPopoverOpen(false);
+    if (state === 'expanded' && !isMobile) {
+      toggleSidebar();
+    }
+    navigate('/settings');
     if (isMobile) {
       setOpenMobile(false);
     }
@@ -74,7 +88,6 @@ export function AppSidebar() {
     (item) => !item.adminOnly || isAdmin
   );
 
-  // Get user initials for avatar
   const initials = (profile?.full_name || 'S')
     .split(' ')
     .map(n => n[0])
@@ -109,7 +122,6 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      {/* Gradient divider */}
       <div className="h-px bg-gradient-to-r from-transparent via-sidebar-ring/30 to-transparent" />
 
       {/* Main Navigation */}
@@ -130,7 +142,6 @@ export function AppSidebar() {
                         active && "font-semibold"
                       )}
                     >
-                      {/* Active accent bar */}
                       {active && (
                         <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-sidebar-ring" />
                       )}
@@ -175,42 +186,69 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* Footer with User Info */}
+      {/* Footer with User Popover */}
       <SidebarFooter className="border-t border-sidebar-border p-3">
         <Separator className="mb-3 bg-sidebar-border" />
-        <div className="flex items-center gap-3 px-1">
-          {/* Avatar with initials */}
-          <div className={cn(
-            "shrink-0 flex items-center justify-center rounded-full bg-sidebar-accent text-sidebar-accent-foreground text-xs font-semibold",
-            collapsed && !isMobile ? "h-8 w-8" : "h-9 w-9"
-          )}>
-            {initials}
-          </div>
-          {(!collapsed || isMobile) && (
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">
+        <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+          <PopoverTrigger asChild>
+            <button
+              className={cn(
+                "flex items-center gap-3 px-1 w-full rounded-lg py-1.5 hover:bg-sidebar-accent transition-colors cursor-pointer",
+                collapsed && !isMobile && "justify-center px-0"
+              )}
+            >
+              <div className={cn(
+                "shrink-0 flex items-center justify-center rounded-full bg-sidebar-accent text-sidebar-accent-foreground text-xs font-semibold",
+                collapsed && !isMobile ? "h-8 w-8" : "h-9 w-9"
+              )}>
+                {initials}
+              </div>
+              {(!collapsed || isMobile) && (
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="text-sm font-medium text-sidebar-foreground truncate">
+                    {profile?.full_name || 'Staff Member'}
+                  </p>
+                  <p className="text-xs text-sidebar-foreground/60 capitalize">
+                    {role?.replace('_', ' ') || 'No role'}
+                  </p>
+                </div>
+              )}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            side={collapsed && !isMobile ? "right" : "top"}
+            align="start"
+            sideOffset={8}
+            className="w-56 p-0"
+          >
+            {/* User info */}
+            <div className="px-4 py-3 border-b">
+              <p className="text-sm font-medium truncate">
                 {profile?.full_name || 'Staff Member'}
               </p>
-              <p className="text-xs text-sidebar-foreground/60 capitalize">
+              <p className="text-xs text-muted-foreground capitalize">
                 {role?.replace('_', ' ') || 'No role'}
               </p>
             </div>
-          )}
-        </div>
-        <div className="mt-2">
-          <Button
-            variant="ghost"
-            size={(collapsed && !isMobile) ? 'icon' : 'sm'}
-            onClick={handleSignOut}
-            className={cn(
-              "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-150",
-              (!collapsed || isMobile) && "w-full justify-start"
-            )}
-          >
-            <LogOut className="h-4 w-4" />
-            {(!collapsed || isMobile) && <span className="ml-2">Sign Out</span>}
-          </Button>
-        </div>
+            {/* Actions */}
+            <div className="p-1">
+              <button
+                onClick={handleSettingsClick}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors text-left"
+              >
+                <Settings className="h-4 w-4 text-muted-foreground" />
+                Settings
+              </button>
+              <button
+                onClick={handleSignOut}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-destructive/10 text-destructive transition-colors text-left"
+              >
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </button>
+            </div>
+          </PopoverContent>
+        </Popover>
       </SidebarFooter>
     </Sidebar>
   );

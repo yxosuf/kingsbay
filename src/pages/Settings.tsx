@@ -507,7 +507,7 @@ export default function Settings() {
   return (
     <DashboardLayout title="Settings">
       <div className={cn(
-        "flex gap-6",
+        "flex gap-6 items-start",
         isMobile ? "flex-col" : "flex-row"
       )}>
         {/* Vertical Sidebar Navigation */}
@@ -537,7 +537,7 @@ export default function Settings() {
         ) : (
           // Desktop: vertical sidebar
           <div className="w-64 shrink-0">
-            <Card className="sticky top-4 overflow-hidden">
+            <Card className="sticky top-4 overflow-hidden max-h-[calc(100vh-8rem)] overflow-y-auto">
               <div className="p-4 border-b bg-muted/30">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Settings
