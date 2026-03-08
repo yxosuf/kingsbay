@@ -119,6 +119,36 @@ export default function NewBooking() {
     fetchExistingGuests();
   }, [checkIn, checkOut, selectedProperty]);
 
+  // Fetch rate plans
+  useEffect(() => {
+    if (!selectedProperty?.id) return;
+    getActiveRatePlans(selectedProperty.id).then(setRatePlans);
+  }, [selectedProperty?.id]);
+
+  // Calculate rate breakdown when inputs change
+  useEffect(() => {
+    if (!selectedProperty?.id || !checkIn || !checkOut || !roomId) {
+      setStayBreakdown(null);
+      return;
+    }
+    const room = rooms.find(r => r.id === roomId);
+    if (!room) return;
+
+    setCalculatingRate(true);
+    calculateStayTotal(
+      selectedProperty.id,
+      room.room_type,
+      room.price,
+      format(checkIn, 'yyyy-MM-dd'),
+      format(checkOut, 'yyyy-MM-dd'),
+      selectedRatePlanId || null,
+      numGuests,
+    ).then(breakdown => {
+      setStayBreakdown(breakdown);
+      setCalculatingRate(false);
+    }).catch(() => setCalculatingRate(false));
+  }, [selectedProperty?.id, checkIn, checkOut, roomId, selectedRatePlanId, numGuests, rooms]);
+
   // Fetch booked dates for calendar indicators
   useEffect(() => {
     const fetchBookedDates = async () => {
