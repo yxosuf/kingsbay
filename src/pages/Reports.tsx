@@ -5,13 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, ArrowRight } from 'lucide-react';
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import { PropertyBadge } from '@/components/layout/PropertyBadge';
 import { useProperty } from '@/hooks/useProperty';
 import { RevenueReport } from '@/components/reports/RevenueReport';
 import { OccupancyReport } from '@/components/reports/OccupancyReport';
 import { FinancialSummary } from '@/components/reports/FinancialSummary';
+import { cn } from '@/lib/utils';
 
 export default function Reports() {
   const { selectedProperty, showAllProperties } = useProperty();
@@ -19,6 +20,7 @@ export default function Reports() {
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
   });
+  const [activeQuickRange, setActiveQuickRange] = useState<string>('This Month');
 
   const propertyId = selectedProperty?.id || null;
   const propertyName = showAllProperties ? 'All Properties' : selectedProperty?.name || 'No property';
@@ -32,7 +34,7 @@ export default function Reports() {
 
   return (
     <DashboardLayout title="Reports">
-      <div className="space-y-6">
+      <div className="space-y-5">
         {/* Property Badge */}
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Viewing:</span>
@@ -41,24 +43,28 @@ export default function Reports() {
 
         {/* Date Range Selector */}
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="pt-5 pb-4">
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
               <div className="flex flex-wrap gap-2">
                 {quickDateRanges.map((range) => (
                   <Button
                     key={range.label}
-                    variant="outline"
+                    variant={activeQuickRange === range.label ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => setDateRange(range.value())}
+                    className="rounded-xl"
+                    onClick={() => {
+                      setDateRange(range.value());
+                      setActiveQuickRange(range.label);
+                    }}
                   >
                     {range.label}
                   </Button>
                 ))}
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-[140px]">
+                    <Button variant="outline" className="w-[140px] rounded-xl">
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {format(dateRange.from, 'PP')}
                     </Button>
@@ -67,15 +73,15 @@ export default function Reports() {
                     <Calendar
                       mode="single"
                       selected={dateRange.from}
-                      onSelect={(date) => date && setDateRange({ ...dateRange, from: date })}
+                      onSelect={(date) => { date && setDateRange({ ...dateRange, from: date }); setActiveQuickRange(''); }}
                       initialFocus
                     />
                   </PopoverContent>
                 </Popover>
-                <span className="self-center text-muted-foreground">to</span>
+                <ArrowRight className="h-4 w-4 text-muted-foreground" />
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-[140px]">
+                    <Button variant="outline" className="w-[140px] rounded-xl">
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {format(dateRange.to, 'PP')}
                     </Button>
@@ -84,7 +90,7 @@ export default function Reports() {
                     <Calendar
                       mode="single"
                       selected={dateRange.to}
-                      onSelect={(date) => date && setDateRange({ ...dateRange, to: date })}
+                      onSelect={(date) => { date && setDateRange({ ...dateRange, to: date }); setActiveQuickRange(''); }}
                       initialFocus
                     />
                   </PopoverContent>
@@ -96,37 +102,20 @@ export default function Reports() {
 
         {/* Report Tabs */}
         <Tabs defaultValue="revenue">
-          <TabsList>
-            <TabsTrigger value="revenue">Revenue</TabsTrigger>
-            <TabsTrigger value="occupancy">Occupancy</TabsTrigger>
-            <TabsTrigger value="financial">Financial</TabsTrigger>
+          <TabsList className="bg-muted/50 p-1 rounded-2xl">
+            <TabsTrigger value="revenue" className="rounded-xl">Revenue</TabsTrigger>
+            <TabsTrigger value="occupancy" className="rounded-xl">Occupancy</TabsTrigger>
+            <TabsTrigger value="financial" className="rounded-xl">Financial</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="revenue" className="mt-6">
-            <RevenueReport
-              dateRange={dateRange}
-              propertyId={propertyId}
-              showAllProperties={showAllProperties}
-              propertyName={propertyName}
-            />
+          <TabsContent value="revenue" className="mt-5">
+            <RevenueReport dateRange={dateRange} propertyId={propertyId} showAllProperties={showAllProperties} propertyName={propertyName} />
           </TabsContent>
-
-          <TabsContent value="occupancy" className="mt-6">
-            <OccupancyReport
-              dateRange={dateRange}
-              propertyId={propertyId}
-              showAllProperties={showAllProperties}
-              propertyName={propertyName}
-            />
+          <TabsContent value="occupancy" className="mt-5">
+            <OccupancyReport dateRange={dateRange} propertyId={propertyId} showAllProperties={showAllProperties} propertyName={propertyName} />
           </TabsContent>
-
-          <TabsContent value="financial" className="mt-6">
-            <FinancialSummary
-              dateRange={dateRange}
-              propertyId={propertyId}
-              showAllProperties={showAllProperties}
-              propertyName={propertyName}
-            />
+          <TabsContent value="financial" className="mt-5">
+            <FinancialSummary dateRange={dateRange} propertyId={propertyId} showAllProperties={showAllProperties} propertyName={propertyName} />
           </TabsContent>
         </Tabs>
       </div>
