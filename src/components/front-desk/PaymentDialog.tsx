@@ -200,6 +200,24 @@ export function PaymentDialog({ open, onOpenChange, booking, onSuccess }: Paymen
             )}
           </div>
 
+          {method === 'card' && payAmount > 0 && (
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg space-y-1">
+              <p className="text-sm font-medium text-amber-700">3% Card Bank Fee</p>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Payment amount</span>
+                <span>Rs. {payAmount.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Bank fee (3%)</span>
+                <span>Rs. {bankFee.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-sm font-medium pt-1 border-t border-amber-500/20">
+                <span>Total charged</span>
+                <span>Rs. {totalWithFee.toLocaleString()}</span>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <label className="text-sm font-medium">Payment Method</label>
             <Select value={method} onValueChange={setMethod}>
