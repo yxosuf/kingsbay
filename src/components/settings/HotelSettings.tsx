@@ -78,6 +78,26 @@ export function HotelSettings() {
     }
   };
 
+  const handleFetchLiveRate = async () => {
+    setFetchingLive(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fx-rate-update');
+      if (error) throw error;
+      if (data?.success && data?.rate) {
+        setFxRate(String(data.rate));
+        setFxUpdatedAt(new Date().toISOString());
+        toast.success(`Live rate fetched: 1 USD = LKR ${Number(data.rate).toFixed(2)}`);
+      } else {
+        throw new Error(data?.error || 'Failed to fetch live rate');
+      }
+    } catch (error: any) {
+      console.error('Error fetching live rate:', error);
+      toast.error('Failed to fetch live exchange rate');
+    } finally {
+      setFetchingLive(false);
+    }
+  };
+
   const handleSaveFx = async () => {
     if (!selectedProperty?.id) return;
     const rate = parseFloat(fxRate);
