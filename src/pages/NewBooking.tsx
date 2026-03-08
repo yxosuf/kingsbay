@@ -502,6 +502,14 @@ export default function NewBooking() {
         }
       }
 
+      // Track discount code usage
+      if (newBooking && stayBreakdown?.discountCodeId) {
+        await supabase.from('discount_code_usages').insert({
+          discount_code_id: stayBreakdown.discountCodeId,
+          booking_id: newBooking.id,
+        });
+      }
+
       toast.success('Booking created successfully!');
       // Send booking confirmation email (fire-and-forget)
       if (newBooking) {
