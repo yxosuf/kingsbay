@@ -16,7 +16,7 @@ import {
 import {
   User, BedDouble, Calendar, CreditCard, ArrowLeft, Printer, Globe, Plus,
   CalendarPlus, Link as LinkIcon, Mail, AlertTriangle, Phone, AtSign,
-  Hash, Users, Clock, DollarSign, ShoppingBag, MessageSquare, Sparkles,
+  Hash, Users, Clock, DollarSign, ShoppingBag, MessageSquare, Sparkles, Star,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
