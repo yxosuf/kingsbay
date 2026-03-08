@@ -52,15 +52,20 @@ export function PropertyBadge({ className }: PropertyBadgeProps) {
   const Icon = propertyTypeIcons[selectedProperty.property_type];
 
   return (
-    <Badge 
-      variant="secondary" 
+    <div 
       className={cn(
-        "gap-1.5 bg-primary/10 text-primary border-primary/20",
+        "inline-flex items-center gap-2 px-3 py-1.5 rounded-xl",
+        "bg-gradient-to-r from-primary/15 to-primary/5",
+        "border border-primary/25 shadow-sm",
+        "text-primary font-medium text-sm",
+        "transition-all duration-200 hover:shadow-md hover:border-primary/40",
         className
       )}
     >
-      <Icon className="h-3 w-3" />
+      <div className="flex items-center justify-center h-5 w-5 rounded-md bg-primary/15">
+        <Icon className="h-3 w-3" />
+      </div>
       <span className="max-w-[150px] truncate">{selectedProperty.name}</span>
-    </Badge>
+    </div>
   );
 }
