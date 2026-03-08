@@ -346,12 +346,15 @@ export default function NewBooking() {
     <DashboardLayout title="New Booking">
       <div className="max-w-4xl mx-auto">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Guest Information */}
+          {/* Step 1: Guest Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Guest Information
+              <CardTitle className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">1</div>
+                <div>
+                  <span className="text-lg">Guest Information</span>
+                  <p className="text-sm text-muted-foreground font-normal mt-0.5">Search existing or create a new guest</p>
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
