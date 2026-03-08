@@ -51,6 +51,7 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { signOut, profile, role, isAdmin } = useAuth();
   const { selectedProperty } = useProperty();
+  const { settings: userSettings } = useUserSettings();
   const [popoverOpen, setPopoverOpen] = useState(false);
 
   const isActive = (path: string) => {
