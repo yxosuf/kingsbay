@@ -12,6 +12,7 @@ import { useProperty } from '@/hooks/useProperty';
 import { RevenueReport } from '@/components/reports/RevenueReport';
 import { OccupancyReport } from '@/components/reports/OccupancyReport';
 import { FinancialSummary } from '@/components/reports/FinancialSummary';
+import { FeedbackReport } from '@/components/reports/FeedbackReport';
 import { cn } from '@/lib/utils';
 
 export default function Reports() {
