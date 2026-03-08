@@ -50,7 +50,7 @@ export default function Properties() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [saving, setSaving] = useState(false);
-
+  const [deletePropertyId, setDeletePropertyId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [propertyType, setPropertyType] = useState<Property['property_type']>('hotel');
   const [location, setLocation] = useState('');
