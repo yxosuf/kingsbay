@@ -63,7 +63,7 @@ export default function FrontDesk() {
         room_id, property_id, booking_source,
         guests (name, phone),
         rooms (room_number, room_type),
-        invoices (id, payment_status)
+        invoices (id, total_amount, payment_status)
       `;
 
       let arrivalsQ = supabase

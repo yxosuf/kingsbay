@@ -19,11 +19,13 @@ import {
   UserX,
   CalendarPlus,
   ArrowRightLeft,
+  Banknote,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { MoveRoomDialog } from './MoveRoomDialog';
+import { PaymentDialog } from './PaymentDialog';
 
 interface FrontDeskBooking {
   id: string;
@@ -37,6 +39,7 @@ interface FrontDeskBooking {
   booking_source: string;
   guests: { name: string; phone: string | null } | null;
   rooms: { room_number: string; room_type: string } | null;
+  invoices?: { id: string; total_amount: number; payment_status: string }[];
 }
 
 interface BookingCardProps {
@@ -51,11 +54,13 @@ export function BookingCard({ booking, onActionComplete, badge }: BookingCardPro
   const [cancelDialog, setCancelDialog] = useState(false);
   const [noShowDialog, setNoShowDialog] = useState(false);
   const [moveRoomOpen, setMoveRoomOpen] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [processing, setProcessing] = useState(false);
 
   const isArrival = booking.status === 'confirmed' || booking.status === 'pending';
   const isInHouse = booking.status === 'checked_in';
+  const hasUnpaidInvoice = booking.invoices?.some((inv) => inv.payment_status !== 'paid');
 
   const handleCheckIn = async () => {
     setProcessing(true);
@@ -259,6 +264,18 @@ export function BookingCard({ booking, onActionComplete, badge }: BookingCardPro
               </Button>
             </>
           )}
+
+          {canWrite && hasUnpaidInvoice && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive h-7 text-xs"
+              onClick={() => setPaymentOpen(true)}
+            >
+              <Banknote className="h-3.5 w-3.5 mr-1" />
+              Pay
+            </Button>
+          )}
         </div>
       </div>
 
@@ -323,6 +340,21 @@ export function BookingCard({ booking, onActionComplete, badge }: BookingCardPro
         booking={booking}
         onSuccess={onActionComplete}
       />
+
+      {/* Quick Payment Dialog */}
+      {booking.invoices && booking.invoices.length > 0 && (
+        <PaymentDialog
+          open={paymentOpen}
+          onOpenChange={setPaymentOpen}
+          booking={{
+            id: booking.id,
+            guests: booking.guests ? { name: booking.guests.name } : null,
+            rooms: booking.rooms ? { room_number: booking.rooms.room_number } : null,
+            invoices: booking.invoices,
+          }}
+          onSuccess={onActionComplete}
+        />
+      )}
     </>
   );
 }
