@@ -627,6 +627,11 @@ export default function BookingDetails() {
                   <span>Total</span>
                   <span>Rs. {grandTotal.toLocaleString()}</span>
                 </div>
+                {fxRate && (
+                  <p className="text-xs text-muted-foreground text-right">
+                    ~ ${Math.round(grandTotal / fxRate).toLocaleString()} USD
+                  </p>
+                )}
 
                 {/* OTA Net Revenue Summary */}
                 {booking.booking_source && booking.booking_source !== 'direct' && booking.ota_price !== null && (
