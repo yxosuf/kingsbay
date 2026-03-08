@@ -409,9 +409,19 @@ export default function Notifications() {
 
   const handleDeleteAll = async () => {
     if (!isAdmin) return;
-    const { error } = await supabase.from('notifications').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    let query = supabase.from('notifications').delete();
+    if (selectedProperty && !showAllProperties) {
+      query = query.eq('property_id', selectedProperty.id);
+    } else {
+      query = query.neq('id', '00000000-0000-0000-0000-000000000000');
+    }
+    const { error } = await query;
     if (error) { toast.error('Failed to delete'); return; }
-    setNotifications([]);
+    if (selectedProperty && !showAllProperties) {
+      setNotifications((prev) => prev.filter((n) => n.property_id !== selectedProperty.id));
+    } else {
+      setNotifications([]);
+    }
     toast.success('All notifications deleted');
   };
 

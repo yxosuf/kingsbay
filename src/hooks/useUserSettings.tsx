@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -63,10 +63,13 @@ export function UserSettingsProvider({ children }: { children: ReactNode }) {
     fetchSettings();
   }, [user?.id, setTheme]);
 
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+
   const saveSettings = useCallback(async (updates: Partial<UserSettings>) => {
     if (!user?.id) return;
 
-    const merged = { ...settings, ...updates };
+    const merged = { ...settingsRef.current, ...updates };
     setSettings(merged);
 
     if (updates.theme) {
@@ -77,7 +80,7 @@ export function UserSettingsProvider({ children }: { children: ReactNode }) {
       .from('user_settings')
       .upsert({
         user_id: user.id,
-        hidden_pages: merged.hidden_pages as any,
+        hidden_pages: merged.hidden_pages,
         default_landing_page: merged.default_landing_page,
         theme: merged.theme,
         updated_at: new Date().toISOString(),
@@ -87,7 +90,7 @@ export function UserSettingsProvider({ children }: { children: ReactNode }) {
       console.error('Error saving settings:', error);
       toast.error('Failed to save settings');
     }
-  }, [user?.id, settings, setTheme]);
+  }, [user?.id, setTheme]);
 
   return (
     <UserSettingsContext.Provider value={{ settings, loading, saveSettings }}>
