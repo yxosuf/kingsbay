@@ -98,6 +98,25 @@ export default function Properties() {
     } catch (error: any) { logError('Error saving property', error); toast.error(getSafeErrorMessage(error)); } finally { setSaving(false); }
   };
 
+  const openDeleteDialog = async (propertyId: string) => {
+    setDeletePropertyId(propertyId);
+    setLoadingCounts(true);
+    setDeleteCounts(null);
+    try {
+      const [roomsRes, bookingsRes, guestsRes] = await Promise.all([
+        supabase.from('rooms').select('id', { count: 'exact', head: true }).eq('property_id', propertyId),
+        supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('property_id', propertyId),
+        supabase.from('guests').select('id', { count: 'exact', head: true }).eq('property_id', propertyId),
+      ]);
+      setDeleteCounts({
+        rooms: roomsRes.count ?? 0,
+        bookings: bookingsRes.count ?? 0,
+        guests: guestsRes.count ?? 0,
+      });
+    } catch { setDeleteCounts({ rooms: 0, bookings: 0, guests: 0 }); }
+    setLoadingCounts(false);
+  };
+
   const handleDelete = async (propertyId: string) => {
     try {
       const { error } = await supabase.from('properties').delete().eq('id', propertyId);
@@ -105,6 +124,7 @@ export default function Properties() {
       toast.success('Property deleted'); fetchProperties(); refetchProperties();
     } catch (error: any) { logError('Error deleting property', error); toast.error(getSafeErrorMessage(error)); }
     setDeletePropertyId(null);
+    setDeleteCounts(null);
   };
 
   const toggleStatus = async (property: Property) => {
