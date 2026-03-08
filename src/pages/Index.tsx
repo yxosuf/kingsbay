@@ -223,13 +223,23 @@ export default function Dashboard() {
         const rate = (data as any)?.fx_usd_lkr_rate;
         const updatedAt = (data as any)?.fx_updated_at;
         if (rate) {
-          setExchangeRate({ usdToLkr: Number(rate), updatedAt: updatedAt || null });
+          const currentRate = Number(rate);
+          const prevRate = exchangeRate?.usdToLkr ?? null;
+          const isStale = updatedAt 
+            ? (Date.now() - new Date(updatedAt).getTime()) > 2 * 60 * 60 * 1000 
+            : true;
+          setExchangeRate({ 
+            usdToLkr: currentRate, 
+            updatedAt: updatedAt || null,
+            previousRate: prevRate !== currentRate ? prevRate : exchangeRate?.previousRate ?? null,
+            isStale,
+          });
           return;
         }
       }
-      setExchangeRate({ usdToLkr: 309.06, updatedAt: null });
+      setExchangeRate({ usdToLkr: 309.06, updatedAt: null, previousRate: null, isStale: false });
     } catch {
-      setExchangeRate({ usdToLkr: 309.06, updatedAt: null });
+      setExchangeRate({ usdToLkr: 309.06, updatedAt: null, previousRate: null, isStale: false });
     }
   };
 
