@@ -28,11 +28,13 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <PropertyProvider>
-        <TooltipProvider>
-          <Sonner />
-          <BrowserRouter>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <AuthProvider>
+        <PropertyProvider>
+          <UserSettingsProvider>
+            <TooltipProvider>
+              <Sonner />
+              <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
