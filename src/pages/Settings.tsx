@@ -314,6 +314,8 @@ export default function Settings() {
         return isAdmin ? <DangerZoneSettings /> : null;
       case 'system-health':
         return isAdmin ? <SystemHealthSettings /> : null;
+      case 'other':
+        return <OtherSettings />;
       default:
         return renderAccessRoles();
     }

@@ -55,10 +55,12 @@ const App = () => (
               <Route path="/notifications" element={<Notifications />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </PropertyProvider>
-    </AuthProvider>
+              </BrowserRouter>
+            </TooltipProvider>
+          </UserSettingsProvider>
+        </PropertyProvider>
+      </AuthProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

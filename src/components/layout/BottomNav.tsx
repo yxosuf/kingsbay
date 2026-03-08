@@ -63,7 +63,7 @@ export function BottomNav() {
   };
 
   const filteredMoreItems = moreMenuItems.filter(
-    (item) => !item.adminOnly || isAdmin
+    (item) => (!item.adminOnly || isAdmin) && !userSettings.hidden_pages.includes(item.url)
   );
 
   return (

@@ -131,7 +131,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainNavItems.map((item) => {
+              {mainNavItems.filter(item => !userSettings.hidden_pages.includes(item.url)).map((item) => {
                 const active = isActive(item.url);
                 return (
                   <SidebarMenuItem key={item.title}>
