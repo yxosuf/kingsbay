@@ -13,17 +13,28 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ArrowLeft, User, Calendar, Receipt, Edit, MapPin, Phone, Mail, CreditCard, Star, Upload, FileImage, Loader2 } from 'lucide-react';
+import { ArrowLeft, User, Calendar, Receipt, Edit, MapPin, Phone, Mail, CreditCard, Star, Upload, FileImage, Loader2, Trash2, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
 import { EditGuestDialog } from '@/components/guest/EditGuestDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useGuestFeedback } from '@/hooks/useGuestFeedback';
 import { FeedbackSummary, FeedbackCard } from '@/components/feedback/FeedbackDisplay';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
-interface GuestDetails {
+interface GuestDetailsData {
   id: string;
   name: string;
   phone: string | null;
@@ -64,18 +75,46 @@ interface GuestService {
   bookings: { check_in: string; rooms: { room_number: string } | null } | null;
 }
 
+const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+
+async function invokePassportFunction(functionName: string, body: any, isFormData = false) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error('Not authenticated');
+
+  const url = `https://${PROJECT_ID}.supabase.co/functions/v1/${functionName}`;
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${session.access_token}`,
+  };
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: isFormData ? body : JSON.stringify(body),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
 export default function GuestDetails() {
-  const { canWrite } = useAuth();
+  const { canWrite, isAdmin } = useAuth();
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [guest, setGuest] = useState<GuestDetails | null>(null);
+  const [guest, setGuest] = useState<GuestDetailsData | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [allServices, setAllServices] = useState<GuestService[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [deletingPhoto, setDeletingPhoto] = useState(false);
   const [passportPhotoUrl, setPassportPhotoUrl] = useState<string | null>(null);
+  const [photoDeleted, setPhotoDeleted] = useState(false);
+  const [photoPurgeDate, setPhotoPurgeDate] = useState<string | null>(null);
   const { feedback: guestFeedback, averageRating, loading: feedbackLoading } = useGuestFeedback({
     guestId: id,
   });
@@ -103,14 +142,27 @@ export default function GuestDetails() {
 
       if (error) throw error;
       setGuest(data);
-      // Load passport photo URL if exists
+
+      // Fetch passport photo via secure edge function
       if (data?.passport_photo_path) {
-        const { data: urlData } = await supabase.storage
-          .from('guest-documents')
-          .createSignedUrl(data.passport_photo_path, 3600);
-        if (urlData?.signedUrl) setPassportPhotoUrl(urlData.signedUrl);
+        try {
+          const result = await invokePassportFunction('passport-view', { guest_id: id });
+          if (result.deleted) {
+            setPhotoDeleted(true);
+            setPhotoPurgeDate(result.purge_date);
+            setPassportPhotoUrl(null);
+          } else {
+            setPassportPhotoUrl(result.signed_url);
+            setPhotoDeleted(false);
+            setPhotoPurgeDate(null);
+          }
+        } catch {
+          setPassportPhotoUrl(null);
+        }
       } else {
         setPassportPhotoUrl(null);
+        setPhotoDeleted(false);
+        setPhotoPurgeDate(null);
       }
     } catch (error) {
       logError('Error fetching guest', error);
@@ -167,41 +219,64 @@ export default function GuestDetails() {
       console.error('Error fetching services:', error);
     }
   };
+
   const handlePassportUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !guest) return;
 
+    // Client-side pre-check (server validates too)
     if (file.size > 5 * 1024 * 1024) {
       toast.error('File too large. Max 5MB.');
       return;
     }
 
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Only JPEG and PNG files are allowed.');
+      return;
+    }
+
     setUploadingPhoto(true);
     try {
-      const ext = file.name.split('.').pop();
-      const filePath = `${guest.property_id || 'global'}/${guest.id}/passport.${ext}`;
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('guest_id', guest.id);
+      if (guest.property_id) formData.append('property_id', guest.property_id);
 
-      const { error: uploadError } = await supabase.storage
-        .from('guest-documents')
-        .upload(filePath, file, { upsert: true });
-      if (uploadError) throw uploadError;
+      const result = await invokePassportFunction('passport-upload', formData, true);
 
-      const { error: updateError } = await supabase
-        .from('guests')
-        .update({
-          passport_photo_path: filePath,
-          passport_photo_uploaded_at: new Date().toISOString(),
-        } as any)
-        .eq('id', guest.id);
-      if (updateError) throw updateError;
-
-      toast.success('Passport photo uploaded');
+      if (result.signed_url) {
+        setPassportPhotoUrl(result.signed_url);
+        setPhotoDeleted(false);
+        setPhotoPurgeDate(null);
+      }
+      toast.success('Passport photo uploaded securely');
       fetchGuestDetails();
     } catch (error: any) {
       logError('Error uploading passport photo', error);
-      toast.error(getSafeErrorMessage(error));
+      toast.error(error.message || 'Failed to upload passport photo');
     } finally {
       setUploadingPhoto(false);
+      // Reset file input
+      e.target.value = '';
+    }
+  };
+
+  const handlePassportDelete = async () => {
+    if (!guest) return;
+    setDeletingPhoto(true);
+    try {
+      const result = await invokePassportFunction('passport-delete', { guest_id: guest.id });
+      setPassportPhotoUrl(null);
+      setPhotoDeleted(true);
+      setPhotoPurgeDate(result.purge_date);
+      toast.success('Passport photo marked for deletion. Will be purged after 3 months.');
+      fetchGuestDetails();
+    } catch (error: any) {
+      logError('Error deleting passport photo', error);
+      toast.error(error.message || 'Failed to delete passport photo');
+    } finally {
+      setDeletingPhoto(false);
     }
   };
 
@@ -225,7 +300,6 @@ export default function GuestDetails() {
   const totalServicesValue = allServices.reduce((sum, s) => sum + Number(s.total_price), 0);
   const totalBookingsValue = bookings.reduce((sum, b) => sum + Number(b.total_amount), 0);
 
-  // Group services by category for summary
   const servicesByCategory = allServices.reduce((acc, service) => {
     const category = service.services?.category || 'other';
     if (!acc[category]) {
@@ -370,7 +444,19 @@ export default function GuestDetails() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col sm:flex-row gap-4 items-start">
-              {passportPhotoUrl ? (
+              {photoDeleted ? (
+                <div className="w-48 h-32 rounded-lg border-2 border-dashed border-destructive/30 flex items-center justify-center bg-destructive/5">
+                  <div className="text-center text-destructive">
+                    <AlertTriangle className="h-8 w-8 mx-auto mb-1 opacity-60" />
+                    <p className="text-xs font-medium">Photo Deleted</p>
+                    {photoPurgeDate && (
+                      <p className="text-[10px] mt-1 text-muted-foreground">
+                        Purges {formatDistanceToNow(new Date(photoPurgeDate), { addSuffix: true })}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : passportPhotoUrl ? (
                 <div className="relative group">
                   <img
                     src={passportPhotoUrl}
@@ -404,29 +490,66 @@ export default function GuestDetails() {
                   </div>
                 </div>
 
-                {canWrite && (
-                  <div>
-                    <label htmlFor="passport-upload">
-                      <Button variant="outline" size="sm" asChild disabled={uploadingPhoto}>
-                        <span className="cursor-pointer">
-                          {uploadingPhoto ? (
+                <div className="flex gap-2">
+                  {canWrite && !photoDeleted && (
+                    <div>
+                      <label htmlFor="passport-upload">
+                        <Button variant="outline" size="sm" asChild disabled={uploadingPhoto}>
+                          <span className="cursor-pointer">
+                            {uploadingPhoto ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Upload className="h-4 w-4 mr-2" />
+                            )}
+                            {passportPhotoUrl ? 'Replace Photo' : 'Upload Photo'}
+                          </span>
+                        </Button>
+                      </label>
+                      <input
+                        id="passport-upload"
+                        type="file"
+                        accept="image/jpeg,image/png"
+                        className="hidden"
+                        onChange={handlePassportUpload}
+                      />
+                    </div>
+                  )}
+
+                  {isAdmin && passportPhotoUrl && !photoDeleted && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm" disabled={deletingPhoto}>
+                          {deletingPhoto ? (
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                           ) : (
-                            <Upload className="h-4 w-4 mr-2" />
+                            <Trash2 className="h-4 w-4 mr-2" />
                           )}
-                          {passportPhotoUrl ? 'Replace Photo' : 'Upload Photo'}
-                        </span>
-                      </Button>
-                    </label>
-                    <input
-                      id="passport-upload"
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handlePassportUpload}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">Max 5MB. Stored securely.</p>
-                  </div>
+                          Delete Photo
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Passport Photo</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            The photo will be soft-deleted and retained for 3 months before permanent purge. 
+                            During this period, the photo will not be visible but can be recovered by support if needed.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handlePassportDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
+
+                {!photoDeleted && (
+                  <p className="text-xs text-muted-foreground">
+                    Max 5MB. JPEG/PNG only. Stored securely via encrypted storage.
+                  </p>
                 )}
               </div>
             </div>
@@ -561,7 +684,6 @@ export default function GuestDetails() {
           </TabsContent>
 
           <TabsContent value="services" className="mt-6 space-y-6">
-            {/* Services Summary by Category */}
             {Object.keys(servicesByCategory).length > 0 && (
               <Card>
                 <CardHeader>
@@ -583,7 +705,6 @@ export default function GuestDetails() {
               </Card>
             )}
 
-            {/* All Services Table */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

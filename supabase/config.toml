@@ -23,3 +23,15 @@ verify_jwt = false
 
 [functions.guest-email]
 verify_jwt = false
+
+[functions.passport-upload]
+verify_jwt = false
+
+[functions.passport-view]
+verify_jwt = false
+
+[functions.passport-delete]
+verify_jwt = false
+
+[functions.passport-purge]
+verify_jwt = false
