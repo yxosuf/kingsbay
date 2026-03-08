@@ -508,6 +508,27 @@ export default function GuestDetails() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="feedback" className="mt-6 space-y-4">
+            <FeedbackSummary feedback={guestFeedback} averageRating={averageRating} />
+            {guestFeedback.length === 0 ? (
+              <Card>
+                <CardContent className="py-10 text-center">
+                  <Star className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">No feedback recorded yet</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">
+                    Feedback can be added from the booking details page after checkout
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {guestFeedback.map((fb) => (
+                  <FeedbackCard key={fb.id} feedback={fb} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
       </div>
 
