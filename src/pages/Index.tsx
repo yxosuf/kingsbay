@@ -304,12 +304,22 @@ export default function Dashboard() {
     },
   ];
 
+  const greeting = (() => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good Morning';
+    if (h < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  })();
+
   return (
     <DashboardLayout title="Dashboard">
       <div className="space-y-5 sm:space-y-6">
-        {/* Property Badge */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Viewing:</span>
+        {/* Header with greeting */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground">{greeting}</h2>
+            <p className="text-sm text-muted-foreground mt-0.5">Here's what's happening today</p>
+          </div>
           <PropertyBadge />
         </div>
 
