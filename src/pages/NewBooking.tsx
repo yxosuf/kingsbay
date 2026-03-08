@@ -653,6 +653,8 @@ export default function NewBooking() {
                         selected={checkIn}
                         onSelect={setCheckIn}
                         disabled={(date) => date < startOfDay(new Date())}
+                        modifiers={{ booked: (date) => bookedDateSet.has(toDateString(date)) }}
+                        modifiersClassNames={{ booked: 'calendar-booked-dot' }}
                         initialFocus
                         className="pointer-events-auto"
                       />
