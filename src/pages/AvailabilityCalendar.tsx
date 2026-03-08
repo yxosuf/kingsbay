@@ -359,11 +359,11 @@ export default function AvailabilityCalendar() {
                       return (
                         <>
                           {/* Room label */}
-                          <div key={`label-${room.id}`} className="p-2 sticky left-0 bg-card z-10 border-r border-b flex items-center group">
+                          <div key={`label-${room.id}`} className="p-1 sm:p-2 sticky left-0 bg-card z-10 border-r border-b flex items-center group">
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <div className="truncate">
-                                  <span className="font-medium text-sm">{room.room_number}</span>
+                                  <span className="font-medium text-xs sm:text-sm">{room.room_number}</span>
                                   <span className="text-[10px] text-muted-foreground ml-1.5 hidden sm:inline">{room.room_type}</span>
                                 </div>
                               </TooltipTrigger>
