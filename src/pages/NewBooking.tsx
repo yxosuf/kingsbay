@@ -454,8 +454,16 @@ export default function NewBooking() {
         }
       }
 
-      // Update room status to reserved
-      await supabase.from('rooms').update({ status: 'reserved' }).eq('id', roomId);
+      // Update room status
+      if (checkInImmediately) {
+        // Walk-in immediate check-in: set room to occupied
+        await supabase.from('rooms').update({ 
+          status: 'occupied',
+          housekeeping_status: 'occupied' as any,
+        }).eq('id', roomId);
+      } else {
+        await supabase.from('rooms').update({ status: 'reserved' }).eq('id', roomId);
+      }
 
       // Airbnb auto-pay: create invoice + payment transaction + mark as paid
       if (bookingSource === 'airbnb' && newBooking && selectedProperty?.id) {
