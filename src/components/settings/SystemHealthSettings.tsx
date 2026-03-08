@@ -15,6 +15,8 @@ import {
   Layers,
   Building2,
   DollarSign,
+  BookOpen,
+  Receipt,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
@@ -272,6 +274,87 @@ export function SystemHealthSettings() {
         status: 'fail',
         detail: 'Cannot connect to database',
         icon: <Database className="h-4 w-4" />,
+      });
+    }
+
+    // 7. Ledger Balance Check (debits = credits per entry)
+    try {
+      const { data: ledgerLines } = await supabase
+        .from('ledger_lines')
+        .select('entry_id, debit, credit');
+
+      if (ledgerLines && ledgerLines.length > 0) {
+        const entryTotals: Record<string, { debit: number; credit: number }> = {};
+        for (const line of ledgerLines) {
+          const eid = line.entry_id;
+          if (!entryTotals[eid]) entryTotals[eid] = { debit: 0, credit: 0 };
+          entryTotals[eid].debit += Number(line.debit);
+          entryTotals[eid].credit += Number(line.credit);
+        }
+        const imbalanced = Object.values(entryTotals).filter(
+          (t) => Math.abs(t.debit - t.credit) > 0.01
+        );
+
+        results.push({
+          name: 'Ledger Balance',
+          description: 'All journal entries balanced (debits = credits)',
+          status: imbalanced.length === 0 ? 'pass' : 'fail',
+          detail:
+            imbalanced.length === 0
+              ? `${Object.keys(entryTotals).length} entries, all balanced`
+              : `${imbalanced.length} imbalanced entries detected!`,
+          icon: <BookOpen className="h-4 w-4" />,
+        });
+      } else {
+        results.push({
+          name: 'Ledger Balance',
+          description: 'All journal entries balanced (debits = credits)',
+          status: 'pass',
+          detail: 'No ledger entries yet',
+          icon: <BookOpen className="h-4 w-4" />,
+        });
+      }
+    } catch {
+      results.push({
+        name: 'Ledger Balance',
+        description: 'All journal entries balanced (debits = credits)',
+        status: 'fail',
+        detail: 'Could not query ledger',
+        icon: <BookOpen className="h-4 w-4" />,
+      });
+    }
+
+    // 8. Transaction Coverage Check
+    try {
+      const { count: paymentCount } = await supabase
+        .from('payments')
+        .select('id', { count: 'exact', head: true });
+
+      const { count: txnCount } = await supabase
+        .from('booking_transactions')
+        .select('id', { count: 'exact', head: true })
+        .eq('transaction_type', 'payment');
+
+      const payments = paymentCount ?? 0;
+      const txns = txnCount ?? 0;
+
+      results.push({
+        name: 'Transaction Coverage',
+        description: 'All payments have corresponding transaction records',
+        status: payments <= txns ? 'pass' : 'warn',
+        detail:
+          payments <= txns
+            ? `${payments} payments, ${txns} transaction records`
+            : `${payments} payments but only ${txns} transaction records (legacy payments exist)`,
+        icon: <Receipt className="h-4 w-4" />,
+      });
+    } catch {
+      results.push({
+        name: 'Transaction Coverage',
+        description: 'All payments have corresponding transaction records',
+        status: 'fail',
+        detail: 'Could not query transactions',
+        icon: <Receipt className="h-4 w-4" />,
       });
     }
 

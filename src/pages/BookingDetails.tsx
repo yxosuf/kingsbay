@@ -16,6 +16,10 @@ import {
 import { User, BedDouble, Calendar, CreditCard, ArrowLeft, Printer, Globe, Plus, CalendarPlus, Link as LinkIcon, Mail, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useFxRate } from '@/hooks/useFxRate';
+import { CurrencyDisplay } from '@/components/ui/CurrencyDisplay';
+import { TransactionsTab } from '@/components/booking/TransactionsTab';
+import { postBookingConfirmed, postCommission } from '@/lib/ledgerUtils';
 import { toast } from 'sonner';
 import { format, differenceInDays } from 'date-fns';
 import { ExtendStayDialog } from '@/components/booking/ExtendStayDialog';
@@ -89,8 +93,8 @@ export default function BookingDetails() {
   const [linkedBookings, setLinkedBookings] = useState<{id: string; check_in: string; check_out: string; rooms: {room_number: string} | null}[]>([]);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState<string | null>(null);
-  const [fxRate, setFxRate] = useState<number | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
+  const { fxRate } = useFxRate(booking?.property_id);
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -108,20 +112,7 @@ export default function BookingDetails() {
     }
   }, [id]);
 
-  // Fetch FX rate for USD display
-  useEffect(() => {
-    if (booking?.property_id) {
-      supabase
-        .from('property_inventory_settings')
-        .select('fx_usd_lkr_rate')
-        .eq('property_id', booking.property_id)
-        .maybeSingle()
-        .then(({ data }) => {
-          const rate = (data as any)?.fx_usd_lkr_rate;
-          if (rate) setFxRate(Number(rate));
-        });
-    }
-  }, [booking?.property_id]);
+  // FX rate is now handled by useFxRate hook above
 
   const fetchBookingDetails = async () => {
     try {
@@ -270,6 +261,27 @@ export default function BookingDetails() {
         .from('bookings')
         .update({ checked_out_at: new Date().toISOString() })
         .eq('id', booking.id);
+
+      // Post ledger entries for revenue recognition
+      if (booking.property_id) {
+        await postBookingConfirmed(
+          booking.id,
+          roomCharges,
+          serviceCharges,
+          taxAmount,
+          booking.property_id,
+          user?.id
+        );
+        // Post commission if OTA booking
+        if (booking.commission_amount && Number(booking.commission_amount) > 0) {
+          await postCommission(
+            booking.id,
+            Number(booking.commission_amount),
+            booking.property_id,
+            user?.id
+          );
+        }
+      }
 
       setInvoiceNumber(invoice.invoice_number);
       toast.success('Guest checked out successfully. Invoice created.');
@@ -576,6 +588,14 @@ export default function BookingDetails() {
                 </CardContent>
               </Card>
             )}
+
+
+            {/* Transactions */}
+            <TransactionsTab
+              bookingId={booking.id}
+              totalAmount={grandTotal}
+              fxRate={fxRate}
+            />
           </div>
 
           {/* Summary */}
@@ -623,15 +643,10 @@ export default function BookingDetails() {
                   <span>Rs. {taxAmount.toLocaleString()}</span>
                 </div>
                 <Separator />
-                <div className="flex justify-between font-bold text-lg">
+                <div className="flex justify-between items-start font-bold text-lg">
                   <span>Total</span>
-                  <span>Rs. {grandTotal.toLocaleString()}</span>
+                  <CurrencyDisplay amount={grandTotal} fxRate={fxRate} size="lg" className="text-right" />
                 </div>
-                {fxRate && (
-                  <p className="text-xs text-muted-foreground text-right">
-                    ~ ${Math.round(grandTotal / fxRate).toLocaleString()} USD
-                  </p>
-                )}
 
                 {/* OTA Net Revenue Summary */}
                 {booking.booking_source && booking.booking_source !== 'direct' && booking.ota_price !== null && (

@@ -17,7 +17,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { CurrencyDisplay } from '@/components/ui/CurrencyDisplay';
 import { supabase } from '@/integrations/supabase/client';
+import { useProperty } from '@/hooks/useProperty';
+import { useFxRate } from '@/hooks/useFxRate';
+import { useAuth } from '@/hooks/useAuth';
+import { postPayment } from '@/lib/ledgerUtils';
 import { toast } from 'sonner';
 
 interface PaymentDialogProps {
@@ -33,13 +38,17 @@ interface PaymentDialogProps {
 }
 
 export function PaymentDialog({ open, onOpenChange, booking, onSuccess }: PaymentDialogProps) {
-  const [amount, setAmount] = useState('');
-  const [method, setMethod] = useState<string>('cash');
-  const [notes, setNotes] = useState('');
-  const [saving, setSaving] = useState(false);
+  const { selectedProperty } = useProperty();
+  const { fxRate } = useFxRate(selectedProperty?.id);
+  const { user } = useAuth();
 
   const unpaidInvoices = booking.invoices?.filter((inv) => inv.payment_status !== 'paid') || [];
   const totalUnpaid = unpaidInvoices.reduce((sum, inv) => sum + Number(inv.total_amount), 0);
+
+  const [amount, setAmount] = useState(totalUnpaid > 0 ? totalUnpaid.toString() : '');
+  const [method, setMethod] = useState<string>('cash');
+  const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const handleSubmit = async () => {
     const payAmount = parseFloat(amount);
@@ -54,18 +63,42 @@ export function PaymentDialog({ open, onOpenChange, booking, onSuccess }: Paymen
 
     setSaving(true);
     try {
-      // Apply payment to the first unpaid invoice
       const invoice = unpaidInvoices[0];
 
+      // 1. Insert payment record
       const { error: payErr } = await supabase.from('payments').insert({
         invoice_id: invoice.id,
         amount: payAmount,
         method: method as any,
         notes: notes.trim() || null,
+        property_id: selectedProperty?.id || null,
+        received_by: user?.id || null,
       });
       if (payErr) throw payErr;
 
-      // Calculate total paid on this invoice (existing payments + this one)
+      // 2. Create booking transaction
+      const { data: txn, error: txnErr } = await supabase
+        .from('booking_transactions')
+        .insert({
+          booking_id: booking.id,
+          transaction_type: 'payment' as any,
+          amount: payAmount,
+          currency: 'LKR',
+          method: method as any,
+          notes: notes.trim() || null,
+          created_by: user?.id || null,
+          property_id: selectedProperty?.id || null,
+        })
+        .select('id')
+        .single();
+      if (txnErr) throw txnErr;
+
+      // 3. Post ledger entry
+      if (txn && selectedProperty?.id) {
+        await postPayment(txn.id, payAmount, method, selectedProperty.id, booking.id, user?.id);
+      }
+
+      // 4. Update invoice payment status
       const { data: existingPayments } = await supabase
         .from('payments')
         .select('amount')
@@ -106,10 +139,17 @@ export function PaymentDialog({ open, onOpenChange, booking, onSuccess }: Paymen
         </DialogHeader>
 
         <div className="py-4 space-y-4">
-          <div className="p-3 bg-muted rounded-lg text-sm">
-            <p className="text-muted-foreground">Outstanding Balance</p>
-            <p className="text-lg font-bold text-destructive">LKR {totalUnpaid.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground">{unpaidInvoices.length} unpaid invoice{unpaidInvoices.length > 1 ? 's' : ''}</p>
+          <div className="p-3 bg-muted rounded-lg">
+            <p className="text-xs text-muted-foreground mb-1">Outstanding Balance</p>
+            <CurrencyDisplay
+              amount={totalUnpaid}
+              fxRate={fxRate}
+              size="lg"
+              primaryClassName="text-destructive"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              {unpaidInvoices.length} unpaid invoice{unpaidInvoices.length > 1 ? 's' : ''}
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -121,6 +161,11 @@ export function PaymentDialog({ open, onOpenChange, booking, onSuccess }: Paymen
               onChange={(e) => setAmount(e.target.value)}
               min={0}
             />
+            {amount && fxRate && parseFloat(amount) > 0 && (
+              <p className="text-xs text-muted-foreground">
+                ~${Math.round(parseFloat(amount) / fxRate).toLocaleString()} USD
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
