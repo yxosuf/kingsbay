@@ -27,8 +27,10 @@ interface TransactionsTabProps {
   fxRate: number | null;
 }
 
-export function TransactionsTab({ bookingId, totalAmount, fxRate }: TransactionsTabProps) {
+export function TransactionsTab({ bookingId, propertyId, totalAmount, fxRate }: TransactionsTabProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showRefundDialog, setShowRefundDialog] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
