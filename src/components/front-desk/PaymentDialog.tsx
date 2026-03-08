@@ -22,7 +22,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { useFxRate } from '@/hooks/useFxRate';
 import { useAuth } from '@/hooks/useAuth';
-import { postPayment } from '@/lib/ledgerUtils';
+import { postPayment, postBankFee } from '@/lib/ledgerUtils';
 import { toast } from 'sonner';
 
 interface PaymentDialogProps {
