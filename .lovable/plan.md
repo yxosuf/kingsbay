@@ -1,426 +1,467 @@
-# Mobile-First PWA Plan (Merged & Optimized)
+Villa PMS — Full Master Plan Implementation 
 
-## Goal
-
-Transform the PMS into a **mobile-first Progressive Web App** that:
-
-- installs like a mobile app
-- uses **bottom navigation instead of sidebar**
-- converts tables into **mobile cards**
-- keeps **desktop UI unchanged**
-- optimizes workflows for **front desk staff**
+This plan merges Lovable’s current plan with **all missing requirements** from our past chats.  
+**Rule:** No flow breaks. Every change must stay consistent across **Bookings, Rooms, Availability Calendar, Dashboard, Guests (in Settings), Reports**, and **Multi-property**.
 
 ---
 
-# 1️⃣ PWA Setup
+## Current State Assessment
 
-Install:
+### Already Implemented (Confirmed)
 
-```
-npm install vite-plugin-pwa
-```
+- Booking lifecycle UI: tabs + quick actions + timestamps + timeline + admin override
+- Guests moved under **Settings** + `/guests` redirect exists
+- Viewer role exists in UI (`canWrite`) + buttons hidden
+- Danger Zone “Clear Property Data” exists with password confirmation (per property)
+- Hold-timeout-release edge function exists (deployed) but must be verified end-to-end
+- Booking form has country/nationality UI partially
+- Settings sidebar + tab aliases exist
+- Checkout/checkin time settings exist (11:00 default)
+- Housekeeping_status exists (dirty/cleaning/clean/inspected)
+- Some date logic uses `[check_in, check_out)` but **your calendar still shows wrong blocking**, so we treat it as **NOT fully fixed**
 
-Configure in `vite.config.ts`:
+### Critical Security Issue (Must Fix)
 
-```
-VitePWA({
-  registerType: "autoUpdate",
-  manifest: {
-    name: "King's Bay PMS",
-    short_name: "KingsBay",
-    display: "standalone",
-    theme_color: "#0f172a",
-    background_color: "#ffffff",
-    icons: [
-      { src: "/pwa-192.png", sizes: "192x192", type: "image/png" },
-      { src: "/pwa-512.png", sizes: "512x512", type: "image/png" }
-    ]
-  },
-  workbox: {
-    navigateFallbackDenylist: [/^\/~oauth/]
-  }
-})
-```
-
-### Add to `index.html`
-
-```
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0f172a">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="manifest" href="/manifest.json">
-```
-
-What is this?
-
-### Create PWA assets
-
-```
-public/
-manifest.json
-pwa-192.png
-pwa-512.png
-```
-
-Result:
-
-Users can **Add to Home Screen** and open your PMS like a native app.
+**Viewer role RLS is broken**: if DB policies allow write using `is_staff()` and viewer is considered staff, viewer can write via API. Must be fixed in Phase 1.
 
 ---
 
-# 2️⃣ Mobile Navigation (Bottom Tab Bar)
+# Global Rules (Non-Negotiable)
 
-On mobile the **sidebar disappears** and is replaced with a bottom tab bar.
-
-Create:
-
-```
-src/components/layout/BottomNav.tsx
-```
-
-### Navigation Structure
-
-```
-Dashboard
-Availability
-Bookings
-New Booking (+)
-More
-```
-
-### Layout
-
-```
-┌────────────────────────────┐
-│        Page Content        │
-│                            │
-│                            │
-├────────────────────────────┤
-│ 🏠  📅  📖  ➕  ☰          │
-│Home Cal Book New More      │
-└────────────────────────────┘
-```
-
-### Behavior
-
-Dashboard → main overview  
-  
-Availability → calendar grid  
-  
-Bookings → booking list  
-  
-➕ → quick booking modal  
-  
-More → opens sheet menu
-
-### UX rules
-
-- 44px minimum tap targets
-- Safe-area padding for iPhone notch
-- Active tab indicator
-- Fixed bottom position
+1. **Multi-property isolation everywhere** (selectedProperty scope unless admin chooses all).
+2. **All date logic uses** `[check_in, check_out)` (checkout day is NOT occupied).
+3. **Calendar & occupancy comparisons must use date-only strings** (`YYYY-MM-DD`) and property timezone (**Asia/Colombo**).
+4. **Do not rely on room.status='occupied'** for occupancy; derive from bookings + housekeeping.
+5. **needs_review hold blocks temporarily only** (hybrid hold system) and must auto-release.
+6. **Guests must live in Settings**, guest details must show **services purchased** + totals.
+7. **Testing-phase master clear** must be safe, per-property, admin-password protected, and logs actions.
 
 ---
 
-# 3️⃣ “More” Menu Sheet
+# Phase 1 — Critical Fixes (Do these first)
 
-The **More tab** opens a bottom sheet with secondary pages.
+## 1) Fix Viewer Role RLS (Security — CRITICAL)
 
-Menu:
+**Goal:** Viewer can read only; can’t create/edit/delete via API.
 
-```
-Rooms
-Room Status
-Channel Manager
-Properties
-Settings
-Sign Out
-```
+### DB Migration
 
-This keeps the bottom navigation **clean and focused on daily operations**.
+- Create `is_write_staff()` returns true only for `admin`, `manager`, `front_desk` (NOT viewer)
+- Update RLS policies:
+  - INSERT/UPDATE/DELETE must use `is_write_staff()`
+  - SELECT remains `is_staff()` (viewer can read)
 
----
-
-# 4️⃣ Layout Changes
-
-### `DashboardLayout.tsx`
-
-Add bottom nav.
-
-```
-<BottomNav />
-```
-
-Add mobile padding:
-
-```
-pb-20 md:pb-0
-```
-
-This prevents content from hiding behind the nav.
+Apply to:  
+`bookings`, `guests`, `guest_services`, `invoices`, `payments`, `booking_transactions` (if exists), `room_availability`, `audit_logs`, `email_ingest_logs`, `notifications`, `ledger_*` (if added)
 
 ---
 
-### `AppSidebar.tsx`
+## 2) Fix Availability Calendar Bug (Your screenshot issue) — CRITICAL
 
-No change for desktop.
+**Problem:** “1 night blocks wrong days / blocks checkout day / shows only one wrong day”
 
-Add:
+### Hard Rule
 
-```
-hidden md:flex
-```
+A booking blocks only if:  
+`cellDateStr >= check_in_date AND cellDateStr < check_out_date`
 
-Sidebar disappears on mobile.
+### Implementation Requirements
 
----
+- Treat booking check_in/check_out as **DATE type** (you confirmed DB is DATE) ✅
+- In frontend:
+  - Always compare using **date strings** `YYYY-MM-DD`, not raw JS Date comparisons
+  - Use helpers:
+    - `toDateString(date, tz='Asia/Colombo')`
+    - `isDateInBookingRange(dateStr, checkInStr, checkOutStr)`
+- Apply fixes consistently in:
+  - `AvailabilityCalendar.tsx`
+  - `DashboardAvailabilityCalendar.tsx`
+  - any occupancy tiles / “available rooms today” logic
+  - any “overlap check” UI logic (frontend checks)
 
-### `AppHeader.tsx`
+### Status Blocking Rules
 
-Remove sidebar toggle on mobile.
+Block availability only for:
 
-Keep:
+- `confirmed`, `checked_in`, `pending`
+- `needs_review` only if hold is active (see Phase 1 #3)
 
-- property selector
-- notification bell
-- current time
+Never block for:
 
----
-
-# 5️⃣ Mobile Dashboard Layout
-
-Mobile dashboard should be **action-focused**, not data-heavy.
-
-Structure:
-
-```
-Today
-
-Arrivals: 5
-Departures: 3
-Occupied: 21
-
-Rooms Needing Cleaning
-Room 203
-Room 305
-
-Quick Actions
-[ New Booking ]
-[ Check In ]
-[ Check Out ]
-```
-
-Use large buttons and cards.
-
-Avoid:
-
-❌ large tables  
-  
-❌ heavy charts
+- `cancelled`, `checked_out`, `no_show`
+- `needs_review` after hold expired
 
 ---
 
-# 6️⃣ Convert Tables → Mobile Cards
+## 3) Complete Hybrid Hold System End-to-End (Missing / not reliable)
 
-Tables are difficult on small screens.
+**Goal:** `needs_review` blocks temporarily, then auto-releases.
 
-Use responsive layout switching.
+### DB Rules
 
-Example:
+Ensure bookings has:
 
-### Desktop
+- `hold_expires_at timestamptz`  
+Property settings has:
+- `hold_timeout_hours int default 4`
 
-```
-Room | Guest | Status | Dates
-```
+When status becomes `needs_review`:
 
-### Mobile
+- set `hold_expires_at = now() + interval (hold_timeout_hours)`
 
-```
-Room 201
-John Smith
+### Auto-release Job (Required)
 
-May 10 → May 13
-Status: Confirmed
+Implement scheduled job:
 
-[View Booking]
-```
+- pg_cron recommended (or scheduled edge function)
+- runs every 10–15 minutes
 
----
+Logic:
 
-### Files to update
+- Find bookings where:
+  - status = `needs_review`
+  - hold_expires_at < now()
+- Update status to `needs_review_expired` (preferred)
+  - If enum update is hard, fallback: `cancelled` + reason “Hold expired — auto-released”
+- Ensure expired holds **no longer block availability**
+- Log releases into:
+  - `hold_release_logs` table OR `email_ingest_logs` with provider `hold-timeout-release`
 
-```
-BookingTable.tsx
-ActivityTable.tsx
-Dashboard tables
-```
+### UI Requirements
 
-Render:
-
-```
-table (desktop)
-cards (mobile)
-```
+- Needs Review tab shows countdown (time remaining)
+- When expired shows badge: **Expired — requires manual review**
+- Calendar shows “Held” while active, and normal availability after expiry
 
 ---
 
-# 7️⃣ Booking Cards Behavior
+## 4) Cleaning Timer Automation (Your new requested logic)
 
-Each card shows:
+**Goal:** When checkout happens, room stays “Cleaning” or “Maintenance” for **90 minutes**, then becomes available automatically.
 
-```
-Guest Name
-Room Number
-Check-in → Check-out
-Status badge
-```
+### DB Migration
 
-Tap → booking details page.
+Add to rooms:
+
+- `auto_cleaning_minutes int default 90`
+- `cleaning_until timestamptz null`
+
+On checkout:
+
+- booking: `status = checked_out`, `checked_out_at = now()`
+- room: set `housekeeping_status = 'cleaning'`
+- room: set `cleaning_until = now() + auto_cleaning_minutes minutes`
+- room: set `last_checkout_at = now()`
+
+### Scheduled Job
+
+Edge function or pg_cron runs every 10–15 minutes:
+
+- find rooms where:
+  - housekeeping_status='cleaning'
+  - cleaning_until < now()
+- set housekeeping_status='clean'
+- clear cleaning_until
+
+### UI
+
+- Rooms tab shows countdown: “Cleaning — 1h 12m left”
+- Availability calendar should treat room as:
+  - **available inventory** depends on booking rules, BUT you can also show a visual “Cleaning” badge (operational)
+
+> Important: availability blocking stays based on booking status/date range. Cleaning is operational status, not booking block.
 
 ---
 
-# 8️⃣ Mobile Availability Calendar
+## 5) Rooms Page: Fully Derived Status (No “rooms.status=occupied” hacks)
 
-Calendar must support **horizontal scrolling**.
+Derive room display based on:
 
-Example:
+- housekeeping_status + maintenance
+- bookings in active statuses and `[check_in, check_out)` rule
 
-```
-Room 101 | ■ ■ □ □ □
-Room 102 | ■ ■ ■ □ □
-Room 103 | □ □ □ □ □
-```
+Display states:
+
+- Occupied (checked_in and today < check_out)
+- Due Out Today (checked_in and check_out = today; before checkout_time)
+- Arriving Today (confirmed and check_in=today)
+- Cleaning (housekeeping_status='cleaning')
+- Dirty (housekeeping_status='dirty')
+- Inspected / Clean
+- Maintenance (room.status = maintenance)
+
+---
+
+## 6) Guests must be complete in Settings (No broken flows)
+
+### Navigation + Routes
+
+- Remove Guests from main nav
+- Add Settings tab: `Guests`
+- `/guests` route redirects to `/settings?tab=guests`
+- Back buttons always go back to Settings Guests
+
+### Guest Details Requirements
+
+When you click a guest:
+
+- Show full guest details
+- Show booking history timeline
+- Show **services purchased** + totals (must be accurate per booking)
+- Show revenue summary per guest
+- VIP + blacklist toggles (admin)
+- Passport section with secure photo
+
+---
+
+## 7) Guest Retention (Hide after 1 month, soft delete after 13 months)
+
+### DB
+
+Ensure guests has:
+
+- `archived_at timestamptz`
+- `deleted_at timestamptz`
+
+### Rules
+
+- Auto-archive: 1 month after last checkout
+- Auto-soft-delete: 13 months after last checkout
+- Keep bookings/reports intact (do not break history)
+
+### UI
+
+Filters:
+
+- Active / Archived / Deleted  
+Admin actions:
+- Restore archived/deleted
+
+### Scheduled Job
+
+Daily job per property.
+
+---
+
+## 8) Booking Form: Nationality + Phone Code (Must be “All countries”)
+
+### UI
+
+- Nationality / Country selector (full list + dial code)
+- Auto fill phone code:
+  - Sri Lanka +94, India +91, etc for all countries
+- Manual override allowed
+
+### Storage fields
+
+Store in guests:
+
+- `country`
+- `phone_country_code`
+- `phone_number`
+- `phone_e164` computed
+
+Also store nationality/country on guest.
+
+---
+
+## 9) USD/LKR Dual Display + FX Rate Update Fix
+
+### DB
+
+Add to property_inventory_settings:
+
+- `fx_usd_lkr_rate numeric default 310`
+- `fx_updated_at timestamptz`
+
+### UI
+
+- Everywhere money appears:
+  - show LKR as primary
+  - show USD approx under it using latest FX rate
+- Dashboard FX bug fix:
+  - always fetch latest rate from DB (no stale caching)
+
+---
+
+## 10) Testing Tool: Danger Zone Clear Property Data (You’re testing now)
+
+Must remain:
+
+- admin-only
+- requires password confirm
+- double confirmation
+- per selected property only
+- logs action to audit_logs
+
+Must clear:
+
+- guests, bookings, services usage, invoices/payments, availability history, reports/revenue, notifications, channel sync logs (property-scoped)
+
+Must NOT delete:
+
+- property itself
+- rooms definitions (optional: reset housekeeping status)
+- staff users
+
+---
+
+# Phase 2 — Operational Upgrades (Next)
+
+## 11) Front Desk Speed Mode
+
+Route `/front-desk`  
+Shows:
+
+- Today Arrivals
+- In-house
+- Today Departures
+- Pending payments
+
+Card quick actions:
+
+- check-in/out
+- add service
+- take payment
+- extend stay
+- cancel/no-show
+
+Auto guest detection:
+
+- match by phone/passport/NIC → link existing guest
+
+---
+
+## 12) Overbooking / Channel Sync Safety
+
+- overlap checks + hard DB guard
+- 30-second booking lock
+- channel manager dashboard:
+  - last sync time, sync errors, conflicts detected
+- optional inventory safety buffer
+
+---
+
+## 13) Housekeeping Board
+
+Board statuses:  
+Dirty → Cleaning → Clean → Inspected  
+Fields:  
+assigned_to, cleaning_started_at, cleaning_completed_at, inspected_by  
+Rules:  
+checkout → Dirty (or Cleaning if using timer workflow)
+
+---
+
+## 14) Notifications System
+
+In-app bell + dashboard alerts:
+
+- arrivals
+- checkout due 11:00
+- hold expiring
+- cleaning completed
+- cancellation received
+- sync failures
+
+---
+
+## 15) Data Quality System
+
+- duplicate detection (same phone/passport)
+- merge tool (admin)
+- required fields per guest_type
+- booking archive view older than N days (configurable)
+- improved search (name/phone/passport/NIC/booking ID/room)
+
+---
+
+# Phase 3 — Business/Finance (Later)
+
+## 16) Booking Transactions Ledger (Operational Money)
+
+Create `booking_transactions` table:  
+payment/refund/commission/adjustment  
+Show booking balance:
+
+- total, paid, outstanding
+
+---
+
+## 17) Accounting Layer (Double Entry)
+
+Tables:
+
+- ledger_accounts
+- ledger_entries
+- ledger_lines
 
 Rules:
 
-- sticky room column
-- horizontal scroll
-- tap cell → booking popup
+- all entries balanced (sum debit = sum credit)
+- multi-property safe
+
+Auto posting:
+
+- booking confirmed (AR / Revenue)
+- tax (Tax payable)
+- commission (Commission expense / OTA payable)
+- payments (Cash/Bank/Card / AR)
+- refunds reverse entries
 
 ---
 
-# 9️⃣ Floating Quick Booking Button
+# Phase 4 — System Health Monitor (Admin, Settings)
 
-Add a floating button:
+## 18) System Health Monitor + Accounting Diagnostics
 
-```
-+
-```
+Route:  
+`/settings?tab=system-health`
 
-Tap opens quick actions:
+Admin-only button:  
+“Run Full System Check”
 
-```
-New Booking
-Walk-in
-Check-in
-Check-out
-```
+Backend RPC:  
+`system_health_check(p_property_id uuid)` returns JSON PASS/FAIL per check.
 
-This saves receptionists time.
+Must include checks:
 
----
+- Property isolation
+- Overlap prevention
+- iCal idempotency
+- Commission accuracy
+- Tax engine
+- Card surcharge
+- Cleaning timer job
+- Hold auto release job
+- FX sync freshness
+- Guest retention job
+- Accounting reconciliations (ledger balance, revenue/tax/commission/payment reconciliation)
 
-# 🔟 CSS Improvements
+Optional:
 
-Update `index.css`.
-
-Add safe-area support:
-
-```
-padding-bottom: env(safe-area-inset-bottom);
-```
-
-Bottom nav styling:
-
-```
-position: fixed;
-bottom: 0;
-backdrop-filter: blur(10px);
-```
-
-Add mobile card spacing.
+- store history in system_health_logs
 
 ---
 
-# Files to Create
+# Deliverables Checklist (Must Complete)
 
-```
-src/components/layout/BottomNav.tsx
-src/components/mobile/BookingCard.tsx
-```
+- Safe migrations + no breaking changes
+- Fix calendar bug end-to-end (your screenshot case)
+- Hold system fully working + scheduled
+- Cleaning timer fully working + scheduled
+- Viewer role locked down in RLS (no API bypass)
+- Guests in Settings fully wired + full detail + services purchased
+- Guest retention scheduled job
+- FX dual display + rate updates
+- Test checklist in PR summary
 
----
+&nbsp;
 
-# Files to Modify
+(Run a full system code ckeck and verify it to me)
 
-```
-vite.config.ts
-index.html
-DashboardLayout.tsx
-AppSidebar.tsx
-AppHeader.tsx
-BookingTable.tsx
-Index.tsx (dashboard)
-index.css
-package.json
-```
+(check there is the wrond codes are there)
+
+(dont miss on this plan i need everything on this plan)
 
 ---
-
-# What Will NOT Change
-
-Desktop experience stays exactly the same.
-
-Sidebar remains for large screens.
-
-No backend logic changes.
-
----
-
-# Final Mobile Navigation Structure
-
-```
-🏠 Dashboard
-📅 Availability
-📖 Bookings
-➕ New Booking
-☰ More
-```
-
----
-
-# Result After Implementation
-
-Your PMS becomes:
-
-- installable mobile app 📱
-- fast for reception staff
-- touch-friendly
-- modern SaaS UI
-- works offline partially
-
-Very similar UX style used by apps from:
-
-- Airbnb
-- Stripe
-- Notion
-
----
-
-# Next Upgrade (After Mobile UI)
-
-Once this is done, the **next big upgrade** should be:
-
-**Drag-and-drop booking calendar**
-
-Example:
-
-```
-Room 101  ███
-Room 102
-```
-
-Drag booking to change room or dates.
-
-This is how professional hotel systems operate.

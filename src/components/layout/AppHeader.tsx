@@ -34,7 +34,8 @@ export function AppHeader({ title }: AppHeaderProps) {
   return (
     <header className="sticky top-0 z-40 flex h-14 sm:h-16 items-center justify-between border-b border-border bg-card px-3 sm:px-4 lg:px-6">
       <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-        <SidebarTrigger className="text-muted-foreground hover:text-foreground shrink-0">
+        {/* Hide sidebar trigger on mobile — bottom nav handles navigation */}
+        <SidebarTrigger className="hidden md:flex text-muted-foreground hover:text-foreground shrink-0">
           <Menu className="h-5 w-5" />
         </SidebarTrigger>
         <h1 className="text-base sm:text-xl font-semibold text-foreground truncate">{title}</h1>
