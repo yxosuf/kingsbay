@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,8 @@ import {
 } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Search, Plus, User, AlertTriangle } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { CalendarIcon, Search, Plus, User, AlertTriangle, UserPlus } from 'lucide-react';
 import { format, differenceInDays, startOfDay, eachDayOfInterval, addMonths } from 'date-fns';
 import { parseLocalDate, toDateString } from '@/lib/dateUtils';
 import { supabase } from '@/integrations/supabase/client';
@@ -61,6 +62,8 @@ interface Guest {
 
 export default function NewBooking() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isWalkIn = searchParams.get('walkin') === 'true';
   const { user } = useAuth();
   const { selectedProperty } = useProperty();
   const [loading, setLoading] = useState(false);
@@ -70,14 +73,23 @@ export default function NewBooking() {
   const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
   const [showGuestSearch, setShowGuestSearch] = useState(false);
 
+  // Walk-in: check-in immediately toggle
+  const [checkInImmediately, setCheckInImmediately] = useState(isWalkIn);
+
   // Form state
   const [guestName, setGuestName] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
   const [guestIdPassport, setGuestIdPassport] = useState('');
   const [roomId, setRoomId] = useState('');
-  const [checkIn, setCheckIn] = useState<Date>();
-  const [checkOut, setCheckOut] = useState<Date>();
+
+  // Walk-in defaults: today check-in, tomorrow check-out
+  const today = startOfDay(new Date());
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const [checkIn, setCheckIn] = useState<Date | undefined>(isWalkIn ? today : undefined);
+  const [checkOut, setCheckOut] = useState<Date | undefined>(isWalkIn ? tomorrow : undefined);
   const [numAdults, setNumAdults] = useState(1);
   const [numChildren, setNumChildren] = useState(0);
   const numGuests = numAdults + numChildren;
@@ -101,7 +113,7 @@ export default function NewBooking() {
   const [bookedDateSet, setBookedDateSet] = useState<Set<string>>(new Set());
 
   // OTA pricing state
-  const [bookingSource, setBookingSource] = useState<string>('direct');
+  const [bookingSource, setBookingSource] = useState<string>(isWalkIn ? 'direct' : 'direct');
   const [otaPrice, setOtaPrice] = useState<string>('');
   const [commissionRate, setCommissionRate] = useState<string>('');
   const [otaReference, setOtaReference] = useState('');
@@ -390,6 +402,7 @@ export default function NewBooking() {
       } : null;
 
       // Create booking
+      const bookingStatus = checkInImmediately ? 'checked_in' : 'confirmed';
       const { data: newBooking, error: bookingError } = await supabase.from('bookings').insert({
         guest_id: guestId,
         room_id: roomId,
@@ -398,7 +411,8 @@ export default function NewBooking() {
         num_guests: numGuests,
         num_adults: numAdults,
         num_children: numChildren,
-        status: 'confirmed' as const,
+        status: bookingStatus as any,
+        checked_in_at: checkInImmediately ? new Date().toISOString() : null,
         special_requests: specialRequests.trim() || null,
         total_amount: effectiveTotal,
         created_by: user?.id,
@@ -440,8 +454,16 @@ export default function NewBooking() {
         }
       }
 
-      // Update room status to reserved
-      await supabase.from('rooms').update({ status: 'reserved' }).eq('id', roomId);
+      // Update room status
+      if (checkInImmediately) {
+        // Walk-in immediate check-in: set room to occupied
+        await supabase.from('rooms').update({ 
+          status: 'occupied',
+          housekeeping_status: 'occupied' as any,
+        }).eq('id', roomId);
+      } else {
+        await supabase.from('rooms').update({ status: 'reserved' }).eq('id', roomId);
+      }
 
       // Airbnb auto-pay: create invoice + payment transaction + mark as paid
       if (bookingSource === 'airbnb' && newBooking && selectedProperty?.id) {
@@ -510,12 +532,12 @@ export default function NewBooking() {
         });
       }
 
-      toast.success('Booking created successfully!');
+      toast.success(checkInImmediately ? 'Walk-in guest checked in!' : 'Booking created successfully!');
       // Send booking confirmation email (fire-and-forget)
       if (newBooking) {
         sendGuestEmail(newBooking.id, 'booking_confirmation').catch(() => {});
       }
-      navigate('/bookings');
+      navigate(isWalkIn ? '/front-desk' : '/bookings');
     } catch (error: any) {
       logError('Error creating booking', error);
       
@@ -539,7 +561,7 @@ export default function NewBooking() {
   const selectedRoom = rooms.find((r) => r.id === roomId);
 
   return (
-    <DashboardLayout title="New Booking">
+    <DashboardLayout title={isWalkIn ? "Walk-in Booking" : "New Booking"}>
       <div className="max-w-4xl mx-auto">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Step 1: Guest Information */}
@@ -1096,12 +1118,26 @@ export default function NewBooking() {
                     )}
                   </div>
                 </div>
+                {/* Check-in Immediately Toggle */}
+                <div className="flex items-center gap-3 py-2 px-1">
+                  <Switch
+                    id="check-in-immediately"
+                    checked={checkInImmediately}
+                    onCheckedChange={setCheckInImmediately}
+                  />
+                  <Label htmlFor="check-in-immediately" className="text-sm cursor-pointer">
+                    Check-in immediately
+                  </Label>
+                  {checkInImmediately && (
+                    <span className="text-xs text-success font-medium">Guest will be checked in now</span>
+                  )}
+                </div>
                 <div className="flex gap-3 w-full sm:w-auto">
-                  <Button type="button" variant="outline" onClick={() => navigate('/bookings')} className="flex-1 sm:flex-none">
+                  <Button type="button" variant="outline" onClick={() => navigate(isWalkIn ? '/front-desk' : '/bookings')} className="flex-1 sm:flex-none">
                     Cancel
                   </Button>
                   <Button type="submit" disabled={loading} className="flex-1 sm:flex-none">
-                    {loading ? 'Creating...' : 'Create Booking'}
+                    {loading ? 'Creating...' : checkInImmediately ? 'Check In Now' : 'Create Booking'}
                   </Button>
                 </div>
               </div>
