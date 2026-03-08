@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
+import { useUserSettings } from '@/hooks/useUserSettings';
 
 const primaryTabs = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
@@ -30,6 +31,7 @@ export function BottomNav() {
   const navigate = useNavigate();
   const { signOut, isAdmin } = useAuth();
   const { selectedProperty, showAllProperties } = useProperty();
+  const { settings: userSettings } = useUserSettings();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -61,7 +63,7 @@ export function BottomNav() {
   };
 
   const filteredMoreItems = moreMenuItems.filter(
-    (item) => !item.adminOnly || isAdmin
+    (item) => (!item.adminOnly || isAdmin) && !userSettings.hidden_pages.includes(item.url)
   );
 
   return (

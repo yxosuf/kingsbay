@@ -29,6 +29,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import { useUserSettings } from '@/hooks/useUserSettings';
 
 const mainNavItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
@@ -50,6 +51,7 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { signOut, profile, role, isAdmin } = useAuth();
   const { selectedProperty } = useProperty();
+  const { settings: userSettings } = useUserSettings();
   const [popoverOpen, setPopoverOpen] = useState(false);
 
   const isActive = (path: string) => {
@@ -129,7 +131,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainNavItems.map((item) => {
+              {mainNavItems.filter(item => !userSettings.hidden_pages.includes(item.url)).map((item) => {
                 const active = isActive(item.url);
                 return (
                   <SidebarMenuItem key={item.title}>

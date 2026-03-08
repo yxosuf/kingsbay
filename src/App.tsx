@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { PropertyProvider } from "@/hooks/useProperty";
+import { UserSettingsProvider } from "@/hooks/useUserSettings";
+import { ThemeProvider } from "next-themes";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Bookings from "./pages/Bookings";
@@ -26,11 +28,13 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <PropertyProvider>
-        <TooltipProvider>
-          <Sonner />
-          <BrowserRouter>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <AuthProvider>
+        <PropertyProvider>
+          <UserSettingsProvider>
+            <TooltipProvider>
+              <Sonner />
+              <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
@@ -51,10 +55,12 @@ const App = () => (
               <Route path="/notifications" element={<Notifications />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </PropertyProvider>
-    </AuthProvider>
+              </BrowserRouter>
+            </TooltipProvider>
+          </UserSettingsProvider>
+        </PropertyProvider>
+      </AuthProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
