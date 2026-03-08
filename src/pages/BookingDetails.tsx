@@ -643,15 +643,10 @@ export default function BookingDetails() {
                   <span>Rs. {taxAmount.toLocaleString()}</span>
                 </div>
                 <Separator />
-                <div className="flex justify-between font-bold text-lg">
+                <div className="flex justify-between items-start font-bold text-lg">
                   <span>Total</span>
-                  <span>Rs. {grandTotal.toLocaleString()}</span>
+                  <CurrencyDisplay amount={grandTotal} fxRate={fxRate} size="lg" className="text-right" />
                 </div>
-                {fxRate && (
-                  <p className="text-xs text-muted-foreground text-right">
-                    ~ ${Math.round(grandTotal / fxRate).toLocaleString()} USD
-                  </p>
-                )}
 
                 {/* OTA Net Revenue Summary */}
                 {booking.booking_source && booking.booking_source !== 'direct' && booking.ota_price !== null && (
