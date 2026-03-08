@@ -112,6 +112,12 @@ export default function Settings() {
   const [newRole, setNewRole] = useState('front_desk');
 
   useEffect(() => {
+    if (!authLoading && (!user || !role)) {
+      navigate('/auth');
+    }
+  }, [authLoading, user, role, navigate]);
+
+  useEffect(() => {
     fetchStaff();
     fetchPendingUsers();
   }, []);
