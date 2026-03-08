@@ -20,6 +20,7 @@ export function HotelSettings() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savingFx, setSavingFx] = useState(false);
+  const [fetchingLive, setFetchingLive] = useState(false);
 
   useEffect(() => {
     if (selectedProperty?.id) {
