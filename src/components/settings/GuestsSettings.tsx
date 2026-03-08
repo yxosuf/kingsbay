@@ -30,7 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Search, Eye, User, Trash2, RotateCcw, Users, UserCheck, Archive, UserX } from 'lucide-react';
+import { Search, Eye, User, Trash2, RotateCcw, Users, UserCheck, Archive, UserX, GitMerge } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { useAuth } from '@/hooks/useAuth';
@@ -38,6 +38,7 @@ import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { PropertyBadge } from '@/components/layout/PropertyBadge';
 import { cn } from '@/lib/utils';
+import { DuplicateGuestDetection } from '@/components/guest/DuplicateGuestDetection';
 
 interface Guest {
   id: string;
