@@ -526,12 +526,6 @@ export default function Settings() {
     );
   }
 
-  useEffect(() => {
-    if (!authLoading && (!user || !role)) {
-      navigate('/auth');
-    }
-  }, [authLoading, user, role, navigate]);
-
   if (!user || !role) {
     return null;
   }
