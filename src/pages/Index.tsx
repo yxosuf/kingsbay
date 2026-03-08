@@ -23,8 +23,11 @@ import {
   LogOut,
   Cloud,
   TrendingUp,
+  TrendingDown,
+  Minus,
   CalendarCheck,
   Sun,
+  AlertTriangle,
 } from 'lucide-react';
 import { DashboardAvailabilityCalendar } from '@/components/dashboard/DashboardAvailabilityCalendar';
 import { supabase } from '@/integrations/supabase/client';
