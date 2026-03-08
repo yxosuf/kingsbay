@@ -149,6 +149,51 @@ export default function BookingDetails() {
     }
   }, [id]);
 
+  // Fallback: recalculate breakdown for bookings without stored price_breakdown
+  useEffect(() => {
+    if (!booking || booking.price_breakdown) return;
+    if (!booking.property_id || !booking.rooms) return;
+
+    const recalculate = async () => {
+      setBreakdownLoading(true);
+      try {
+        const result = await calculateStayTotal(
+          booking.property_id!,
+          booking.rooms!.room_type,
+          booking.rooms!.price,
+          booking.check_in,
+          booking.check_out,
+          booking.rate_plan_id,
+          booking.num_guests || 2,
+        );
+        setCalculatedBreakdown(result);
+      } catch (err) {
+        console.error('Failed to recalculate breakdown:', err);
+      } finally {
+        setBreakdownLoading(false);
+      }
+    };
+    recalculate();
+  }, [booking?.id, booking?.price_breakdown]);
+
+  // Fetch rate plan name if booking has rate_plan_id but no stored breakdown with the name
+  useEffect(() => {
+    if (!booking?.rate_plan_id) return;
+    if (booking.price_breakdown?.ratePlanName) {
+      setRatePlanName(booking.price_breakdown.ratePlanName);
+      return;
+    }
+    const fetchPlan = async () => {
+      const { data } = await supabase
+        .from('rate_plans')
+        .select('name')
+        .eq('id', booking.rate_plan_id!)
+        .maybeSingle();
+      if (data) setRatePlanName(data.name);
+    };
+    fetchPlan();
+  }, [booking?.rate_plan_id, booking?.price_breakdown]);
+
   const fetchBookingDetails = async () => {
     try {
       const { data, error } = await supabase
