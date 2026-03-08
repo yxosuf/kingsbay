@@ -140,15 +140,15 @@ export function ChannelCard({ channel, channelInfo, onUpdate, onDelete }: Channe
         </div>
 
         {/* iCal URLs Preview */}
-        {channel.is_enabled && channel.ical_export_url && (
+        {channel.is_enabled && exportUrl && (
           <div className="flex items-center gap-2 p-1.5 sm:p-2 bg-muted rounded text-[10px] sm:text-xs">
             <span className="text-muted-foreground shrink-0">Export:</span>
-            <span className="truncate flex-1 font-mono">{channel.ical_export_url}</span>
+            <span className="truncate flex-1 font-mono">{exportUrl}</span>
             <Button 
               variant="ghost" 
               size="icon" 
               className="h-5 w-5 sm:h-6 sm:w-6 shrink-0"
-              onClick={() => copyToClipboard(channel.ical_export_url!)}
+              onClick={() => copyToClipboard(exportUrl)}
             >
               <Copy className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
             </Button>
