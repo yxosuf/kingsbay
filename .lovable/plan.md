@@ -1,75 +1,51 @@
+# Kings Bay PMS — Implementation Complete ✅
 
+All plan items have been implemented and verified.
 
-# System Health Enhancement Plan
+## Phase 1 — Critical Fixes ✅
+| # | Item |
+|---|------|
+| 1 | Viewer Role RLS — `is_write_staff()`, write-restricted policies |
+| 2 | Availability Calendar — `[check_in, check_out)` string comparison |
+| 3 | Hybrid Hold System — `hold_expires_at`, edge function, countdown UI |
+| 4 | Cleaning Timer — `cleaning_until`, edge function, auto-release |
+| 5 | Rooms Derived Status — Occupied/Due Out/Arriving/Cleaning/Dirty/Inspected/Clean |
+| 6 | Guests in Settings — Tab, `/guests` redirect, guest details with services |
+| 7 | Guest Retention — `archived_at`/`deleted_at`, edge function, filters |
+| 8 | Nationality + Phone Code — Country selector, `countryData.ts` |
+| 9 | FX Rate System — `CurrencyDisplay`, `useFxRate`, edge function |
+| 10 | Danger Zone — Admin-only, password confirm, per-property, audit |
 
-## Current State
+## Phase 2 — Operational ✅
+| # | Item |
+|---|------|
+| 11 | Front Desk Speed Mode — Quick actions, arrivals/departures |
+| 12 | Channel Manager — iCal, email inbound, needs_review flow |
+| 13 | Housekeeping Board — Drag-drop (Dirty→Cleaning→Clean→Inspected), staff assignment |
+| 14 | Notifications — Bell, preferences, edge functions |
+| 15 | Data Quality — Duplicate detection (phone/email/passport/NIC), admin merge tool |
 
-The System Health tab has 8 checks: Property Isolation, Overlap Prevention, Role System, FX Rate, Scheduled Jobs, Database Connection, Ledger Balance, Transaction Coverage.
+## Phase 3 — Finance ✅
+| # | Item |
+|---|------|
+| 16 | Booking Transactions Ledger — `booking_transactions`, TransactionsTab |
+| 17 | Accounting Layer — `ledger_accounts/entries/lines`, auto-posting |
 
-## New Health Check Engines to Add
+## Phase 4 ✅
+| # | Item |
+|---|------|
+| 18 | System Health Monitor — `/settings?tab=system-health`, admin checks |
 
-Group the checks into categories and add these new engines:
+## Additional Features ✅
+- Guest Email System (Resend) — booking_confirmation, pre_arrival, checkout_summary
+- Guest Feedback System — dialog, display, reports, dashboard widget
+- Printable Invoice — react-to-print
+- PWA Support — service worker, manifest
+- Extend Stay / Move Room dialogs
+- Add Service Dialog with category filtering
+- Reports (Occupancy, Revenue, Financial, Feedback)
+- Mobile Responsive — bottom nav, responsive tables/tabs
+- Passport Photo Upload — secure storage in guest-documents bucket
+- Guest Details — services purchased with totals, VIP/blacklist badges
 
-### 1. Rate Engine Health (new)
-- **Rate Plans Active** — At least 1 active rate plan exists for selected property
-- **Seasonal Rules Valid** — No expired/overlapping seasonal rules with conflicting priorities
-- **Rate Overrides Consistency** — No overrides for past dates still marked as closed (stale closures)
-- **Discount Codes Active** — Check for expired but still `is_active=true` discount codes
-- **Occupancy Rules** — Verify threshold ordering (no duplicates, thresholds ascending)
-
-### 2. Booking Flow Health (new)
-- **Orphan Bookings** — Bookings with missing guest_id or room_id references
-- **Stale Pending** — Pending bookings older than 48h (should be reviewed)
-- **Price Breakdown Coverage** — % of bookings with `price_breakdown` stored vs null (legacy)
-- **Discount Usage Integrity** — discount_code_usages records match bookings that actually have discount_code_id
-
-### 3. Channel Sync Health (new)
-- **Channel Connections** — Count of active channels per property
-- **Last Sync** — Most recent sync_log per channel, warn if >24h stale
-- **Sync Errors** — Count of failed syncs in last 7 days
-
-### 4. Housekeeping Health (new)
-- **Stuck Cleaning** — Rooms in `cleaning` status past their `cleaning_until` time
-- **Dirty Room Backlog** — Count of dirty rooms not yet assigned
-
-### 5. Guest Data Health (new)
-- **Guest Completeness** — % of guests with email or phone filled
-- **Passport Compliance** — Foreign guests (`guest_type = 'foreign'`) missing passport data
-- **Orphan Guests** — Guests with zero bookings (no matching booking_id)
-
-### 6. Storage & Data Integrity (new)
-- **Passport Storage** — Count of passport_photos vs guests with passport data
-- **Invoice Numbering** — Check for duplicate invoice numbers
-
-## UI Changes
-
-Group all checks into collapsible sections with category headers:
-
-```text
-┌─ Core Infrastructure ────────────────────┐
-│  Database Connection | Role System | FX   │
-├─ Booking Engine ─────────────────────────┤
-│  Overlap | Orphans | Stale Pending | ...  │
-├─ Rate Engine ────────────────────────────┤
-│  Rate Plans | Seasons | Overrides | ...   │
-├─ Channel Sync ───────────────────────────┤
-│  Connections | Last Sync | Errors         │
-├─ Housekeeping ───────────────────────────┤
-│  Stuck Cleaning | Dirty Backlog           │
-├─ Guest & Compliance ────────────────────┤
-│  Completeness | Passport | Orphans        │
-├─ Financial Integrity ────────────────────┤
-│  Ledger Balance | Txn Coverage | Invoices │
-└──────────────────────────────────────────┘
-```
-
-Each section shows its own pass/warn/fail mini-count badge. Summary cards at top aggregate all.
-
-## Files Modified
-
-| File | Change |
-|------|--------|
-| `src/components/settings/SystemHealthSettings.tsx` | Full rewrite — grouped categories, ~20 new checks |
-
-No database changes needed — all checks are read-only queries against existing tables.
-
+## All items verified and complete. No remaining work.
