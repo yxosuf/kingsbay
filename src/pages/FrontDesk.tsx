@@ -234,9 +234,12 @@ export default function FrontDesk() {
                     booking={b}
                     onActionComplete={fetchAll}
                     badge={
-                      <Badge variant="outline" className="text-xs">
-                        {b.booking_source.replace('_', '.')}
-                      </Badge>
+                      <>
+                        <Badge variant="outline" className="text-xs">
+                          {b.booking_source.replace('_', '.')}
+                        </Badge>
+                        <PaymentStatusBadge invoices={(b as any).invoices} />
+                      </>
                     }
                   />
                 ))
