@@ -206,19 +206,19 @@ export function ChannelCard({ channel, channelInfo, onUpdate, onDelete }: Channe
                   </p>
                 </div>
 
-                {channel.ical_export_url && (
+                {exportUrl && (
                   <div className="space-y-2">
                     <Label>iCal Export URL (for {channelInfo.name})</Label>
                     <div className="flex gap-2">
                       <Input
-                        value={channel.ical_export_url}
+                        value={exportUrl}
                         readOnly
                         className="font-mono text-xs"
                       />
                       <Button 
                         variant="outline" 
                         size="icon"
-                        onClick={() => copyToClipboard(channel.ical_export_url!)}
+                        onClick={() => copyToClipboard(exportUrl)}
                       >
                         <Copy className="h-4 w-4" />
                       </Button>
