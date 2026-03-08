@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +16,8 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, Search, Plus, User, AlertTriangle } from 'lucide-react';
-import { format, differenceInDays, startOfDay } from 'date-fns';
+import { format, differenceInDays, startOfDay, eachDayOfInterval, addMonths } from 'date-fns';
+import { parseLocalDate, toDateString } from '@/lib/dateUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useProperty } from '@/hooks/useProperty';
@@ -86,6 +87,9 @@ export default function NewBooking() {
   // Additional services state
   const [selectedServices, setSelectedServices] = useState<SelectedService[]>([]);
 
+  // Booked dates for calendar indicators
+  const [bookedDateSet, setBookedDateSet] = useState<Set<string>>(new Set());
+
   // OTA pricing state
   const [bookingSource, setBookingSource] = useState<string>('direct');
   const [otaPrice, setOtaPrice] = useState<string>('');
@@ -107,14 +111,60 @@ export default function NewBooking() {
     fetchExistingGuests();
   }, [checkIn, checkOut, selectedProperty]);
 
+  // Fetch booked dates for calendar indicators
+  useEffect(() => {
+    const fetchBookedDates = async () => {
+      if (!selectedProperty?.id) return;
+      const rangeStart = format(new Date(), 'yyyy-MM-dd');
+      const rangeEnd = format(addMonths(new Date(), 6), 'yyyy-MM-dd');
+
+      const { data } = await supabase
+        .from('bookings')
+        .select('check_in, check_out')
+        .eq('property_id', selectedProperty.id)
+        .in('status', ['confirmed', 'checked_in', 'pending', 'needs_review'])
+        .lt('check_in', rangeEnd)
+        .gt('check_out', rangeStart);
+
+      const dates = new Set<string>();
+      (data || []).forEach(b => {
+        const start = parseLocalDate(b.check_in);
+        const end = parseLocalDate(b.check_out);
+        // Block [check_in, check_out) 
+        const days = eachDayOfInterval({ start, end: new Date(end.getTime() - 86400000) });
+        days.forEach(d => dates.add(toDateString(d)));
+      });
+      setBookedDateSet(dates);
+    };
+    fetchBookedDates();
+  }, [selectedProperty?.id]);
+
   const fetchAvailableRooms = async () => {
     try {
-      let query = supabase.from('rooms').select('*').eq('status', 'available');
+      let query = supabase.from('rooms').select('id, room_number, room_type, price, status, max_guests').neq('status', 'maintenance');
       if (selectedProperty?.id) {
         query = query.eq('property_id', selectedProperty.id);
       }
-      const { data } = await query;
-      setRooms(data || []);
+      const { data: allRooms } = await query;
+
+      // If dates are selected, exclude rooms with conflicting bookings
+      if (checkIn && checkOut && selectedProperty?.id) {
+        const checkInStr = format(checkIn, 'yyyy-MM-dd');
+        const checkOutStr = format(checkOut, 'yyyy-MM-dd');
+
+        const { data: conflicting } = await supabase
+          .from('bookings')
+          .select('room_id')
+          .eq('property_id', selectedProperty.id)
+          .in('status', ['confirmed', 'checked_in', 'pending', 'needs_review'])
+          .lt('check_in', checkOutStr)
+          .gt('check_out', checkInStr);
+
+        const bookedRoomIds = new Set((conflicting || []).map(b => b.room_id));
+        setRooms((allRooms || []).filter(r => !bookedRoomIds.has(r.id)));
+      } else {
+        setRooms(allRooms || []);
+      }
     } catch (error) {
       console.error('Error fetching rooms:', error);
     }
@@ -603,6 +653,8 @@ export default function NewBooking() {
                         selected={checkIn}
                         onSelect={setCheckIn}
                         disabled={(date) => date < startOfDay(new Date())}
+                        modifiers={{ booked: (date) => bookedDateSet.has(toDateString(date)) }}
+                        modifiersClassNames={{ booked: 'calendar-booked-dot' }}
                         initialFocus
                         className="pointer-events-auto"
                       />
@@ -632,6 +684,8 @@ export default function NewBooking() {
                         selected={checkOut}
                         onSelect={setCheckOut}
                         disabled={(date) => date <= (checkIn || startOfDay(new Date()))}
+                        modifiers={{ booked: (date) => bookedDateSet.has(toDateString(date)) }}
+                        modifiersClassNames={{ booked: 'calendar-booked-dot' }}
                         initialFocus
                         className="pointer-events-auto"
                       />

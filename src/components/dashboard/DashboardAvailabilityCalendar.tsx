@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -115,7 +115,22 @@ export function DashboardAvailabilityCalendar() {
     }
   };
 
-  const colWidth = 50;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const labelWidth = 90;
+  const colWidth = containerWidth > 0 ? Math.floor((containerWidth - labelWidth) / dateRange.length) : 50;
 
   const getRoomBookings = (room: Room) => {
     const startStr = toDateString(dateRange[0]);
@@ -169,11 +184,11 @@ export function DashboardAvailabilityCalendar() {
           </div>
         ) : (
           <TooltipProvider>
-            <div className="overflow-x-auto scrollbar-thin -mx-2 sm:mx-0">
-              <div style={{ minWidth: `${90 + dateRange.length * colWidth}px` }}>
+            <div ref={containerRef} className="overflow-x-auto scrollbar-thin -mx-2 sm:mx-0">
+              <div style={{ width: '100%' }}>
                 {/* Header */}
                 <div className="flex border-b">
-                  <div className="w-[90px] shrink-0 p-1.5 text-xs font-medium text-muted-foreground sticky left-0 bg-card z-10">
+                  <div style={{ width: labelWidth }} className="shrink-0 p-1.5 text-xs font-medium text-muted-foreground sticky left-0 bg-card z-10">
                     Room
                   </div>
                   {dateRange.map(date => (
@@ -203,7 +218,7 @@ export function DashboardAvailabilityCalendar() {
 
                   return (
                     <div key={room.id} className="flex border-b hover:bg-muted/20 transition-colors relative" style={{ height: 36 }}>
-                      <div className="w-[90px] shrink-0 p-1.5 sticky left-0 bg-card z-10 flex items-center">
+                      <div style={{ width: labelWidth }} className="shrink-0 p-1.5 sticky left-0 bg-card z-10 flex items-center">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="font-medium text-xs truncate">{room.room_number}</span>
