@@ -19,6 +19,7 @@ import Properties from "./pages/Properties";
 import ChannelManager from "./pages/ChannelManager";
 import AvailabilityCalendar from "./pages/AvailabilityCalendar";
 import FrontDesk from "./pages/FrontDesk";
+import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
