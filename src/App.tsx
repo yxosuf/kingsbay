@@ -23,6 +23,7 @@ import AvailabilityCalendar from "./pages/AvailabilityCalendar";
 import FrontDesk from "./pages/FrontDesk";
 import Housekeeping from "./pages/Housekeeping";
 import Notifications from "./pages/Notifications";
+import RateCalendar from "./pages/RateCalendar";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
