@@ -33,6 +33,13 @@ interface GuestDetails {
   nationality: string | null;
   notes: string | null;
   created_at: string;
+  passport_photo_path: string | null;
+  passport_photo_uploaded_at: string | null;
+  is_vip: boolean;
+  is_blacklisted: boolean;
+  blacklist_reason: string | null;
+  nic_number: string | null;
+  passport_number: string | null;
 }
 
 interface Booking {
