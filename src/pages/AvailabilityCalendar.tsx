@@ -229,7 +229,25 @@ export default function AvailabilityCalendar() {
     }
   };
 
-  const colWidth = viewMode === 'month' ? 36 : 80;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const labelWidth = 120;
+  const minColWidth = viewMode === 'month' ? 36 : 80;
+  const colWidth = containerWidth > 0 
+    ? Math.max(minColWidth, (containerWidth - labelWidth) / dateRange.length) 
+    : minColWidth;
 
   if (!selectedProperty) {
     return (
