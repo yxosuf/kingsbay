@@ -50,6 +50,7 @@ export function RateManagementSettings() {
           <TabsTrigger value="dayofweek"><Calendar className="h-4 w-4 mr-1" />Day of Week</TabsTrigger>
           <TabsTrigger value="discounts"><Tag className="h-4 w-4 mr-1" />Discounts</TabsTrigger>
           <TabsTrigger value="occupancy"><TrendingUp className="h-4 w-4 mr-1" />Occupancy</TabsTrigger>
+          <TabsTrigger value="otasync"><Plug className="h-4 w-4 mr-1" />OTA Sync</TabsTrigger>
           {isAdmin && <TabsTrigger value="changelog"><History className="h-4 w-4 mr-1" />Change Log</TabsTrigger>}
         </TabsList>
 
