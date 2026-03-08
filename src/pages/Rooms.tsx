@@ -344,7 +344,7 @@ export default function Rooms() {
     cleaningCountdown: getCleaningCountdown(room),
   }));
 
-  const statusOrder: DerivedStatus[] = ['due_out', 'occupied', 'arriving', 'cleaning', 'dirty', 'maintenance', 'available'];
+  const statusOrder: DerivedStatus[] = ['due_out', 'occupied', 'arriving', 'cleaning', 'dirty', 'inspected', 'maintenance', 'available'];
 
   const statusCounts = statusOrder.reduce((acc, s) => {
     acc[s] = roomsWithDerived.filter(r => r.derived.status === s).length;

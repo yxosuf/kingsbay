@@ -20,6 +20,7 @@ const primaryTabs = [
 const moreMenuItems = [
   { title: 'Notifications', url: '/notifications', icon: Bell, showBadge: true },
   { title: 'Rooms', url: '/rooms', icon: BedDouble },
+  { title: 'Housekeeping', url: '/housekeeping', icon: SprayCan },
   { title: 'Front Desk', url: '/front-desk', icon: MonitorSmartphone },
   { title: 'Channel Manager', url: '/channels', icon: Wifi },
   { title: 'Properties', url: '/properties', icon: Building2, adminOnly: true },
