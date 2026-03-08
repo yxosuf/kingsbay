@@ -27,6 +27,12 @@ const FrontDesk = lazy(() => import("./pages/FrontDesk"));
 const Housekeeping = lazy(() => import("./pages/Housekeeping"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const RateCalendar = lazy(() => import("./pages/RateCalendar"));
+const GuestLogin = lazy(() => import("./pages/guest/GuestLogin"));
+const GuestRegister = lazy(() => import("./pages/guest/GuestRegister"));
+const GuestDashboard = lazy(() => import("./pages/guest/GuestDashboard"));
+const GuestBooking = lazy(() => import("./pages/guest/GuestBooking"));
+const GuestBookingDetails = lazy(() => import("./pages/guest/GuestBookingDetails"));
+const GuestResetPassword = lazy(() => import("./pages/guest/GuestResetPassword"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
