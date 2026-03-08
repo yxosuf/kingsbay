@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { StatCard } from '@/components/front-desk/StatCard';
 import { SectionHeader } from '@/components/front-desk/SectionHeader';
 import { BookingCard, type FrontDeskBooking } from '@/components/front-desk/BookingCard';
+import { PaymentDialog } from '@/components/front-desk/PaymentDialog';
 import { PropertyBadge } from '@/components/layout/PropertyBadge';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
@@ -22,6 +23,7 @@ import {
   RefreshCw,
   Plus,
   Clock,
+  Banknote,
 } from 'lucide-react';
 
 interface PendingPaymentBooking {
@@ -46,6 +48,7 @@ export default function FrontDesk() {
   const [pendingPayments, setPendingPayments] = useState<PendingPaymentBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [paymentBooking, setPaymentBooking] = useState<PendingPaymentBooking | null>(null);
 
   const today = toDateString(new Date());
 
@@ -61,7 +64,6 @@ export default function FrontDesk() {
         rooms (room_number, room_type)
       `;
 
-      // Today arrivals: check_in = today AND status in (confirmed, pending)
       let arrivalsQ = supabase
         .from('bookings')
         .select(baseSelect)
@@ -70,7 +72,6 @@ export default function FrontDesk() {
         .order('created_at', { ascending: false });
       if (propertyFilter) arrivalsQ = arrivalsQ.eq('property_id', propertyFilter);
 
-      // In-house: status = checked_in
       let inHouseQ = supabase
         .from('bookings')
         .select(baseSelect)
@@ -78,7 +79,6 @@ export default function FrontDesk() {
         .order('check_out', { ascending: true });
       if (propertyFilter) inHouseQ = inHouseQ.eq('property_id', propertyFilter);
 
-      // Today departures: check_out = today AND status = checked_in
       let departuresQ = supabase
         .from('bookings')
         .select(baseSelect)
@@ -87,7 +87,6 @@ export default function FrontDesk() {
         .order('created_at', { ascending: false });
       if (propertyFilter) departuresQ = departuresQ.eq('property_id', propertyFilter);
 
-      // Pending payments: invoices with payment_status != 'paid'
       let paymentsQ = supabase
         .from('bookings')
         .select(
@@ -116,7 +115,6 @@ export default function FrontDesk() {
       setInHouse((inHouseRes.data as FrontDeskBooking[]) || []);
       setDepartures((departuresRes.data as FrontDeskBooking[]) || []);
 
-      // Filter to only bookings with unpaid invoices
       const unpaid = (paymentsRes.data || []).filter((b: any) =>
         b.invoices?.some((inv: any) => inv.payment_status !== 'paid')
       );
@@ -130,24 +128,18 @@ export default function FrontDesk() {
     }
   }, [selectedProperty, showAllProperties, today]);
 
-  // Initial fetch
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
 
-  // Realtime subscription on bookings table
+  // Realtime subscription
   useEffect(() => {
     const channel = supabase
       .channel('front-desk-bookings')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'bookings' },
-        () => {
-          fetchAll();
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, () => {
+        fetchAll();
+      })
       .subscribe();
-
     return () => {
       supabase.removeChannel(channel);
     };
@@ -169,7 +161,20 @@ export default function FrontDesk() {
   const SectionSkeleton = () => (
     <div className="space-y-3">
       {[1, 2, 3].map((i) => (
-        <Skeleton key={i} className="h-20 w-full rounded-xl" />
+        <div key={i} className="rounded-xl border p-3 space-y-2">
+          <div className="flex items-start justify-between">
+            <div className="space-y-1.5 flex-1">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-3 w-48" />
+            </div>
+            <Skeleton className="h-4 w-20" />
+          </div>
+          <div className="flex gap-1">
+            <Skeleton className="h-7 w-7 rounded" />
+            <Skeleton className="h-7 w-16 rounded" />
+            <Skeleton className="h-7 w-16 rounded" />
+          </div>
+        </div>
       ))}
     </div>
   );
@@ -274,7 +279,7 @@ export default function FrontDesk() {
               {loading ? (
                 <SectionSkeleton />
               ) : inHouse.length === 0 ? (
-                <EmptyState message="No guests in house" />
+                <EmptyState message="No guests currently checked in" />
               ) : (
                 inHouse.map((b) => {
                   const nights = nightsRemaining(b.check_out);
@@ -318,10 +323,12 @@ export default function FrontDesk() {
                   return (
                     <div
                       key={b.id}
-                      className="flex items-center justify-between rounded-xl border p-3 hover:bg-muted/30 transition-colors cursor-pointer"
-                      onClick={() => navigate(`/bookings/${b.id}`)}
+                      className="flex items-center justify-between rounded-xl border p-3 hover:bg-muted/30 transition-colors"
                     >
-                      <div className="min-w-0">
+                      <div
+                        className="min-w-0 cursor-pointer flex-1"
+                        onClick={() => navigate(`/bookings/${b.id}`)}
+                      >
                         <p className="text-sm font-medium truncate">
                           {b.guests?.name || 'Unknown Guest'}
                         </p>
@@ -330,15 +337,26 @@ export default function FrontDesk() {
                           {unpaidInvoices.length > 1 ? 's' : ''}
                         </p>
                       </div>
-                      <div className="text-right shrink-0 ml-3">
-                        <p className="text-sm font-semibold text-destructive">
-                          LKR {unpaidTotal.toLocaleString()}
-                        </p>
-                        <Badge variant="destructive" className="text-[10px]">
-                          {unpaidInvoices[0]?.payment_status === 'partial'
-                            ? 'Partial'
-                            : 'Unpaid'}
-                        </Badge>
+                      <div className="flex items-center gap-2 shrink-0 ml-3">
+                        <div className="text-right">
+                          <p className="text-sm font-semibold text-destructive">
+                            LKR {unpaidTotal.toLocaleString()}
+                          </p>
+                          <Badge variant="destructive" className="text-[10px]">
+                            {unpaidInvoices[0]?.payment_status === 'partial' ? 'Partial' : 'Unpaid'}
+                          </Badge>
+                        </div>
+                        {canWrite && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => setPaymentBooking(b)}
+                          >
+                            <Banknote className="h-3.5 w-3.5 mr-1" />
+                            Pay
+                          </Button>
+                        )}
                       </div>
                     </div>
                   );
@@ -348,6 +366,16 @@ export default function FrontDesk() {
           </Card>
         </div>
       </div>
+
+      {/* Payment Dialog */}
+      {paymentBooking && (
+        <PaymentDialog
+          open={!!paymentBooking}
+          onOpenChange={(open) => !open && setPaymentBooking(null)}
+          booking={paymentBooking}
+          onSuccess={fetchAll}
+        />
+      )}
     </DashboardLayout>
   );
 }
