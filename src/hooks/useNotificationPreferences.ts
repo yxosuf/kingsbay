@@ -31,7 +31,7 @@ export function useNotificationPreferences() {
     if (!user?.id) { setLoading(false); return; }
     try {
       const { data, error } = await supabase
-        .from('notification_preferences' as any)
+        .from('notification_preferences')
         .select('categories, priority_threshold, delivery_channels')
         .eq('user_id', user.id)
         .maybeSingle();
@@ -39,9 +39,9 @@ export function useNotificationPreferences() {
       if (error) throw error;
       if (data) {
         setPreferences({
-          categories: (data as any).categories || DEFAULT_PREFS.categories,
-          priority_threshold: (data as any).priority_threshold || 'low',
-          delivery_channels: (data as any).delivery_channels || DEFAULT_PREFS.delivery_channels,
+          categories: (data.categories as Record<string, boolean>) || DEFAULT_PREFS.categories,
+          priority_threshold: (data.priority_threshold as 'high' | 'medium' | 'low') || 'low',
+          delivery_channels: (data.delivery_channels as { in_app: boolean; push: boolean }) || DEFAULT_PREFS.delivery_channels,
         });
       }
     } catch (e) {
@@ -57,14 +57,15 @@ export function useNotificationPreferences() {
     if (!user?.id) return;
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('notification_preferences' as any)
-        .upsert({
+      const payload = {
           user_id: user.id,
           categories: prefs.categories,
           priority_threshold: prefs.priority_threshold,
           delivery_channels: prefs.delivery_channels,
-        } as any, { onConflict: 'user_id' });
+        };
+      const { error } = await supabase
+        .from('notification_preferences')
+        .upsert(payload as any, { onConflict: 'user_id' });
 
       if (error) throw error;
       setPreferences(prefs);
