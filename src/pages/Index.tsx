@@ -223,7 +223,7 @@ export default function Dashboard() {
     try {
       const { error } = await supabase
         .from('bookings')
-        .update({ status: 'checked_in' })
+        .update({ status: 'checked_in', checked_in_at: new Date().toISOString() })
         .eq('id', bookingId);
 
       if (error) throw error;
