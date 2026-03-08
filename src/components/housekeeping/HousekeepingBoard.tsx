@@ -64,13 +64,7 @@ export function HousekeepingBoard() {
   const [loading, setLoading] = useState(true);
   const [draggedRoom, setDraggedRoom] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 60000); // refresh every minute for countdowns
-    return () => clearInterval(interval);
-  }, [selectedProperty, showAllProperties]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       let roomQuery = supabase
         .from('rooms')
@@ -96,7 +90,26 @@ export function HousekeepingBoard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedProperty, showAllProperties]);
+
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 60000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  // Realtime subscription for instant updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('housekeeping-rooms')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'rooms' },
+        () => fetchData()
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchData]);
 
   const updateRoomHK = async (roomId: string, updates: Record<string, any>) => {
     try {
