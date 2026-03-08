@@ -89,6 +89,12 @@ export default function NewBooking() {
   // Additional services state
   const [selectedServices, setSelectedServices] = useState<SelectedService[]>([]);
 
+  // Rate management state
+  const [ratePlans, setRatePlans] = useState<any[]>([]);
+  const [selectedRatePlanId, setSelectedRatePlanId] = useState<string>('');
+  const [stayBreakdown, setStayBreakdown] = useState<StayTotal | null>(null);
+  const [calculatingRate, setCalculatingRate] = useState(false);
+
   // Booked dates for calendar indicators
   const [bookedDateSet, setBookedDateSet] = useState<Set<string>>(new Set());
 
