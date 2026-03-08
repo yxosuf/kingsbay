@@ -352,7 +352,7 @@ export default function BookingDetails() {
                 </Button>
               </>
             )}
-            {booking.status === 'checked_in' && (
+            {canWrite && booking.status === 'checked_in' && (
               <Button onClick={() => setShowCheckoutDialog(true)}>
                 Check Out & Generate Invoice
               </Button>
