@@ -663,8 +663,8 @@ export default function BookingDetails() {
           </div>
         )}
 
-        {/* Print invoice button for checked_out when no floating bar */}
-        {booking.status === 'checked_out' && invoiceNumber && !(booking.status === 'checked_in' || booking.status === 'confirmed') && (
+        {/* Print invoice button for checked_out (when floating bar isn't showing) */}
+        {booking.status === 'checked_out' && invoiceNumber && (
           <div className="flex justify-end">
             <Button variant="outline" onClick={() => setShowPrintPreview(true)}>
               <Printer className="h-4 w-4 mr-2" />
