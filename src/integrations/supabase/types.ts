@@ -117,6 +117,8 @@ export type Database = {
           commission_rate: number | null
           created_at: string
           created_by: string | null
+          discount_amount: number | null
+          discount_code_id: string | null
           external_booking_id: string | null
           external_room_type_id: string | null
           external_source: string | null
@@ -132,7 +134,9 @@ export type Database = {
           ota_price: number | null
           ota_reference: string | null
           parent_booking_id: string | null
+          price_breakdown: Json | null
           property_id: string | null
+          rate_plan_id: string | null
           raw_email_id: string | null
           review_reason: string | null
           room_id: string
@@ -154,6 +158,8 @@ export type Database = {
           commission_rate?: number | null
           created_at?: string
           created_by?: string | null
+          discount_amount?: number | null
+          discount_code_id?: string | null
           external_booking_id?: string | null
           external_room_type_id?: string | null
           external_source?: string | null
@@ -169,7 +175,9 @@ export type Database = {
           ota_price?: number | null
           ota_reference?: string | null
           parent_booking_id?: string | null
+          price_breakdown?: Json | null
           property_id?: string | null
+          rate_plan_id?: string | null
           raw_email_id?: string | null
           review_reason?: string | null
           room_id: string
@@ -191,6 +199,8 @@ export type Database = {
           commission_rate?: number | null
           created_at?: string
           created_by?: string | null
+          discount_amount?: number | null
+          discount_code_id?: string | null
           external_booking_id?: string | null
           external_room_type_id?: string | null
           external_source?: string | null
@@ -206,7 +216,9 @@ export type Database = {
           ota_price?: number | null
           ota_reference?: string | null
           parent_booking_id?: string | null
+          price_breakdown?: Json | null
           property_id?: string | null
+          rate_plan_id?: string | null
           raw_email_id?: string | null
           review_reason?: string | null
           room_id?: string
@@ -216,6 +228,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "bookings_discount_code_id_fkey"
+            columns: ["discount_code_id"]
+            isOneToOne: false
+            referencedRelation: "discount_codes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bookings_guest_id_fkey"
             columns: ["guest_id"]
@@ -235,6 +254,13 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_rate_plan_id_fkey"
+            columns: ["rate_plan_id"]
+            isOneToOne: false
+            referencedRelation: "rate_plans"
             referencedColumns: ["id"]
           },
           {
@@ -1077,6 +1103,44 @@ export type Database = {
           },
         ]
       }
+      occupancy_pricing_rules: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          modifier_type: string
+          modifier_value: number
+          occupancy_threshold: number
+          property_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          modifier_type?: string
+          modifier_value?: number
+          occupancy_threshold: number
+          property_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          modifier_type?: string
+          modifier_value?: number
+          occupancy_threshold?: number
+          property_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "occupancy_pricing_rules_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       passport_photos: {
         Row: {
           created_at: string
@@ -1308,6 +1372,50 @@ export type Database = {
             foreignKeyName: "property_inventory_settings_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: true
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rate_change_logs: {
+        Row: {
+          action: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          property_id: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          property_id?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          property_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rate_change_logs_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
             referencedRelation: "properties"
             referencedColumns: ["id"]
           },

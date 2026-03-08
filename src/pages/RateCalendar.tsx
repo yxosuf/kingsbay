@@ -12,7 +12,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { ChevronLeft, ChevronRight, Lock, Edit3 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Lock, Edit3, Layers } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,7 +22,6 @@ import { toDateString, parseLocalDate } from '@/lib/dateUtils';
 import { fetchRateData, fetchOverrides, calculateNightRate, type NightBreakdown } from '@/lib/rateEngine';
 import { CurrencyDisplay } from '@/components/ui/CurrencyDisplay';
 import { cn } from '@/lib/utils';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 export default function RateCalendar() {
   const { selectedProperty } = useProperty();
@@ -42,6 +41,15 @@ export default function RateCalendar() {
   const [overrideDate, setOverrideDate] = useState('');
   const [overridePrice, setOverridePrice] = useState('');
   const [overrideClosed, setOverrideClosed] = useState(false);
+
+  // Bulk edit mode
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkStartDate, setBulkStartDate] = useState<string | null>(null);
+  const [bulkEndDate, setBulkEndDate] = useState<string | null>(null);
+  const [showBulkDialog, setShowBulkDialog] = useState(false);
+  const [bulkAction, setBulkAction] = useState<string>('set_price');
+  const [bulkValue, setBulkValue] = useState('');
+  const [bulkSaving, setBulkSaving] = useState(false);
 
   // Fetch room types
   useEffect(() => {
@@ -110,6 +118,14 @@ export default function RateCalendar() {
     });
   }, [dates, rateData, roomBasePrice, selectedRoomType, overrides]);
 
+  const refreshOverrides = async () => {
+    if (!propertyId) return;
+    const monthStart = toDateString(startOfMonth(currentMonth));
+    const monthEnd = toDateString(endOfMonth(currentMonth));
+    const ov = await fetchOverrides(propertyId, selectedRoomType, monthStart, monthEnd);
+    setOverrides(ov);
+  };
+
   const openOverrideDialog = (dateStr: string, currentPrice: number) => {
     setOverrideDate(dateStr);
     const existing = overrides.get(dateStr);
@@ -131,12 +147,7 @@ export default function RateCalendar() {
     if (error) { toast.error(error.message); return; }
     toast.success('Override saved');
     setShowOverride(false);
-
-    // Refresh overrides
-    const monthStart = toDateString(startOfMonth(currentMonth));
-    const monthEnd = toDateString(endOfMonth(currentMonth));
-    const ov = await fetchOverrides(propertyId, selectedRoomType, monthStart, monthEnd);
-    setOverrides(ov);
+    refreshOverrides();
   };
 
   const handleRemoveOverride = async () => {
@@ -147,11 +158,97 @@ export default function RateCalendar() {
       .eq('date', overrideDate);
     toast.success('Override removed');
     setShowOverride(false);
+    refreshOverrides();
+  };
 
-    const monthStart = toDateString(startOfMonth(currentMonth));
-    const monthEnd = toDateString(endOfMonth(currentMonth));
-    const ov = await fetchOverrides(propertyId, selectedRoomType, monthStart, monthEnd);
-    setOverrides(ov);
+  // Bulk edit handlers
+  const handleBulkCellClick = (dateStr: string) => {
+    if (!bulkStartDate) {
+      setBulkStartDate(dateStr);
+      setBulkEndDate(null);
+    } else if (!bulkEndDate) {
+      // Ensure start <= end
+      if (dateStr >= bulkStartDate) {
+        setBulkEndDate(dateStr);
+      } else {
+        setBulkEndDate(bulkStartDate);
+        setBulkStartDate(dateStr);
+      }
+    } else {
+      // Reset selection
+      setBulkStartDate(dateStr);
+      setBulkEndDate(null);
+    }
+  };
+
+  const isBulkSelected = (dateStr: string) => {
+    if (!bulkStartDate) return false;
+    if (!bulkEndDate) return dateStr === bulkStartDate;
+    return dateStr >= bulkStartDate && dateStr <= bulkEndDate;
+  };
+
+  const handleBulkSave = async () => {
+    if (!propertyId || !bulkStartDate || !bulkEndDate || !bulkValue) return;
+    setBulkSaving(true);
+
+    try {
+      const start = parseLocalDate(bulkStartDate);
+      const end = parseLocalDate(bulkEndDate);
+      const bulkDates = eachDayOfInterval({ start, end });
+
+      const upserts = bulkDates.map(d => {
+        const dateStr = toDateString(d);
+        const existing = overrides.get(dateStr);
+        const currentPrice = existing?.price || nightRates.find(n => n.date === dateStr)?.finalPrice || roomBasePrice;
+
+        let newPrice = currentPrice;
+        let closed = existing?.closed || false;
+
+        switch (bulkAction) {
+          case 'set_price':
+            newPrice = parseFloat(bulkValue);
+            break;
+          case 'increase_percent':
+            newPrice = currentPrice * (1 + parseFloat(bulkValue) / 100);
+            break;
+          case 'decrease_percent':
+            newPrice = currentPrice * (1 - parseFloat(bulkValue) / 100);
+            break;
+          case 'close':
+            closed = true;
+            newPrice = existing?.price || currentPrice;
+            break;
+          case 'open':
+            closed = false;
+            newPrice = existing?.price || currentPrice;
+            break;
+        }
+
+        return {
+          property_id: propertyId,
+          room_type: selectedRoomType,
+          date: dateStr,
+          price: Math.round(newPrice * 100) / 100,
+          closed,
+        };
+      });
+
+      const { error } = await supabase.from('rate_overrides').upsert(upserts, {
+        onConflict: 'property_id,room_type,date',
+      });
+
+      if (error) { toast.error(error.message); return; }
+      toast.success(`Bulk update applied to ${bulkDates.length} dates`);
+      setShowBulkDialog(false);
+      setBulkStartDate(null);
+      setBulkEndDate(null);
+      setBulkMode(false);
+      refreshOverrides();
+    } catch (err: any) {
+      toast.error(err.message || 'Bulk update failed');
+    } finally {
+      setBulkSaving(false);
+    }
   };
 
   const getCellColor = (night: NightBreakdown) => {
@@ -170,7 +267,42 @@ export default function RateCalendar() {
             <h1 className="text-2xl font-bold tracking-tight">Rate Calendar</h1>
             <p className="text-muted-foreground">View and manage daily pricing per room type</p>
           </div>
+          {isAdmin && (
+            <Button
+              variant={bulkMode ? 'default' : 'outline'}
+              onClick={() => {
+                setBulkMode(!bulkMode);
+                setBulkStartDate(null);
+                setBulkEndDate(null);
+              }}
+            >
+              <Layers className="h-4 w-4 mr-2" />
+              {bulkMode ? 'Exit Bulk Edit' : 'Bulk Edit'}
+            </Button>
+          )}
         </div>
+
+        {/* Bulk Edit Instructions */}
+        {bulkMode && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="py-3 flex flex-wrap items-center justify-between gap-3">
+              <div className="text-sm">
+                <strong>Bulk Edit Mode:</strong> Click a start date, then click an end date to select a range.
+                {bulkStartDate && !bulkEndDate && (
+                  <span className="ml-2 text-primary">Start: {bulkStartDate} — now click the end date</span>
+                )}
+                {bulkStartDate && bulkEndDate && (
+                  <span className="ml-2 text-primary">{bulkStartDate} → {bulkEndDate}</span>
+                )}
+              </div>
+              {bulkStartDate && bulkEndDate && (
+                <Button size="sm" onClick={() => { setBulkValue(''); setShowBulkDialog(true); }}>
+                  Apply Changes
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Controls */}
         <Card>
@@ -223,16 +355,24 @@ export default function RateCalendar() {
               <div key={`empty-${i}`} />
             ))}
 
-            {nightRates.map((night, i) => (
+            {nightRates.map((night) => (
               <button
                 key={night.date}
-                onClick={() => isAdmin && openOverrideDialog(night.date, night.finalPrice)}
-                disabled={!isAdmin}
+                onClick={() => {
+                  if (bulkMode) {
+                    handleBulkCellClick(night.date);
+                  } else if (isAdmin) {
+                    openOverrideDialog(night.date, night.finalPrice);
+                  }
+                }}
+                disabled={!isAdmin && !bulkMode}
                 className={cn(
                   'rounded-xl border p-2 text-left transition-all min-h-[80px] relative group',
                   getCellColor(night),
-                  isAdmin && 'hover:ring-2 hover:ring-ring cursor-pointer',
-                  !isAdmin && 'cursor-default'
+                  bulkMode && isBulkSelected(night.date) && 'ring-2 ring-primary bg-primary/10',
+                  isAdmin && !bulkMode && 'hover:ring-2 hover:ring-ring cursor-pointer',
+                  bulkMode && 'cursor-pointer',
+                  !isAdmin && !bulkMode && 'cursor-default'
                 )}
               >
                 <div className="text-xs text-muted-foreground">{format(parseLocalDate(night.date), 'd')}</div>
@@ -246,7 +386,7 @@ export default function RateCalendar() {
                 {night.seasonal && (
                   <div className="text-[10px] text-muted-foreground truncate mt-0.5">{night.seasonal}</div>
                 )}
-                {isAdmin && (
+                {isAdmin && !bulkMode && (
                   <Edit3 className="h-3 w-3 absolute top-2 right-2 opacity-0 group-hover:opacity-50 transition-opacity" />
                 )}
               </button>
@@ -255,7 +395,7 @@ export default function RateCalendar() {
         )}
       </div>
 
-      {/* Override Dialog */}
+      {/* Single Override Dialog */}
       <Dialog open={showOverride} onOpenChange={setShowOverride}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -277,6 +417,45 @@ export default function RateCalendar() {
             )}
             <Button variant="outline" onClick={() => setShowOverride(false)}>Cancel</Button>
             <Button onClick={handleSaveOverride}>Save Override</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Edit Dialog */}
+      <Dialog open={showBulkDialog} onOpenChange={setShowBulkDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Bulk Rate Edit</DialogTitle>
+          </DialogHeader>
+          <div className="text-sm text-muted-foreground mb-2">
+            Applying to: <strong>{bulkStartDate}</strong> → <strong>{bulkEndDate}</strong> ({selectedRoomType})
+          </div>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Action</Label>
+              <Select value={bulkAction} onValueChange={setBulkAction}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="set_price">Set Price (LKR)</SelectItem>
+                  <SelectItem value="increase_percent">Increase by %</SelectItem>
+                  <SelectItem value="decrease_percent">Decrease by %</SelectItem>
+                  <SelectItem value="close">Close Dates</SelectItem>
+                  <SelectItem value="open">Open Dates</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {!['close', 'open'].includes(bulkAction) && (
+              <div className="space-y-2">
+                <Label>{bulkAction === 'set_price' ? 'Price (LKR)' : 'Percentage (%)'}</Label>
+                <Input type="number" value={bulkValue} onChange={(e) => setBulkValue(e.target.value)} placeholder={bulkAction === 'set_price' ? 'e.g. 15000' : 'e.g. 10'} />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkDialog(false)}>Cancel</Button>
+            <Button onClick={handleBulkSave} disabled={bulkSaving || (!['close', 'open'].includes(bulkAction) && !bulkValue)}>
+              {bulkSaving ? 'Applying...' : 'Apply'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -94,6 +94,8 @@ export default function NewBooking() {
   const [selectedRatePlanId, setSelectedRatePlanId] = useState<string>('');
   const [stayBreakdown, setStayBreakdown] = useState<StayTotal | null>(null);
   const [calculatingRate, setCalculatingRate] = useState(false);
+  const [discountCode, setDiscountCode] = useState('');
+  const [discountError, setDiscountError] = useState('');
 
   // Booked dates for calendar indicators
   const [bookedDateSet, setBookedDateSet] = useState<Set<string>>(new Set());
@@ -135,6 +137,7 @@ export default function NewBooking() {
     if (!room) return;
 
     setCalculatingRate(true);
+    setDiscountError('');
     calculateStayTotal(
       selectedProperty.id,
       room.room_type,
@@ -143,11 +146,15 @@ export default function NewBooking() {
       format(checkOut, 'yyyy-MM-dd'),
       selectedRatePlanId || null,
       numGuests,
+      discountCode.trim() || null,
     ).then(breakdown => {
       setStayBreakdown(breakdown);
+      if (discountCode.trim() && !breakdown.discountCode) {
+        setDiscountError('Invalid or expired discount code');
+      }
       setCalculatingRate(false);
     }).catch(() => setCalculatingRate(false));
-  }, [selectedProperty?.id, checkIn, checkOut, roomId, selectedRatePlanId, numGuests, rooms]);
+  }, [selectedProperty?.id, checkIn, checkOut, roomId, selectedRatePlanId, numGuests, rooms, discountCode]);
 
   // Fetch booked dates for calendar indicators
   useEffect(() => {
@@ -301,6 +308,13 @@ export default function NewBooking() {
       return;
     }
 
+    // CLOSED DATE CHECK: Block booking if any night is closed
+    if (stayBreakdown && stayBreakdown.nights.some(n => n.closed)) {
+      toast.error('Room is closed for one or more selected dates. Please choose different dates.');
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -364,6 +378,17 @@ export default function NewBooking() {
         return;
       }
 
+      // Build immutable price breakdown for storage
+      const priceBreakdown = stayBreakdown ? {
+        nights: stayBreakdown.nights,
+        subtotal: stayBreakdown.subtotal,
+        discount: stayBreakdown.discount,
+        discountCode: stayBreakdown.discountCode,
+        total: stayBreakdown.total,
+        ratePlanName: stayBreakdown.ratePlanName,
+        extraGuestFee: stayBreakdown.extraGuestFee,
+      } : null;
+
       // Create booking
       const { data: newBooking, error: bookingError } = await supabase.from('bookings').insert({
         guest_id: guestId,
@@ -383,6 +408,10 @@ export default function NewBooking() {
         commission_amount: commissionAmt,
         ota_reference: bookingSource !== 'direct' ? otaReference.trim() || null : null,
         property_id: selectedProperty.id,
+        rate_plan_id: selectedRatePlanId || null,
+        discount_code_id: stayBreakdown?.discountCodeId || null,
+        discount_amount: stayBreakdown?.discount || 0,
+        price_breakdown: priceBreakdown,
       } as any).select().single();
 
       if (bookingError) throw bookingError;
@@ -471,6 +500,14 @@ export default function NewBooking() {
             await postPayment(txn.id, invoiceTotal, 'online', selectedProperty.id, newBooking.id, user?.id);
           }
         }
+      }
+
+      // Track discount code usage
+      if (newBooking && stayBreakdown?.discountCodeId) {
+        await supabase.from('discount_code_usages').insert({
+          discount_code_id: stayBreakdown.discountCodeId,
+          booking_id: newBooking.id,
+        });
       }
 
       toast.success('Booking created successfully!');
@@ -810,6 +847,24 @@ export default function NewBooking() {
                       <span>Room Total ({stayBreakdown.nights.length} night{stayBreakdown.nights.length > 1 ? 's' : ''})</span>
                       <span>Rs. {stayBreakdown.subtotal.toLocaleString()}</span>
                     </div>
+                    {stayBreakdown.discount > 0 && (
+                      <div className="flex justify-between text-sm text-success">
+                        <span>Discount ({stayBreakdown.discountCode})</span>
+                        <span>- Rs. {stayBreakdown.discount.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {stayBreakdown.discount > 0 && (
+                      <div className="flex justify-between text-sm font-bold">
+                        <span>After Discount</span>
+                        <span>Rs. {stayBreakdown.total.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {stayBreakdown.nights.some(n => n.closed) && (
+                      <div className="flex items-center gap-2 text-destructive text-xs mt-1 p-2 bg-destructive/10 rounded">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Room is closed for one or more selected dates
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -851,6 +906,25 @@ export default function NewBooking() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Discount Code */}
+                {bookingSource === 'direct' && (
+                  <div className="space-y-2">
+                    <Label>Discount Code</Label>
+                    <Input
+                      value={discountCode}
+                      onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                      placeholder="e.g. SUMMER20"
+                      className="font-mono"
+                    />
+                    {discountError && (
+                      <p className="text-xs text-destructive">{discountError}</p>
+                    )}
+                    {stayBreakdown?.discountCode && (
+                      <p className="text-xs text-success">✓ Discount applied: {stayBreakdown.discountCode}</p>
+                    )}
+                  </div>
+                )}
 
                 {/* Booking Source */}
                 <div className="space-y-2">

@@ -16,7 +16,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { Plus, Pencil, Trash2, DollarSign, Calendar, Sun, Tag, Percent } from 'lucide-react';
+import { Plus, Pencil, Trash2, DollarSign, Calendar, Sun, Tag, TrendingUp, History } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { useAuth } from '@/hooks/useAuth';
@@ -48,6 +48,8 @@ export function RateManagementSettings() {
           <TabsTrigger value="seasonal"><Sun className="h-4 w-4 mr-1" />Seasonal</TabsTrigger>
           <TabsTrigger value="dayofweek"><Calendar className="h-4 w-4 mr-1" />Day of Week</TabsTrigger>
           <TabsTrigger value="discounts"><Tag className="h-4 w-4 mr-1" />Discounts</TabsTrigger>
+          <TabsTrigger value="occupancy"><TrendingUp className="h-4 w-4 mr-1" />Occupancy</TabsTrigger>
+          {isAdmin && <TabsTrigger value="changelog"><History className="h-4 w-4 mr-1" />Change Log</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="plans">
@@ -62,6 +64,14 @@ export function RateManagementSettings() {
         <TabsContent value="discounts">
           <DiscountCodesTab propertyId={propertyId} isAdmin={isAdmin} />
         </TabsContent>
+        <TabsContent value="occupancy">
+          <OccupancyPricingTab propertyId={propertyId} isAdmin={isAdmin} />
+        </TabsContent>
+        {isAdmin && (
+          <TabsContent value="changelog">
+            <ChangeLogTab propertyId={propertyId} />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
@@ -802,6 +812,234 @@ function DiscountCodesTab({ propertyId, isAdmin }: { propertyId?: string; isAdmi
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </Card>
+  );
+}
+
+// ============ OCCUPANCY PRICING TAB ============
+
+function OccupancyPricingTab({ propertyId, isAdmin }: { propertyId?: string; isAdmin: boolean }) {
+  const [rules, setRules] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showDialog, setShowDialog] = useState(false);
+  const [form, setForm] = useState({ occupancy_threshold: '', modifier_type: 'percent', modifier_value: '' });
+
+  const fetchRules = async () => {
+    if (!propertyId) return;
+    const { data } = await supabase
+      .from('occupancy_pricing_rules')
+      .select('*')
+      .eq('property_id', propertyId)
+      .order('occupancy_threshold');
+    setRules(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchRules(); }, [propertyId]);
+
+  const handleSave = async () => {
+    if (!propertyId || !form.occupancy_threshold || !form.modifier_value) {
+      toast.error('All fields are required');
+      return;
+    }
+    const { error } = await supabase.from('occupancy_pricing_rules').insert({
+      property_id: propertyId,
+      occupancy_threshold: parseInt(form.occupancy_threshold),
+      modifier_type: form.modifier_type,
+      modifier_value: parseFloat(form.modifier_value),
+    });
+    if (error) { toast.error(error.message); return; }
+    toast.success('Occupancy rule created');
+    setShowDialog(false);
+    setForm({ occupancy_threshold: '', modifier_type: 'percent', modifier_value: '' });
+    fetchRules();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this rule?')) return;
+    await supabase.from('occupancy_pricing_rules').delete().eq('id', id);
+    toast.success('Deleted');
+    fetchRules();
+  };
+
+  const toggleActive = async (rule: any) => {
+    await supabase.from('occupancy_pricing_rules').update({ is_active: !rule.is_active }).eq('id', rule.id);
+    fetchRules();
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Occupancy-Based Pricing</CardTitle>
+          <CardDescription>Automatically adjust rates based on property occupancy levels</CardDescription>
+        </div>
+        {isAdmin && (
+          <Button onClick={() => setShowDialog(true)}><Plus className="h-4 w-4 mr-2" />Add Rule</Button>
+        )}
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          </div>
+        ) : rules.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>No occupancy rules defined. Prices won't change based on occupancy.</p>
+            <p className="text-xs mt-2">Example: At 70% occupancy, increase prices by 10%. At 90%, increase by 25%.</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Occupancy Threshold</TableHead>
+                <TableHead>Modifier</TableHead>
+                <TableHead>Status</TableHead>
+                {isAdmin && <TableHead className="text-right">Actions</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rules.map((rule) => (
+                <TableRow key={rule.id}>
+                  <TableCell className="font-medium">≥ {rule.occupancy_threshold}%</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {rule.modifier_value > 0 ? '+' : ''}{rule.modifier_value}{rule.modifier_type === 'percent' ? '%' : ' LKR'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Switch checked={rule.is_active} onCheckedChange={() => toggleActive(rule)} disabled={!isAdmin} />
+                  </TableCell>
+                  {isAdmin && (
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(rule.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Add Occupancy Rule</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Occupancy Threshold (%)</Label>
+              <Input type="number" min="0" max="100" value={form.occupancy_threshold} onChange={(e) => setForm({ ...form, occupancy_threshold: e.target.value })} placeholder="e.g. 70" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <Select value={form.modifier_type} onValueChange={(v) => setForm({ ...form, modifier_type: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="percent">Percent</SelectItem>
+                    <SelectItem value="fixed">Fixed (LKR)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Value</Label>
+                <Input type="number" value={form.modifier_value} onChange={(e) => setForm({ ...form, modifier_value: e.target.value })} placeholder="e.g. 10" />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDialog(false)}>Cancel</Button>
+            <Button onClick={handleSave}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
+// ============ CHANGE LOG TAB ============
+
+function ChangeLogTab({ propertyId }: { propertyId?: string }) {
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!propertyId) return;
+    const fetchLogs = async () => {
+      const { data } = await supabase
+        .from('rate_change_logs')
+        .select('*, profiles:user_id(full_name)')
+        .eq('property_id', propertyId)
+        .order('created_at', { ascending: false })
+        .limit(100);
+      setLogs(data || []);
+      setLoading(false);
+    };
+    fetchLogs();
+  }, [propertyId]);
+
+  const getEntityLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      rate_plan: 'Rate Plan',
+      seasonal_rule: 'Seasonal Rule',
+      day_of_week_rule: 'Day-of-Week Rule',
+      rate_override: 'Rate Override',
+      discount_code: 'Discount Code',
+    };
+    return labels[type] || type;
+  };
+
+  const getActionBadge = (action: string) => {
+    const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
+      created: 'default',
+      updated: 'secondary',
+      deleted: 'destructive',
+    };
+    return <Badge variant={variants[action] || 'secondary'} className="text-xs">{action}</Badge>;
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Rate Change Log</CardTitle>
+        <CardDescription>Audit trail of all pricing changes</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          </div>
+        ) : logs.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>No rate changes logged yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-3 max-h-[600px] overflow-y-auto">
+            {logs.map((log) => (
+              <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {getActionBadge(log.action)}
+                    <Badge variant="outline" className="text-xs">{getEntityLabel(log.entity_type)}</Badge>
+                    {log.new_value?.name && (
+                      <span className="text-sm font-medium truncate">{log.new_value.name || log.old_value?.name}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                    <span>{(log as any).profiles?.full_name || 'System'}</span>
+                    <span>·</span>
+                    <span>{format(new Date(log.created_at), 'PPp')}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
     </Card>
   );
 }
