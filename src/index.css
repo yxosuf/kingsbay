@@ -76,7 +76,6 @@
   }
 
   .dark {
-    /* Dark mode: Deep Brown/Charcoal */
     --primary: 35 50% 60%;
     --primary-foreground: 25 30% 10%;
 
@@ -136,18 +135,16 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  /* Smoother transitions on all interactive elements */
   button, a, input, select, textarea {
     @apply transition-colors duration-150;
   }
 
-  /* Better focus rings */
   :focus-visible {
     @apply outline-none ring-2 ring-ring/40 ring-offset-2 ring-offset-background;
   }
 }
 
-/* Custom scrollbar for hospitality theme */
+/* Custom scrollbar */
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
@@ -172,7 +169,7 @@
     background-color: hsl(var(--muted-foreground) / 0.5);
   }
 
-  /* Fade-in animation for dashboard values */
+  /* Fade-in animation */
   @keyframes fadeInUp {
     from {
       opacity: 0;
@@ -187,9 +184,122 @@
   .animate-fade-in-up {
     animation: fadeInUp 0.4s ease-out both;
   }
+
+  /* Page transition */
+  @keyframes pageIn {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-page-in {
+    animation: pageIn 0.25s ease-out both;
+  }
+
+  /* Gantt bar styles */
+  .gantt-bar {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    z-index: 2;
+    cursor: pointer;
+    transition: filter 0.15s;
+  }
+
+  .gantt-bar:hover {
+    filter: brightness(0.95);
+    z-index: 3;
+  }
+
+  .gantt-bar-reserved {
+    background: linear-gradient(135deg, hsl(210 60% 50% / 0.2), hsl(210 60% 50% / 0.12));
+    border: 1px solid hsl(210 60% 50% / 0.25);
+    color: hsl(210 60% 40%);
+  }
+
+  .gantt-bar-occupied {
+    background: linear-gradient(135deg, hsl(145 60% 35% / 0.2), hsl(145 60% 35% / 0.12));
+    border: 1px solid hsl(145 60% 35% / 0.25);
+    color: hsl(145 60% 28%);
+  }
+
+  .gantt-bar-held {
+    background: linear-gradient(135deg, hsl(38 85% 48% / 0.2), hsl(38 85% 48% / 0.12));
+    border: 1px solid hsl(38 85% 48% / 0.25);
+    color: hsl(38 85% 35%);
+  }
+
+  .gantt-bar-blocked {
+    background: repeating-linear-gradient(
+      -45deg,
+      hsl(var(--muted)),
+      hsl(var(--muted)) 4px,
+      hsl(var(--muted-foreground) / 0.08) 4px,
+      hsl(var(--muted-foreground) / 0.08) 8px
+    );
+    border: 1px solid hsl(var(--muted-foreground) / 0.2);
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Weekend stripe */
+  .weekend-col {
+    background: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 6px,
+      hsl(var(--muted-foreground) / 0.03) 6px,
+      hsl(var(--muted-foreground) / 0.03) 12px
+    );
+  }
+
+  /* Today line */
+  .today-line {
+    position: relative;
+  }
+
+  .today-line::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 2px;
+    background: hsl(var(--primary));
+    opacity: 0.3;
+    z-index: 1;
+  }
+
+  /* Step wizard connector */
+  .step-connector {
+    position: relative;
+  }
+
+  .step-connector::before {
+    content: '';
+    position: absolute;
+    left: 18px;
+    top: -12px;
+    width: 2px;
+    height: 12px;
+    background: hsl(var(--border));
+  }
 }
 
-/* Print styles for invoices */
+/* Print styles */
 @media print {
   .no-print {
     display: none !important;

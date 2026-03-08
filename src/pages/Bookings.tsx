@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Plus, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -56,15 +57,12 @@ export default function Bookings() {
         `)
         .order('created_at', { ascending: false });
 
-      // Property filter
       if (!showAllProperties && selectedProperty?.id) {
         query = query.eq('property_id', selectedProperty.id);
       }
 
-      // Tab-specific filters
       switch (activeTab) {
         case 'today':
-          // Arrivals today OR departures today with active status
           query = query.or(`and(check_in.eq.${today},status.in.(confirmed,pending)),and(check_out.eq.${today},status.eq.checked_in)`);
           break;
         case 'upcoming':
@@ -83,7 +81,6 @@ export default function Bookings() {
           query = query.eq('status', 'needs_review');
           break;
         case 'all':
-          // No additional filter
           break;
       }
 
@@ -113,7 +110,7 @@ export default function Bookings() {
 
   return (
     <DashboardLayout title="Bookings">
-      <div className="space-y-4 sm:space-y-6">
+      <div className="space-y-4 sm:space-y-5">
         {/* Property Badge */}
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Viewing:</span>
@@ -128,7 +125,7 @@ export default function Bookings() {
               placeholder="Search guest or room..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-10 rounded-xl shadow-sm focus:shadow-md transition-shadow"
             />
           </div>
           {canWrite && (
@@ -141,10 +138,15 @@ export default function Bookings() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabKey)}>
-          <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-muted/50 p-1">
+          <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-muted/50 p-1 rounded-2xl">
             {tabs.map((tab) => (
-              <TabsTrigger key={tab} value={tab} className="text-xs sm:text-sm">
+              <TabsTrigger key={tab} value={tab} className="text-xs sm:text-sm rounded-xl gap-1.5">
                 {TAB_LABELS[tab]}
+                {!loading && tab === activeTab && filteredBookings.length > 0 && (
+                  <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-[10px] rounded-full">
+                    {filteredBookings.length}
+                  </Badge>
+                )}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -152,10 +154,7 @@ export default function Bookings() {
           {tabs.map((tab) => (
             <TabsContent key={tab} value={tab}>
               <Card>
-                <CardHeader className="pb-3 sm:pb-6">
-                  <CardTitle className="text-base sm:text-lg">{TAB_LABELS[tab]} Bookings</CardTitle>
-                </CardHeader>
-                <CardContent className="px-3 sm:px-6">
+                <CardContent className="px-3 sm:px-6 pt-4 sm:pt-6">
                   <BookingTable
                     bookings={filteredBookings}
                     loading={loading}

@@ -552,7 +552,7 @@ export default function Settings() {
                     className={cn(
                       "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all text-left group",
                       isActive
-                        ? "bg-primary text-primary-foreground shadow-sm"
+                        ? "bg-primary text-primary-foreground shadow-sm border-l-[3px] border-l-primary"
                         : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                       item.id === 'security' && !isActive && "text-destructive/70 hover:text-destructive"
                     )}

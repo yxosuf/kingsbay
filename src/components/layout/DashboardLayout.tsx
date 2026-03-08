@@ -1,11 +1,11 @@
- import { ReactNode, useEffect } from 'react';
- import { LogIn } from 'lucide-react';
+import { ReactNode, useEffect } from 'react';
+import { LogIn } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { AppHeader } from './AppHeader';
- import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -42,7 +42,6 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
     navigate('/auth');
   };
 
-  // Show message if user has no role assigned
   if (!role) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -72,7 +71,9 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
         <SidebarInset className="flex-1 flex flex-col min-w-0">
           <AppHeader title={title} />
           <main className="flex-1 p-3 sm:p-4 lg:p-6 bg-background overflow-x-hidden">
-            {children}
+            <div className="max-w-[1600px] mx-auto animate-page-in">
+              {children}
+            </div>
           </main>
         </SidebarInset>
       </div>

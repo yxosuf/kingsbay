@@ -208,18 +208,18 @@ export default function FrontDesk() {
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <StatCard icon={Plane} label="Today Arrivals" count={arrivals.length} color="text-emerald-500" />
-          <StatCard icon={Hotel} label="In-House" count={inHouse.length} color="text-blue-500" />
-          <StatCard icon={LogOut} label="Departures" count={departures.length} color="text-amber-500" />
-          <StatCard icon={CreditCard} label="Pending Pay" count={pendingPayments.length} color="text-rose-500" />
+          <StatCard icon={Plane} label="Today Arrivals" count={arrivals.length} color="text-success" />
+          <StatCard icon={Hotel} label="In-House" count={inHouse.length} color="text-info" />
+          <StatCard icon={LogOut} label="Departures" count={departures.length} color="text-warning" />
+          <StatCard icon={CreditCard} label="Pending Pay" count={pendingPayments.length} color="text-destructive" />
         </div>
 
         {/* Sections Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Today Arrivals */}
-          <Card>
+          <Card className="border-t-[3px] border-t-success">
             <CardHeader className="pb-3">
-              <SectionHeader icon={Plane} title="Today Arrivals" count={arrivals.length} color="text-emerald-500" />
+              <SectionHeader icon={Plane} title="Today Arrivals" count={arrivals.length} color="text-success" />
             </CardHeader>
             <CardContent className="space-y-2">
               {loading ? (
@@ -244,9 +244,9 @@ export default function FrontDesk() {
           </Card>
 
           {/* Today Departures */}
-          <Card>
+          <Card className="border-t-[3px] border-t-warning">
             <CardHeader className="pb-3">
-              <SectionHeader icon={LogOut} title="Today Departures" count={departures.length} color="text-amber-500" />
+              <SectionHeader icon={LogOut} title="Today Departures" count={departures.length} color="text-warning" />
             </CardHeader>
             <CardContent className="space-y-2">
               {loading ? (
@@ -271,9 +271,9 @@ export default function FrontDesk() {
           </Card>
 
           {/* In-House Guests */}
-          <Card>
+          <Card className="border-t-[3px] border-t-info">
             <CardHeader className="pb-3">
-              <SectionHeader icon={Hotel} title="In-House Guests" count={inHouse.length} color="text-blue-500" />
+              <SectionHeader icon={Hotel} title="In-House Guests" count={inHouse.length} color="text-info" />
             </CardHeader>
             <CardContent className="space-y-2">
               {loading ? (
@@ -303,9 +303,9 @@ export default function FrontDesk() {
           </Card>
 
           {/* Pending Payments */}
-          <Card>
+          <Card className="border-t-[3px] border-t-destructive">
             <CardHeader className="pb-3">
-              <SectionHeader icon={CreditCard} title="Pending Payments" count={pendingPayments.length} color="text-rose-500" />
+              <SectionHeader icon={CreditCard} title="Pending Payments" count={pendingPayments.length} color="text-destructive" />
             </CardHeader>
             <CardContent className="space-y-2">
               {loading ? (
