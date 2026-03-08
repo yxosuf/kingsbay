@@ -12,6 +12,7 @@ const ACCOUNTS = {
   TAX_PAYABLE: '2100',
   COMMISSION_EXPENSE: '5000',
   OTA_PAYABLE: '2200',
+  BANK_FEES: '5100',
 } as const;
 
 async function getAccountId(code: string): Promise<string | null> {
