@@ -27,6 +27,8 @@ import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
 import { ServiceSelector, SelectedService } from '@/components/booking/ServiceSelector';
 import { checkRoomAvailability } from '@/lib/availabilityCheck';
 import { countries, getDialCodeByCountry } from '@/lib/countryData';
+import { postBookingConfirmed, postPayment } from '@/lib/ledgerUtils';
+import { AlertTriangle } from 'lucide-react';
 
 const bookingSchema = z.object({
   guestName: z.string().trim().min(2, 'Guest name is required'),
