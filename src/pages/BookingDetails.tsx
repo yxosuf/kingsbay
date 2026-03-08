@@ -762,6 +762,19 @@ export default function BookingDetails() {
         />
       )}
 
+      {/* Feedback Dialog */}
+      {booking.guests && (
+        <FeedbackDialog
+          open={showFeedbackDialog}
+          onOpenChange={setShowFeedbackDialog}
+          bookingId={booking.id}
+          guestId={booking.guest_id}
+          guestName={booking.guests.name}
+          propertyId={booking.property_id}
+          onSuccess={refetchFeedback}
+        />
+      )}
+
       {/* Add Service Dialog */}
       <AddServiceDialog
         open={showAddServiceDialog}
