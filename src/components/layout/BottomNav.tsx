@@ -17,6 +17,7 @@ const primaryTabs = [
 ];
 
 const moreMenuItems = [
+  { title: 'Notifications', url: '/notifications', icon: Bell, showBadge: true },
   { title: 'Rooms', url: '/rooms', icon: BedDouble },
   { title: 'Front Desk', url: '/front-desk', icon: MonitorSmartphone },
   { title: 'Channel Manager', url: '/channels', icon: Wifi },
