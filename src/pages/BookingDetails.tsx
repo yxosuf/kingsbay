@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,6 +38,8 @@ import { FeedbackDialog } from '@/components/feedback/FeedbackDialog';
 import { FeedbackCard } from '@/components/feedback/FeedbackDisplay';
 import { useGuestFeedback } from '@/hooks/useGuestFeedback';
 import { sendGuestEmail } from '@/lib/guestEmail';
+import { calculateStayTotal, type StayTotal } from '@/lib/rateEngine';
+import { Info } from 'lucide-react';
 
 interface BookingDetailsData {
   id: string;
@@ -122,6 +124,9 @@ export default function BookingDetails() {
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState<string | null>(null);
+  const [calculatedBreakdown, setCalculatedBreakdown] = useState<StayTotal | null>(null);
+  const [ratePlanName, setRatePlanName] = useState<string | null>(null);
+  const [breakdownLoading, setBreakdownLoading] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const { fxRate } = useFxRate(booking?.property_id);
   const { feedback: bookingFeedback, refetch: refetchFeedback } = useGuestFeedback({
@@ -143,6 +148,51 @@ export default function BookingDetails() {
       fetchLinkedBookings();
     }
   }, [id]);
+
+  // Fallback: recalculate breakdown for bookings without stored price_breakdown
+  useEffect(() => {
+    if (!booking || booking.price_breakdown) return;
+    if (!booking.property_id || !booking.rooms) return;
+
+    const recalculate = async () => {
+      setBreakdownLoading(true);
+      try {
+        const result = await calculateStayTotal(
+          booking.property_id!,
+          booking.rooms!.room_type,
+          booking.rooms!.price,
+          booking.check_in,
+          booking.check_out,
+          booking.rate_plan_id,
+          booking.num_guests || 2,
+        );
+        setCalculatedBreakdown(result);
+      } catch (err) {
+        console.error('Failed to recalculate breakdown:', err);
+      } finally {
+        setBreakdownLoading(false);
+      }
+    };
+    recalculate();
+  }, [booking?.id, booking?.price_breakdown]);
+
+  // Fetch rate plan name if booking has rate_plan_id but no stored breakdown with the name
+  useEffect(() => {
+    if (!booking?.rate_plan_id) return;
+    if (booking.price_breakdown?.ratePlanName) {
+      setRatePlanName(booking.price_breakdown.ratePlanName);
+      return;
+    }
+    const fetchPlan = async () => {
+      const { data } = await supabase
+        .from('rate_plans')
+        .select('name')
+        .eq('id', booking.rate_plan_id!)
+        .maybeSingle();
+      if (data) setRatePlanName(data.name);
+    };
+    fetchPlan();
+  }, [booking?.rate_plan_id, booking?.price_breakdown]);
 
   const fetchBookingDetails = async () => {
     try {
@@ -388,6 +438,9 @@ export default function BookingDetails() {
                   <div>
                     <CardTitle className="text-lg">Room {booking.rooms?.room_number}</CardTitle>
                     <p className="text-sm text-muted-foreground capitalize">{booking.rooms?.room_type}</p>
+                    {ratePlanName && (
+                      <Badge variant="outline" className="text-xs mt-1 w-fit">{ratePlanName}</Badge>
+                    )}
                   </div>
                 </div>
               </CardHeader>
@@ -399,59 +452,80 @@ export default function BookingDetails() {
                   <InfoRow icon={DollarSign} label="Rate / Night" value={`Rs. ${booking.rooms?.price.toLocaleString()}`} />
                 </div>
 
-                {/* Nightly Price Breakdown from stored data */}
-                {booking.price_breakdown?.nights && booking.price_breakdown.nights.length > 0 && (
-                  <div className="mt-3 space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                      <DollarSign className="h-3 w-3" />
-                      Nightly Breakdown
-                      {booking.price_breakdown.ratePlanName && (
-                        <Badge variant="outline" className="text-[10px] ml-1">{booking.price_breakdown.ratePlanName}</Badge>
-                      )}
-                    </p>
-                    <div className="rounded-lg border overflow-hidden">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-muted/50 text-xs">
-                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
-                            <th className="text-right px-3 py-2 font-medium text-muted-foreground">Base Rate</th>
-                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">Adjustments</th>
-                            <th className="text-right px-3 py-2 font-medium text-muted-foreground">Final Rate</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {booking.price_breakdown.nights.map((n: any) => {
-                            const adjustments: string[] = [];
-                            if (n.override) adjustments.push('Manual Override');
-                            if (n.seasonal) adjustments.push(n.seasonal);
-                            if (n.dayOfWeek) adjustments.push('Day-of-week');
-                            if (n.occupancy) adjustments.push('Occupancy');
-                            return (
-                              <tr key={n.date} className="border-t border-border/50">
-                                <td className="px-3 py-1.5 text-muted-foreground">{n.date}</td>
-                                <td className="px-3 py-1.5 text-right">Rs. {n.basePrice.toLocaleString()}</td>
-                                <td className="px-3 py-1.5">
-                                  {adjustments.length > 0 ? (
-                                    <span className="text-xs text-primary">{adjustments.join(', ')}</span>
-                                  ) : (
-                                    <span className="text-xs text-muted-foreground">—</span>
-                                  )}
-                                </td>
-                                <td className="px-3 py-1.5 text-right font-medium">Rs. {n.finalPrice.toLocaleString()}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                    {booking.price_breakdown.discount > 0 && (
-                      <div className="flex justify-between text-sm px-1">
-                        <span className="text-muted-foreground">Discount ({booking.price_breakdown.discountCode})</span>
-                        <span className="text-success">- Rs. {booking.price_breakdown.discount.toLocaleString()}</span>
+                {/* Nightly Price Breakdown — stored or fallback recalculated */}
+                {(() => {
+                  const breakdown = booking.price_breakdown || calculatedBreakdown;
+                  const isEstimated = !booking.price_breakdown && !!calculatedBreakdown;
+                  if (!breakdown?.nights || breakdown.nights.length === 0) {
+                    if (breakdownLoading) {
+                      return (
+                        <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                          <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                          Calculating nightly breakdown…
+                        </div>
+                      );
+                    }
+                    return null;
+                  }
+                  return (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                        <DollarSign className="h-3 w-3" />
+                        Nightly Breakdown
+                        {(breakdown.ratePlanName || ratePlanName) && (
+                          <Badge variant="outline" className="text-[10px] ml-1">{breakdown.ratePlanName || ratePlanName}</Badge>
+                        )}
+                        {isEstimated && (
+                          <Badge variant="warning" className="text-[10px] ml-1 gap-0.5">
+                            <Info className="h-2.5 w-2.5" />
+                            Estimated — current rates
+                          </Badge>
+                        )}
+                      </p>
+                      <div className="rounded-lg border overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-muted/50 text-xs">
+                              <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
+                              <th className="text-right px-3 py-2 font-medium text-muted-foreground">Base Rate</th>
+                              <th className="text-left px-3 py-2 font-medium text-muted-foreground">Adjustments</th>
+                              <th className="text-right px-3 py-2 font-medium text-muted-foreground">Final Rate</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {breakdown.nights.map((n: any) => {
+                              const adjustments: string[] = [];
+                              if (n.override) adjustments.push('Manual Override');
+                              if (n.seasonal) adjustments.push(n.seasonal);
+                              if (n.dayOfWeek) adjustments.push('Day-of-week');
+                              if (n.occupancy) adjustments.push('Occupancy');
+                              return (
+                                <tr key={n.date} className="border-t border-border/50">
+                                  <td className="px-3 py-1.5 text-muted-foreground">{n.date}</td>
+                                  <td className="px-3 py-1.5 text-right">Rs. {n.basePrice.toLocaleString()}</td>
+                                  <td className="px-3 py-1.5">
+                                    {adjustments.length > 0 ? (
+                                      <span className="text-xs text-primary">{adjustments.join(', ')}</span>
+                                    ) : (
+                                      <span className="text-xs text-muted-foreground">—</span>
+                                    )}
+                                  </td>
+                                  <td className="px-3 py-1.5 text-right font-medium">Rs. {n.finalPrice.toLocaleString()}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
                       </div>
-                    )}
-                  </div>
-                )}
+                      {breakdown.discount > 0 && (
+                        <div className="flex justify-between text-sm px-1">
+                          <span className="text-muted-foreground">Discount ({breakdown.discountCode})</span>
+                          <span className="text-success">- Rs. {breakdown.discount.toLocaleString()}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
 
