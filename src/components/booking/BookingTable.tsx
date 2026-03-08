@@ -170,6 +170,11 @@ export function BookingTable({ bookings, loading, onActionComplete }: BookingTab
                 )}
               </div>
             </TableCell>
+            <TableCell>
+              {(booking as any).num_adults && (booking as any).num_children !== undefined
+                ? `${(booking as any).num_adults}A + ${(booking as any).num_children}C`
+                : `${booking.num_guests} guest${booking.num_guests !== 1 ? 's' : ''}`}
+            </TableCell>
             <TableCell>Rs. {booking.total_amount?.toLocaleString() || '0'}</TableCell>
             <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
               <BookingQuickActions booking={booking} onActionComplete={onActionComplete} compact />
