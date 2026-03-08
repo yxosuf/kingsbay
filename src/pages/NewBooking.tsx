@@ -324,6 +324,65 @@ export default function NewBooking() {
       // Update room status to reserved
       await supabase.from('rooms').update({ status: 'reserved' }).eq('id', roomId);
 
+      // Airbnb auto-pay: create invoice + payment transaction + mark as paid
+      if (bookingSource === 'airbnb' && newBooking && selectedProperty?.id) {
+        const serviceChargesTotal = calculateServicesTotal();
+        const taxRate = 0.1;
+        const taxAmt = (effectiveTotal + serviceChargesTotal) * taxRate;
+        const invoiceTotal = effectiveTotal + serviceChargesTotal + taxAmt;
+
+        // Create invoice
+        const { data: invoice } = await supabase
+          .from('invoices')
+          .insert({
+            invoice_number: `INV-${Date.now()}`,
+            booking_id: newBooking.id,
+            room_charges: effectiveTotal,
+            service_charges: serviceChargesTotal,
+            tax_amount: taxAmt,
+            total_amount: invoiceTotal,
+            payment_status: 'paid' as const,
+            created_by: user?.id,
+            property_id: selectedProperty.id,
+          })
+          .select('id')
+          .single();
+
+        // Create payment transaction
+        if (invoice) {
+          const { data: txn } = await supabase
+            .from('booking_transactions')
+            .insert({
+              booking_id: newBooking.id,
+              transaction_type: 'payment' as any,
+              amount: invoiceTotal,
+              currency: 'LKR',
+              method: 'online' as any,
+              notes: 'Airbnb prepaid',
+              created_by: user?.id,
+              property_id: selectedProperty.id,
+            })
+            .select('id')
+            .single();
+
+          // Create payment record
+          await supabase.from('payments').insert({
+            invoice_id: invoice.id,
+            amount: invoiceTotal,
+            method: 'online' as any,
+            notes: 'Airbnb prepaid',
+            property_id: selectedProperty.id,
+            received_by: user?.id,
+          });
+
+          // Post ledger entries
+          if (txn) {
+            await postBookingConfirmed(newBooking.id, effectiveTotal, serviceChargesTotal, taxAmt, selectedProperty.id, user?.id);
+            await postPayment(txn.id, invoiceTotal, 'online', selectedProperty.id, newBooking.id, user?.id);
+          }
+        }
+      }
+
       toast.success('Booking created successfully!');
       navigate('/bookings');
     } catch (error: any) {
