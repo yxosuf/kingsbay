@@ -503,10 +503,21 @@ export default function Rooms() {
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">Room {room.room_number}</CardTitle>
-                      <Badge variant="outline" className={config.color}>
-                        {config.label}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-lg">Room {room.room_number}</CardTitle>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className={`h-2 w-2 rounded-full ${
+                          derived.status === 'available' ? 'bg-success'
+                          : derived.status === 'occupied' ? 'bg-destructive'
+                          : derived.status === 'due_out' ? 'bg-warning'
+                          : derived.status === 'arriving' ? 'bg-info'
+                          : 'bg-muted-foreground'
+                        }`} />
+                        <Badge variant="outline" className={config.color}>
+                          {config.label}
+                        </Badge>
+                      </div>
                     </div>
                     <p className="text-sm text-muted-foreground capitalize">{room.room_type}</p>
                   </CardHeader>
