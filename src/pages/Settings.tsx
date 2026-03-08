@@ -507,7 +507,7 @@ export default function Settings() {
   return (
     <DashboardLayout title="Settings">
       <div className={cn(
-        "flex gap-6",
+        "flex gap-6 items-start",
         isMobile ? "flex-col" : "flex-row"
       )}>
         {/* Vertical Sidebar Navigation */}
