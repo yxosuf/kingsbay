@@ -190,12 +190,17 @@ export function ServicesSettings() {
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-        <TabsList className="w-full flex flex-wrap h-auto gap-1">
-          <TabsTrigger value="all" className="flex-1 min-w-[80px] text-xs sm:text-sm">All</TabsTrigger>
-          {Object.entries(categoryLabels).map(([key, label]) => (
-            <TabsTrigger key={key} value={key} className="flex-1 min-w-[80px] text-xs sm:text-sm">{label}</TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="overflow-x-auto -mx-1 px-1">
+          <TabsList className="inline-flex w-auto min-w-full sm:w-full h-auto gap-0.5 p-1">
+            <TabsTrigger value="all" className="px-2.5 py-1.5 text-xs sm:text-sm whitespace-nowrap">All</TabsTrigger>
+            {Object.entries(categoryLabels).map(([key, label]) => (
+              <TabsTrigger key={key} value={key} className="px-2.5 py-1.5 text-xs sm:text-sm whitespace-nowrap">
+                <span className="sm:hidden">{label}</span>
+                <span className="hidden sm:inline">{categoryLabelsFull[key as ServiceCategory]}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
         <TabsContent value={activeTab} className="mt-6">
           {loading ? (
