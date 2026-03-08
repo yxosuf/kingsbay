@@ -267,7 +267,9 @@ export function DashboardAvailabilityCalendar() {
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="font-medium">{booking.guest?.name || 'Guest'}</p>
-                                <p className="text-xs">{barType}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {booking.check_in} → {booking.check_out} · {barType}
+                                </p>
                               </TooltipContent>
                             </Tooltip>
                           );
