@@ -47,6 +47,7 @@ interface RoomAvailability {
 export function DashboardAvailabilityCalendar() {
   const navigate = useNavigate();
   const { selectedProperty } = useProperty();
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
   const [loading, setLoading] = useState(true);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
