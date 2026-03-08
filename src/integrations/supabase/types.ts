@@ -1179,13 +1179,17 @@ export type Database = {
       rooms: {
         Row: {
           amenities: string[] | null
+          assigned_to: string | null
           auto_cleaning_minutes: number | null
+          cleaning_completed_at: string | null
+          cleaning_started_at: string | null
           cleaning_until: string | null
           created_at: string
           description: string | null
           floor: number | null
           housekeeping_status: Database["public"]["Enums"]["housekeeping_status"]
           id: string
+          inspected_by: string | null
           last_checkout_at: string | null
           max_guests: number | null
           price: number
@@ -1197,13 +1201,17 @@ export type Database = {
         }
         Insert: {
           amenities?: string[] | null
+          assigned_to?: string | null
           auto_cleaning_minutes?: number | null
+          cleaning_completed_at?: string | null
+          cleaning_started_at?: string | null
           cleaning_until?: string | null
           created_at?: string
           description?: string | null
           floor?: number | null
           housekeeping_status?: Database["public"]["Enums"]["housekeeping_status"]
           id?: string
+          inspected_by?: string | null
           last_checkout_at?: string | null
           max_guests?: number | null
           price?: number
@@ -1215,13 +1223,17 @@ export type Database = {
         }
         Update: {
           amenities?: string[] | null
+          assigned_to?: string | null
           auto_cleaning_minutes?: number | null
+          cleaning_completed_at?: string | null
+          cleaning_started_at?: string | null
           cleaning_until?: string | null
           created_at?: string
           description?: string | null
           floor?: number | null
           housekeeping_status?: Database["public"]["Enums"]["housekeeping_status"]
           id?: string
+          inspected_by?: string | null
           last_checkout_at?: string | null
           max_guests?: number | null
           price?: number
@@ -1460,7 +1472,7 @@ export type Database = {
         | "expedia"
         | "other_ota"
       guest_type: "local" | "international"
-      housekeeping_status: "clean" | "dirty" | "cleaning"
+      housekeeping_status: "clean" | "dirty" | "cleaning" | "inspected"
       payment_method: "cash" | "card" | "bank_transfer" | "online"
       payment_status: "pending" | "partial" | "paid"
       property_type: "hotel" | "villa" | "resort" | "apartment" | "guesthouse"
@@ -1631,7 +1643,7 @@ export const Constants = {
         "other_ota",
       ],
       guest_type: ["local", "international"],
-      housekeeping_status: ["clean", "dirty", "cleaning"],
+      housekeeping_status: ["clean", "dirty", "cleaning", "inspected"],
       payment_method: ["cash", "card", "bank_transfer", "online"],
       payment_status: ["pending", "partial", "paid"],
       property_type: ["hotel", "villa", "resort", "apartment", "guesthouse"],

@@ -30,7 +30,7 @@ import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
 import { toDateString } from '@/lib/dateUtils';
 
 type RoomStatus = 'available' | 'occupied' | 'reserved' | 'maintenance';
-type DerivedStatus = 'occupied' | 'due_out' | 'arriving' | 'cleaning' | 'dirty' | 'maintenance' | 'available';
+type DerivedStatus = 'occupied' | 'due_out' | 'arriving' | 'cleaning' | 'dirty' | 'inspected' | 'maintenance' | 'available';
 
 interface Room {
   id: string;
@@ -63,6 +63,7 @@ const derivedStatusConfig: Record<DerivedStatus, { label: string; color: string 
   arriving: { label: 'Arriving Today', color: 'bg-info/20 text-info border-info' },
   cleaning: { label: 'Cleaning', color: 'bg-orange-500/20 text-orange-700 border-orange-500' },
   dirty: { label: 'Dirty', color: 'bg-amber-500/20 text-amber-700 border-amber-500' },
+  inspected: { label: 'Inspected', color: 'bg-blue-500/20 text-blue-700 border-blue-500' },
   maintenance: { label: 'Maintenance', color: 'bg-muted text-muted-foreground border-muted-foreground' },
   available: { label: 'Available', color: 'bg-success/20 text-success border-success' },
 };
@@ -208,6 +209,9 @@ export default function Rooms() {
     if (room.housekeeping_status === 'dirty') {
       return { status: 'dirty' };
     }
+    if (room.housekeeping_status === 'inspected') {
+      return { status: 'inspected' };
+    }
 
     return { status: 'available' };
   };
@@ -340,7 +344,7 @@ export default function Rooms() {
     cleaningCountdown: getCleaningCountdown(room),
   }));
 
-  const statusOrder: DerivedStatus[] = ['due_out', 'occupied', 'arriving', 'cleaning', 'dirty', 'maintenance', 'available'];
+  const statusOrder: DerivedStatus[] = ['due_out', 'occupied', 'arriving', 'cleaning', 'dirty', 'inspected', 'maintenance', 'available'];
 
   const statusCounts = statusOrder.reduce((acc, s) => {
     acc[s] = roomsWithDerived.filter(r => r.derived.status === s).length;

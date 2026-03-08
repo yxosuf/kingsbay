@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,7 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Search, Eye, User, Trash2, RotateCcw, Users, UserCheck, Archive, UserX } from 'lucide-react';
+import { Search, Eye, User, Trash2, RotateCcw, Users, UserCheck, Archive, UserX, GitMerge } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { useAuth } from '@/hooks/useAuth';
@@ -37,6 +38,7 @@ import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { PropertyBadge } from '@/components/layout/PropertyBadge';
 import { cn } from '@/lib/utils';
+import { DuplicateGuestDetection } from '@/components/guest/DuplicateGuestDetection';
 
 interface Guest {
   id: string;
@@ -184,6 +186,21 @@ export function GuestsSettings() {
 
   return (
     <>
+      <Tabs defaultValue="list" className="space-y-4">
+        <TabsList className="w-full sm:w-auto">
+          <TabsTrigger value="list" className="flex-1 sm:flex-none gap-1.5">
+            <Users className="h-4 w-4" />
+            <span>Guest List</span>
+          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="duplicates" className="flex-1 sm:flex-none gap-1.5">
+              <GitMerge className="h-4 w-4" />
+              <span>Duplicates</span>
+            </TabsTrigger>
+          )}
+        </TabsList>
+
+        <TabsContent value="list">
       <div className="space-y-5">
         {/* Header with property badge */}
         <div className="flex items-center justify-between">
@@ -359,6 +376,14 @@ export function GuestsSettings() {
           </CardContent>
         </Card>
       </div>
+        </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="duplicates">
+            <DuplicateGuestDetection />
+          </TabsContent>
+        )}
+      </Tabs>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>

@@ -1,53 +1,44 @@
-# Kings Bay PMS — Implementation Status & Remaining Work
+# Kings Bay PMS — Implementation Status
 
-## Summary
-
-The project has made significant progress. This plan reflects current status.
-
----
-
-## COMPLETED
+## All Completed
 
 ### Phase 1 — Critical Fixes
-
-| # | Item | Status |
-|---|------|--------|
-| 1 | **Viewer Role RLS** — `is_write_staff()`, write-restricted policies on all major tables | ✅ |
-| 2 | **Availability Calendar** — `isDateInBookingRange()` with `[check_in, check_out)` string comparison | ✅ |
-| 3 | **Hybrid Hold System** — `hold_expires_at`, `hold-timeout-release` edge function, countdown UI | ✅ |
-| 4 | **Cleaning Timer** — `cleaning_until` + `auto_cleaning_minutes`, `cleaning-timer-release` edge function | ✅ |
-| 5 | **Rooms Derived Status** — Occupied/Due Out/Arriving/Cleaning/Dirty/Clean from bookings + housekeeping | ✅ |
-| 6 | **Guests in Settings** — Tab in Settings, `/guests` redirect, guest details with booking history | ✅ |
-| 7 | **Guest Retention** — `archived_at`/`deleted_at`, `guest-retention` edge function, filters | ✅ |
-| 8 | **Nationality + Phone Code** — Country selector with dial codes, `countryData.ts` | ✅ |
-| 9 | **FX Rate System** — `CurrencyDisplay`, `useFxRate`, `fx-rate-update` edge function | ✅ |
-| 10 | **Danger Zone** — Admin-only, password confirm, per-property clear, audit logging | ✅ |
+| # | Item | ✅ |
+|---|------|----|
+| 1 | Viewer Role RLS — `is_write_staff()`, write-restricted policies | ✅ |
+| 2 | Availability Calendar — `[check_in, check_out)` string comparison | ✅ |
+| 3 | Hybrid Hold System — `hold_expires_at`, edge function, countdown UI | ✅ |
+| 4 | Cleaning Timer — `cleaning_until`, edge function, auto-release | ✅ |
+| 5 | Rooms Derived Status — Occupied/Due Out/Arriving/Cleaning/Dirty/Inspected/Clean | ✅ |
+| 6 | Guests in Settings — Tab, `/guests` redirect, guest details | ✅ |
+| 7 | Guest Retention — `archived_at`/`deleted_at`, edge function, filters | ✅ |
+| 8 | Nationality + Phone Code — Country selector, `countryData.ts` | ✅ |
+| 9 | FX Rate System — `CurrencyDisplay`, `useFxRate`, edge function | ✅ |
+| 10 | Danger Zone — Admin-only, password confirm, per-property, audit | ✅ |
 
 ### Phase 2 — Operational
-
-| # | Item | Status |
-|---|------|--------|
-| 11 | **Front Desk Speed Mode** — Arrivals/in-house/departures, quick actions | ✅ |
-| 12 | **Channel Manager** — iCal import/export, email inbound, needs_review flow | ✅ |
-| 14 | **Notifications** — Bell, preferences, create/cleanup edge functions | ✅ |
+| # | Item | ✅ |
+|---|------|----|
+| 11 | Front Desk Speed Mode — Quick actions, arrivals/departures | ✅ |
+| 12 | Channel Manager — iCal, email inbound, needs_review flow | ✅ |
+| 13 | **Housekeeping Board** — Drag-drop (Dirty→Cleaning→Clean→Inspected), staff assignment, inspected_by tracking | ✅ |
+| 14 | Notifications — Bell, preferences, edge functions | ✅ |
+| 15 | **Data Quality** — Duplicate detection (phone/email/passport/NIC), admin merge tool | ✅ |
 
 ### Phase 3 — Finance
-
-| # | Item | Status |
-|---|------|--------|
-| 16 | **Booking Transactions Ledger** — `booking_transactions` table, TransactionsTab | ✅ |
-| 17 | **Accounting Layer** — `ledger_accounts/entries/lines`, auto-posting, FinancialSummary | ✅ |
+| # | Item | ✅ |
+|---|------|----|
+| 16 | Booking Transactions Ledger — `booking_transactions`, TransactionsTab | ✅ |
+| 17 | Accounting Layer — `ledger_accounts/entries/lines`, auto-posting | ✅ |
 
 ### Phase 4
+| # | Item | ✅ |
+|---|------|----|
+| 18 | System Health Monitor — `/settings?tab=system-health`, admin checks | ✅ |
 
-| # | Item | Status |
-|---|------|--------|
-| 18 | **System Health Monitor** — `/settings?tab=system-health`, admin-only checks | ✅ |
-
-### Additional (Not in Original Plan)
-
-| Item | Status |
-|------|--------|
+### Additional
+| Item | ✅ |
+|------|----|
 | Guest Email System (Resend) | ✅ |
 | Guest Feedback System | ✅ |
 | Printable Invoice | ✅ |
@@ -55,24 +46,20 @@ The project has made significant progress. This plan reflects current status.
 | Extend Stay / Move Room | ✅ |
 | Add Service Dialog | ✅ |
 | Reports (Occupancy, Revenue, Financial, Feedback) | ✅ |
-| Mobile Responsive (bottom nav, responsive tables/tabs) | ✅ |
+| Mobile Responsive | ✅ |
 
 ---
 
-## Remaining
+## Verification Items
 
-| # | Item | Status | Notes |
-|---|------|--------|-------|
-| 13 | **Housekeeping Board** | TODO | Drag-drop status transitions, assigned_to, inspected_by |
-| 15 | **Data Quality System** | TODO | Duplicate detection, merge tool, improved search |
-| — | **Guest Details: Services Purchased** | VERIFY | Confirm totals shown per booking |
-| — | **Passport Photo Upload** | VERIFY | Secure storage verification needed |
+| Item | Status | Notes |
+|------|--------|-------|
+| Guest Details: Services Purchased | VERIFY | Confirm totals shown per booking |
+| Passport Photo Upload | VERIFY | Secure storage verification needed |
+| Guest Email E2E | VERIFY | Create booking → verify Resend sends email |
 
 ---
 
-## Next Priorities
+## All Plan Items Complete ✅
 
-1. Housekeeping Board (Dirty → Cleaning → Clean → Inspected)
-2. Data Quality (duplicate detection + merge)
-3. Guest Detail verification (services purchased totals)
-4. E2E testing of scheduled edge functions
+No remaining TODO items. Only verification tasks remain.

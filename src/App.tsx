@@ -21,6 +21,7 @@ import Properties from "./pages/Properties";
 import ChannelManager from "./pages/ChannelManager";
 import AvailabilityCalendar from "./pages/AvailabilityCalendar";
 import FrontDesk from "./pages/FrontDesk";
+import Housekeeping from "./pages/Housekeeping";
 import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
 
@@ -52,6 +53,7 @@ const App = () => (
               <Route path="/channels" element={<ChannelManager />} />
               <Route path="/availability" element={<AvailabilityCalendar />} />
               <Route path="/front-desk" element={<FrontDesk />} />
+              <Route path="/housekeeping" element={<Housekeeping />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

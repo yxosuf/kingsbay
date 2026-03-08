@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, CalendarDays, BookOpen, Plus, MoreHorizontal, BedDouble, MonitorSmartphone, Building2, Settings, LogOut, Wifi, Bell } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, BookOpen, Plus, MoreHorizontal, BedDouble, MonitorSmartphone, Building2, Settings, LogOut, Wifi, Bell, SprayCan } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -20,6 +20,7 @@ const primaryTabs = [
 const moreMenuItems = [
   { title: 'Notifications', url: '/notifications', icon: Bell, showBadge: true },
   { title: 'Rooms', url: '/rooms', icon: BedDouble },
+  { title: 'Housekeeping', url: '/housekeeping', icon: SprayCan },
   { title: 'Front Desk', url: '/front-desk', icon: MonitorSmartphone },
   { title: 'Channel Manager', url: '/channels', icon: Wifi },
   { title: 'Properties', url: '/properties', icon: Building2, adminOnly: true },

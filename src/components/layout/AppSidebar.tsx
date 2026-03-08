@@ -8,6 +8,7 @@ import {
   LogOut,
   Building2,
   MonitorSmartphone,
+  SprayCan,
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -37,6 +38,7 @@ const mainNavItems = [
   { title: 'New Booking', url: '/bookings/new', icon: CalendarPlus },
   { title: 'Bookings', url: '/bookings', icon: BookOpen },
   { title: 'Room Status', url: '/rooms', icon: BedDouble },
+  { title: 'Housekeeping', url: '/housekeeping', icon: SprayCan },
   { title: 'Availability', url: '/availability', icon: CalendarPlus },
 ];
 
