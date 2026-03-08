@@ -847,6 +847,24 @@ export default function NewBooking() {
                       <span>Room Total ({stayBreakdown.nights.length} night{stayBreakdown.nights.length > 1 ? 's' : ''})</span>
                       <span>Rs. {stayBreakdown.subtotal.toLocaleString()}</span>
                     </div>
+                    {stayBreakdown.discount > 0 && (
+                      <div className="flex justify-between text-sm text-success">
+                        <span>Discount ({stayBreakdown.discountCode})</span>
+                        <span>- Rs. {stayBreakdown.discount.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {stayBreakdown.discount > 0 && (
+                      <div className="flex justify-between text-sm font-bold">
+                        <span>After Discount</span>
+                        <span>Rs. {stayBreakdown.total.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {stayBreakdown.nights.some(n => n.closed) && (
+                      <div className="flex items-center gap-2 text-destructive text-xs mt-1 p-2 bg-destructive/10 rounded">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Room is closed for one or more selected dates
+                      </div>
+                    )}
                   </div>
                 )}
 
