@@ -340,7 +340,7 @@ export default function BookingDetails() {
             Back to Bookings
           </Button>
           <div className="flex flex-wrap gap-2">
-            {(booking.status === 'checked_in' || booking.status === 'confirmed') && (
+            {canWrite && (booking.status === 'checked_in' || booking.status === 'confirmed') && (
               <>
                 <Button variant="outline" onClick={() => setShowAddServiceDialog(true)}>
                   <Plus className="h-4 w-4 mr-2" />
