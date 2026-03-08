@@ -1,76 +1,146 @@
+# Lovable Hotel Management – Master Implementation Plan
+
+## 1. Core Rate Engine & Pricing System
+
+### Current Capabilities
+
+- `rateEngine.ts` handles base rates, seasonal rules, day-of-week rules, and discount codes
+- NewBooking integrates `calculateStayTotal` and shows nightly breakdown
+- Rate plan selector and single-cell override editing in Rate Calendar
+
+### Missing / To Add
+
+1. **Bulk Rate Editing**
+  - Date range selection → increase/decrease by % or set absolute price
+  - Close/open dates
+  - Upsert to `rate_overrides`
+2. **Occupancy-Based Dynamic Pricing**
+  - New `occupancy_pricing_rules` table
+  - `calculateNightRate` considers occupancy thresholds
+3. **Audit Logging**
+  - Log all rate plan / discount / override changes in `rate_change_logs`
+  - New “Change Log” tab in Rate Management Settings
+
+**Files / Tables**
 
 
-# Full System Audit — All Features Verified
+| File                                                 | Action                                                                    |
+| ---------------------------------------------------- | ------------------------------------------------------------------------- |
+| `src/lib/rateEngine.ts`                              | Occupancy modifiers, discount handling                                    |
+| `src/pages/RateCalendar.tsx`                         | Bulk editing UI                                                           |
+| `src/components/settings/RateManagementSettings.tsx` | Tabs: Rate Plans, Seasonal, Day of Week, Discounts, Occupancy, Change Log |
+| DB                                                   | `rate_overrides`, `occupancy_pricing_rules`, `rate_change_logs`           |
 
-After inspecting the codebase, database triggers, RLS policies, and all guest portal files, here is the complete verification:
 
 ---
 
-## Core System (18 Phases) — All Pass
+## 2. Walk-In Booking (Front Desk)
 
-| Area | Status | Evidence |
-|------|--------|----------|
-| Date logic `[check_in, check_out)` | Pass | GuestBooking.tsx line 113: `.gt('check_out', checkIn)` + `.lt('check_in', checkOut)` |
-| Booking overlap prevention | Pass | DB trigger `trigger_prevent_booking_overlap` confirmed active |
-| Property isolation | Pass | All queries filter by `property_id` |
-| Role system (admin/manager/front_desk/viewer) | Pass | `is_staff()`, `is_write_staff()`, `is_admin()` functions + RLS |
-| Viewer read-only | Pass | `canWrite` guard across pages |
-| FX rate system | Pass | `CurrencyDisplay`, `useFxRate`, `fx-rate-update` edge function |
-| Guest retention | Pass | `guest-retention` edge function, `archived_at`/`deleted_at` columns |
-| Danger zone | Pass | `DangerZoneSettings.tsx`, `clear_property_data()` function |
-| Front desk | Pass | Arrivals, in-house, departures, pending payments |
-| Channel manager | Pass | iCal import/export, email inbound, needs_review |
-| Housekeeping | Pass | Board with status transitions, cleaning timer |
-| Notifications | Pass | Bell, realtime, role-based filtering |
-| Ledger accounting | Pass | Double-entry system, `ledger_entries`/`ledger_lines` |
-| System health | Pass | 7 check modules in settings |
-| Rate engine | Pass | Seasonal, day-of-week, occupancy rules, discount codes |
-| Rate calendar | Pass | Bulk edit + overrides |
-| Walk-in booking | Pass | `?walkin=true`, check-in immediately, redirect to `/front-desk` |
-| Booking transactions | Pass | `TransactionsTab.tsx` |
+### Key Features
+
+- "Walk-in Guest" button in **Front Desk page**
+- `/bookings/new?walkin=true` pre-fills check-in date as today, sets status `checked_in`
+- Auto-set room `housekeeping_status = 'occupied'`
+- Optional toggle “Check-in Immediately”
+
+**Files / Changes**
+
+
+| File                       | Action                                       |
+| -------------------------- | -------------------------------------------- |
+| `src/pages/NewBooking.tsx` | Walk-in detection, toggle, auto-set check-in |
+| `src/pages/FrontDesk.tsx`  | Add "Walk-in Guest" button                   |
+
 
 ---
 
-## Guest Self-Service Portal — All Pass
+## 3. Guest Self-Service Portal
 
-| Feature | Status | Evidence |
-|---------|--------|----------|
-| Registration | Pass | `GuestRegister.tsx` with Zod validation, `user_type: 'guest'` metadata |
-| Auto guest profile creation | Pass | DB trigger `on_guest_signup` on `auth.users` confirmed active |
-| Login | Pass | `GuestLogin.tsx` with redirect logic for guest vs staff |
-| Password reset | Pass | `GuestResetPassword.tsx` with recovery hash detection |
-| Dashboard | Pass | Profile edit, upcoming bookings, history, "Book Now" CTA |
-| Booking wizard | Pass | 4-step flow: dates → room → rate/discount → confirm |
-| Booking details | Pass | Nightly breakdown, discount display, rate plan info |
-| Confirmation email | Pass | `guest-email` edge function invoked after booking |
-| `is_guest()` function | Pass | Confirmed in DB |
-| Guest RLS policies | Pass | 16 policies across bookings, rooms, rate_plans, properties, discount_codes, etc. |
-| Guest layout | Pass | Separate header, no staff sidebar, sign-out, nav links |
-| Staff ↔ Guest isolation | Pass | `DashboardLayout` redirects guests to `/guest/dashboard`; `GuestLayout` redirects staff to `/` |
-| Auth page cross-links | Pass | Staff auth has "Guest portal →" link; guest pages have "Staff login →" link |
+### Features
 
----
+- Registration, login, password reset
+- Dashboard: upcoming bookings, booking history, profile edit
+- Booking flow: select property → date → room → rate plan → discount → confirm
 
-## Database Triggers — All Active (32 triggers confirmed)
+### Database & Auth
 
-Key triggers verified via `pg_trigger`:
-- `on_auth_user_created` (profiles)
-- `on_guest_signup` (guest auto-creation)
-- `trigger_prevent_booking_overlap`
-- `validate_booking_dates_trigger`
-- `validate_booking_property_match_trigger`
-- `trg_booking_notification`
-- Rate audit triggers on rate_plans, seasonal_rules, day_of_week_rules, rate_overrides, discount_codes
+1. `auth_user_id` in `guests` table
+2. RLS policies: guests access only their own bookings/guest info, public rooms/rates
+3. DB trigger: auto-create guest profile on registration
 
----
+**Pages / Files**
 
-## Edge Functions — All 12 Present
 
-`hold-timeout-release`, `cleaning-timer-release`, `guest-retention`, `guest-email`, `fx-rate-update`, `ical-export`, `ical-import`, `channel-sync`, `booking-email-inbound`, `passport-upload`, `passport-view`, `passport-delete`
+| Route                   | Component               | Purpose               |
+| ----------------------- | ----------------------- | --------------------- |
+| `/guest/register`       | GuestRegister.tsx       | Sign up               |
+| `/guest/login`          | GuestLogin.tsx          | Login                 |
+| `/guest/dashboard`      | GuestDashboard.tsx      | View bookings/profile |
+| `/guest/book`           | GuestBooking.tsx        | Booking flow          |
+| `/guest/bookings/:id`   | GuestBookingDetails.tsx | View single booking   |
+| `/guest/reset-password` | GuestResetPassword.tsx  | Password reset        |
+| `GuestLayout.tsx`       | Layout                  | Guest UI              |
+
+
+**Auth Changes**
+
+- `isGuest` flag in `useAuth.tsx`
+- Separate guest vs staff login entry points
 
 ---
 
-## Conclusion
+## 4. OTA / Channel Integrations (Stub / Future)
 
-**All 18 plan phases + guest portal + walk-in flow are 100% implemented and verified.** No missing features, no broken wiring, no code changes needed.
+### Features
 
+- New **OTA Sync** tab under Rate Management
+- DB Table: `ota_integrations` with `api_key`, `status`, `last_rate_push_at`
+- Stub implementation (`StubChannelIntegration`) logs actions, ready for real API integration
+- “Fake OTA Mode”: generate test bookings to validate rate engine & overbooking prevention
+
+**Files / Changes**
+
+
+| File                                                 | Action                        |
+| ---------------------------------------------------- | ----------------------------- |
+| `src/components/settings/RateManagementSettings.tsx` | Add OTA Sync tab              |
+| `src/components/settings/OtaSyncTab.tsx`             | Full tab UI                   |
+| `src/lib/channelIntegration.ts`                      | Stub integration service      |
+| DB                                                   | `ota_integrations` table, RLS |
+
+
+---
+
+## 5. Booking & Discount Management
+
+- Discount codes applied in **rateEngine** & NewBooking
+- Closed dates block booking submissions
+- BookingDetails shows **nightly breakdown** and discount info
+
+---
+
+## 6. Security & RLS Policies
+
+- Guests: read/write only their own data, read-only for public rooms/rates
+- Staff: normal operations, admin has full CRUD
+- OTA keys: masked display, optional future integration
+- Passwords: handled by auth provider
+
+---
+
+## 7. Suggested Future Features
+
+- Channel rate sync to live OTAs ([Booking.com](http://Booking.com), Airbnb, Expedia)
+- Length-of-stay discounts / derived rate plans
+- Guest check-in/check-out via portal
+- Analytics & reporting dashboard
+- Mobile-friendly guest portal
+
+---
+
+### ✅ Implementation Notes
+
+1. **Feature toggles** for OTA API integration (disabled by default)
+2. **Testing & simulation**: fake OTA bookings + walk-in bookings
+3. **Unified master layout**: maintain separation for staff vs guest
+4. **Audit logging** for all rate changes
