@@ -907,6 +907,25 @@ export default function NewBooking() {
                   </Select>
                 </div>
 
+                {/* Discount Code */}
+                {bookingSource === 'direct' && (
+                  <div className="space-y-2">
+                    <Label>Discount Code</Label>
+                    <Input
+                      value={discountCode}
+                      onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                      placeholder="e.g. SUMMER20"
+                      className="font-mono"
+                    />
+                    {discountError && (
+                      <p className="text-xs text-destructive">{discountError}</p>
+                    )}
+                    {stayBreakdown?.discountCode && (
+                      <p className="text-xs text-success">✓ Discount applied: {stayBreakdown.discountCode}</p>
+                    )}
+                  </div>
+                )}
+
                 {/* Booking Source */}
                 <div className="space-y-2">
                   <Label>Booking Source *</Label>
