@@ -23,8 +23,11 @@ import {
   LogOut,
   Cloud,
   TrendingUp,
+  TrendingDown,
+  Minus,
   CalendarCheck,
   Sun,
+  AlertTriangle,
 } from 'lucide-react';
 import { DashboardAvailabilityCalendar } from '@/components/dashboard/DashboardAvailabilityCalendar';
 import { supabase } from '@/integrations/supabase/client';
@@ -59,6 +62,8 @@ interface WeatherData {
 interface ExchangeRate {
   usdToLkr: number;
   updatedAt: string | null;
+  previousRate: number | null;
+  isStale: boolean;
 }
 
 export default function Dashboard() {
@@ -218,13 +223,23 @@ export default function Dashboard() {
         const rate = (data as any)?.fx_usd_lkr_rate;
         const updatedAt = (data as any)?.fx_updated_at;
         if (rate) {
-          setExchangeRate({ usdToLkr: Number(rate), updatedAt: updatedAt || null });
+          const currentRate = Number(rate);
+          const prevRate = exchangeRate?.usdToLkr ?? null;
+          const isStale = updatedAt 
+            ? (Date.now() - new Date(updatedAt).getTime()) > 2 * 60 * 60 * 1000 
+            : true;
+          setExchangeRate({ 
+            usdToLkr: currentRate, 
+            updatedAt: updatedAt || null,
+            previousRate: prevRate !== currentRate ? prevRate : exchangeRate?.previousRate ?? null,
+            isStale,
+          });
           return;
         }
       }
-      setExchangeRate({ usdToLkr: 309.06, updatedAt: null });
+      setExchangeRate({ usdToLkr: 309.06, updatedAt: null, previousRate: null, isStale: false });
     } catch {
-      setExchangeRate({ usdToLkr: 309.06, updatedAt: null });
+      setExchangeRate({ usdToLkr: 309.06, updatedAt: null, previousRate: null, isStale: false });
     }
   };
 
@@ -559,16 +574,42 @@ export default function Dashboard() {
             </Card>
 
             {/* Exchange Rate Widget */}
-            <Card className="overflow-hidden">
+            <Card className={cn("overflow-hidden", exchangeRate?.isStale && "border-warning/50")}>
               <CardContent className="p-4 sm:p-6">
+                {exchangeRate?.isStale && (
+                  <div className="flex items-center gap-1.5 mb-2 text-warning">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    <span className="text-[10px] sm:text-xs font-medium">Rate is stale</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <div className="min-w-0">
                     <p className="text-xs sm:text-sm text-muted-foreground font-medium">USD → LKR</p>
-                    <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
-                      Rs. {exchangeRate?.usdToLkr?.toFixed(2) || '--'}
-                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-xl sm:text-2xl font-bold text-foreground">
+                        Rs. {exchangeRate?.usdToLkr?.toFixed(2) || '--'}
+                      </p>
+                      {exchangeRate?.previousRate != null && exchangeRate.previousRate !== exchangeRate.usdToLkr && (
+                        <div className={cn(
+                          "flex items-center gap-0.5 text-xs font-medium px-1.5 py-0.5 rounded-full",
+                          exchangeRate.usdToLkr > exchangeRate.previousRate 
+                            ? "text-success bg-success/10" 
+                            : "text-destructive bg-destructive/10"
+                        )}>
+                          {exchangeRate.usdToLkr > exchangeRate.previousRate ? (
+                            <TrendingUp className="h-3 w-3" />
+                          ) : (
+                            <TrendingDown className="h-3 w-3" />
+                          )}
+                          <span>{Math.abs(exchangeRate.usdToLkr - exchangeRate.previousRate).toFixed(2)}</span>
+                        </div>
+                      )}
+                    </div>
                     {exchangeRate?.updatedAt ? (
-                      <p className="text-[10px] sm:text-xs text-muted-foreground/70 mt-1">
+                      <p className={cn(
+                        "text-[10px] sm:text-xs mt-1",
+                        exchangeRate.isStale ? "text-warning" : "text-muted-foreground/70"
+                      )}>
                         Updated {(() => {
                           const mins = Math.round((Date.now() - new Date(exchangeRate.updatedAt).getTime()) / 60000);
                           if (mins < 1) return 'just now';
@@ -582,8 +623,15 @@ export default function Dashboard() {
                       <p className="text-[10px] sm:text-xs text-muted-foreground/70 hidden sm:block mt-1">Auto-updates hourly</p>
                     )}
                   </div>
-                  <div className="p-2.5 sm:p-3 rounded-xl bg-success/10 shrink-0">
-                    <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-success" />
+                  <div className={cn(
+                    "p-2.5 sm:p-3 rounded-xl shrink-0",
+                    exchangeRate?.isStale ? "bg-warning/10" : "bg-success/10"
+                  )}>
+                    {exchangeRate?.isStale ? (
+                      <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 text-warning" />
+                    ) : (
+                      <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-success" />
+                    )}
                   </div>
                 </div>
               </CardContent>
