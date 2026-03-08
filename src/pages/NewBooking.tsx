@@ -16,7 +16,8 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, Search, Plus, User, AlertTriangle } from 'lucide-react';
-import { format, differenceInDays, startOfDay } from 'date-fns';
+import { format, differenceInDays, startOfDay, eachDayOfInterval, addMonths } from 'date-fns';
+import { parseLocalDate, toDateString } from '@/lib/dateUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useProperty } from '@/hooks/useProperty';
