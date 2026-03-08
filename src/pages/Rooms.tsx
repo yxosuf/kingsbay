@@ -30,7 +30,7 @@ import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
 import { toDateString } from '@/lib/dateUtils';
 
 type RoomStatus = 'available' | 'occupied' | 'reserved' | 'maintenance';
-type DerivedStatus = 'occupied' | 'due_out' | 'arriving' | 'cleaning' | 'dirty' | 'maintenance' | 'available';
+type DerivedStatus = 'occupied' | 'due_out' | 'arriving' | 'cleaning' | 'dirty' | 'inspected' | 'maintenance' | 'available';
 
 interface Room {
   id: string;
