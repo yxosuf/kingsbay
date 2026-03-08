@@ -84,10 +84,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserData = async (userId: string) => {
     try {
-      // Fetch role + profile in parallel
-      const [{ data: roleData }, { data: profileData }] = await Promise.all([
+      // Fetch role + profile + guest link in parallel
+      const [{ data: roleData }, { data: profileData }, { data: guestData }] = await Promise.all([
         supabase.from('user_roles').select('role').eq('user_id', userId).single(),
         supabase.from('profiles').select('full_name, email').eq('id', userId).single(),
+        supabase.from('guests').select('id').eq('auth_user_id', userId).maybeSingle(),
       ]);
 
       if (roleData) {
@@ -96,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (profileData) {
         setProfile(profileData);
       }
+      setGuestId(guestData?.id ?? null);
     } catch (error) {
       console.error('Error fetching user data:', error);
     } finally {
