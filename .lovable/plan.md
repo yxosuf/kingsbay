@@ -1,51 +1,137 @@
-# Kings Bay PMS — Implementation Complete ✅
+# Walk-In Booking Feature
 
-All plan items have been implemented and verified.
+## Current State
 
-## Phase 1 — Critical Fixes ✅
-| # | Item |
-|---|------|
-| 1 | Viewer Role RLS — `is_write_staff()`, write-restricted policies |
-| 2 | Availability Calendar — `[check_in, check_out)` string comparison |
-| 3 | Hybrid Hold System — `hold_expires_at`, edge function, countdown UI |
-| 4 | Cleaning Timer — `cleaning_until`, edge function, auto-release |
-| 5 | Rooms Derived Status — Occupied/Due Out/Arriving/Cleaning/Dirty/Inspected/Clean |
-| 6 | Guests in Settings — Tab, `/guests` redirect, guest details with services |
-| 7 | Guest Retention — `archived_at`/`deleted_at`, edge function, filters |
-| 8 | Nationality + Phone Code — Country selector, `countryData.ts` |
-| 9 | FX Rate System — `CurrencyDisplay`, `useFxRate`, edge function |
-| 10 | Danger Zone — Admin-only, password confirm, per-property, audit |
+The system already includes:
 
-## Phase 2 — Operational ✅
-| # | Item |
-|---|------|
-| 11 | Front Desk Speed Mode — Quick actions, arrivals/departures |
-| 12 | Channel Manager — iCal, email inbound, needs_review flow |
-| 13 | Housekeeping Board — Drag-drop (Dirty→Cleaning→Clean→Inspected), staff assignment |
-| 14 | Notifications — Bell, preferences, edge functions |
-| 15 | Data Quality — Duplicate detection (phone/email/passport/NIC), admin merge tool |
+- Guest profiles with search and history
+- Booking creation wizard (`/bookings/new`)
+- Front Desk page (`/front-desk`)
+- Rate engine pricing
 
-## Phase 3 — Finance ✅
-| # | Item |
-|---|------|
-| 16 | Booking Transactions Ledger — `booking_transactions`, TransactionsTab |
-| 17 | Accounting Layer — `ledger_accounts/entries/lines`, auto-posting |
+The goal is to create a **streamlined walk-in flow** allowing front desk staff to check in a guest immediately.
 
-## Phase 4 ✅
-| # | Item |
-|---|------|
-| 18 | System Health Monitor — `/settings?tab=system-health`, admin checks |
+---
 
-## Additional Features ✅
-- Guest Email System (Resend) — booking_confirmation, pre_arrival, checkout_summary
-- Guest Feedback System — dialog, display, reports, dashboard widget
-- Printable Invoice — react-to-print
-- PWA Support — service worker, manifest
-- Extend Stay / Move Room dialogs
-- Add Service Dialog with category filtering
-- Reports (Occupancy, Revenue, Financial, Feedback)
-- Mobile Responsive — bottom nav, responsive tables/tabs
-- Passport Photo Upload — secure storage in guest-documents bucket
-- Guest Details — services purchased with totals, VIP/blacklist badges
+# Walk-In Mode
 
-## All items verified and complete. No remaining work.
+Walk-in mode is activated using:
+
+/bookings/new?walkin=true
+
+---
+
+# Walk-In Mode Behavior
+
+When `walkin=true` is present:
+
+1. Page title becomes **"Walk-in Booking"**
+2. Check-in date auto-set to **today**
+3. Check-out date defaults to **tomorrow (1 night stay)**
+4. "Check-in Immediately" toggle defaults to **ON**
+5. Booking source auto-set to **direct**
+6. Default rate plan = **Standard Rate**
+7. Focus starts on **Guest Search/Create**
+
+---
+
+# Guest Creation
+
+Guest creation should support a **quick entry form**:
+
+Required fields:
+
+- First name
+- Last name
+- Phone
+
+Optional fields:
+
+- Email
+- Nationality
+- ID number
+- Notes
+
+If phone number already exists, prompt to select the existing guest.
+
+---
+
+# Room Selection Rules
+
+When in walk-in mode:
+
+Room selection must only show rooms that are:
+
+- available today
+- not occupied
+- not out_of_order
+- not already reserved for the selected stay
+
+---
+
+# Check-In Immediately Toggle
+
+Add a switch at the booking summary step:
+
+"Check-in Immediately"
+
+If enabled:
+
+booking.status = 'checked_in'  
+booking.checked_in_at = current timestamp
+
+---
+
+# Room Housekeeping Status
+
+If the booking is checked in immediately:
+
+Update assigned room:
+
+housekeeping_status = 'occupied'
+
+---
+
+# Entry Points
+
+Front Desk page should include a prominent button:
+
+"Walk-in Guest"
+
+Link:
+
+/bookings/new?walkin=true
+
+---
+
+# After Booking Creation
+
+If booking was created in walk-in mode:
+
+Redirect to:
+
+/front-desk
+
+so the guest appears in the **In-House list immediately**.
+
+---
+
+# Files Modified
+
+src/pages/NewBooking.tsx
+
+- Walk-in mode detection
+- Default stay dates
+- Check-in Immediately toggle
+- Room availability filtering
+
+src/pages/FrontDesk.tsx
+
+- Add "Walk-in Guest" button
+
+No database changes required because the existing fields:
+
+bookings.status  
+bookings.checked_in_at
+
+already support this flow.
