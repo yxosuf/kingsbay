@@ -148,6 +148,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isFrontDesk: role === 'front_desk',
     isViewer: role === 'viewer',
     canWrite: role !== null && role !== 'viewer',
+    isGuest: role === null && guestId !== null,
+    guestId,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
