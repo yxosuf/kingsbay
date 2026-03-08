@@ -19,11 +19,13 @@ import {
   UserX,
   CalendarPlus,
   ArrowRightLeft,
+  Banknote,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { MoveRoomDialog } from './MoveRoomDialog';
+import { PaymentDialog } from './PaymentDialog';
 
 interface FrontDeskBooking {
   id: string;
@@ -37,6 +39,7 @@ interface FrontDeskBooking {
   booking_source: string;
   guests: { name: string; phone: string | null } | null;
   rooms: { room_number: string; room_type: string } | null;
+  invoices?: { id: string; total_amount: number; payment_status: string }[];
 }
 
 interface BookingCardProps {
