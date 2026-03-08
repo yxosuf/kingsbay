@@ -303,9 +303,9 @@ export default function FrontDesk() {
           </Card>
 
           {/* Pending Payments */}
-          <Card>
+          <Card className="border-t-[3px] border-t-destructive">
             <CardHeader className="pb-3">
-              <SectionHeader icon={CreditCard} title="Pending Payments" count={pendingPayments.length} color="text-rose-500" />
+              <SectionHeader icon={CreditCard} title="Pending Payments" count={pendingPayments.length} color="text-destructive" />
             </CardHeader>
             <CardContent className="space-y-2">
               {loading ? (

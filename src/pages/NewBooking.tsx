@@ -750,45 +750,36 @@ export default function NewBooking() {
             onServicesChange={setSelectedServices}
           />
 
-          {/* Summary & Submit */}
-          <Card>
-            <CardContent className="pt-6">
+          {/* Sticky Summary Footer */}
+          <Card className="sticky bottom-4 z-20 shadow-lg border-primary/20 step-connector">
+            <CardContent className="py-4">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                  {selectedRoom && checkIn && checkOut && (
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">
-                        Room {selectedRoom.room_number} × {differenceInDays(checkOut, checkIn)}{' '}
-                        nights
-                      </p>
-                      <p className="text-lg">
-                        Room: Rs. {getEffectiveTotal().toLocaleString()}
-                      </p>
-                      {selectedServices.length > 0 && (
+                <div className="flex items-center gap-4">
+                  <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold shrink-0">4</div>
+                  <div>
+                    {selectedRoom && checkIn && checkOut ? (
+                      <div className="space-y-0.5">
                         <p className="text-sm text-muted-foreground">
-                          + Services: Rs. {calculateServicesTotal().toLocaleString()}
+                          Room {selectedRoom.room_number} × {differenceInDays(checkOut, checkIn)} nights
+                          {selectedServices.length > 0 && ` + ${selectedServices.length} service${selectedServices.length > 1 ? 's' : ''}`}
                         </p>
-                      )}
-                      <p className="text-2xl font-bold">
-                        Total: Rs. {getGrandTotal().toLocaleString()}
-                      </p>
-                      {bookingSource !== 'direct' && getOtaNetPrice() !== null && (
-                        <p className="text-sm text-success">
-                          Net after commission: Rs. {getOtaNetPrice()?.toLocaleString()}
+                        <p className="text-2xl font-bold">
+                          Rs. {getGrandTotal().toLocaleString()}
                         </p>
-                      )}
-                    </div>
-                  )}
+                        {bookingSource !== 'direct' && getOtaNetPrice() !== null && (
+                          <p className="text-xs text-success">Net: Rs. {getOtaNetPrice()?.toLocaleString()}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-sm">Complete the form to see total</p>
+                    )}
+                  </div>
                 </div>
-                <div className="flex gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => navigate('/bookings')}
-                  >
+                <div className="flex gap-3 w-full sm:w-auto">
+                  <Button type="button" variant="outline" onClick={() => navigate('/bookings')} className="flex-1 sm:flex-none">
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={loading}>
+                  <Button type="submit" disabled={loading} className="flex-1 sm:flex-none">
                     {loading ? 'Creating...' : 'Create Booking'}
                   </Button>
                 </div>
