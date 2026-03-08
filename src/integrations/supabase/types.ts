@@ -789,34 +789,52 @@ export type Database = {
       }
       notifications: {
         Row: {
+          action_entity_id: string | null
+          action_type: string | null
+          category: string
           created_at: string
+          expires_at: string | null
           id: string
           is_read: boolean
           link: string | null
           message: string | null
+          priority: string
           property_id: string | null
+          target_roles: string[] | null
           title: string
           type: string
           user_id: string | null
         }
         Insert: {
+          action_entity_id?: string | null
+          action_type?: string | null
+          category?: string
           created_at?: string
+          expires_at?: string | null
           id?: string
           is_read?: boolean
           link?: string | null
           message?: string | null
+          priority?: string
           property_id?: string | null
+          target_roles?: string[] | null
           title: string
           type?: string
           user_id?: string | null
         }
         Update: {
+          action_entity_id?: string | null
+          action_type?: string | null
+          category?: string
           created_at?: string
+          expires_at?: string | null
           id?: string
           is_read?: boolean
           link?: string | null
           message?: string | null
+          priority?: string
           property_id?: string | null
+          target_roles?: string[] | null
           title?: string
           type?: string
           user_id?: string | null
@@ -1281,6 +1299,13 @@ export type Database = {
       is_staff: { Args: never; Returns: boolean }
       is_viewer: { Args: never; Returns: boolean }
       is_write_staff: { Args: never; Returns: boolean }
+      user_has_notification_access: {
+        Args: {
+          notification_property_id: string
+          notification_target_roles: string[]
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       account_type: "asset" | "liability" | "equity" | "revenue" | "expense"
