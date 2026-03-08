@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.guest-retention]
 verify_jwt = false
+
+[functions.guest-email]
+verify_jwt = false
