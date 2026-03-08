@@ -1,28 +1,51 @@
+# Kings Bay PMS — Implementation Complete ✅
 
+All plan items have been implemented and verified.
 
-# Create `flows.md` Documentation File
+## Phase 1 — Critical Fixes ✅
+| # | Item |
+|---|------|
+| 1 | Viewer Role RLS — `is_write_staff()`, write-restricted policies |
+| 2 | Availability Calendar — `[check_in, check_out)` string comparison |
+| 3 | Hybrid Hold System — `hold_expires_at`, edge function, countdown UI |
+| 4 | Cleaning Timer — `cleaning_until`, edge function, auto-release |
+| 5 | Rooms Derived Status — Occupied/Due Out/Arriving/Cleaning/Dirty/Inspected/Clean |
+| 6 | Guests in Settings — Tab, `/guests` redirect, guest details with services |
+| 7 | Guest Retention — `archived_at`/`deleted_at`, edge function, filters |
+| 8 | Nationality + Phone Code — Country selector, `countryData.ts` |
+| 9 | FX Rate System — `CurrencyDisplay`, `useFxRate`, edge function |
+| 10 | Danger Zone — Admin-only, password confirm, per-property, audit |
 
-## What
+## Phase 2 — Operational ✅
+| # | Item |
+|---|------|
+| 11 | Front Desk Speed Mode — Quick actions, arrivals/departures |
+| 12 | Channel Manager — iCal, email inbound, needs_review flow |
+| 13 | Housekeeping Board — Drag-drop (Dirty→Cleaning→Clean→Inspected), staff assignment |
+| 14 | Notifications — Bell, preferences, edge functions |
+| 15 | Data Quality — Duplicate detection (phone/email/passport/NIC), admin merge tool |
 
-Create a single `flows.md` file at the project root documenting the full application flow architecture with Mermaid diagrams, code snippets, tables, and step-by-step interaction guides -- all reflecting the actual codebase.
+## Phase 3 — Finance ✅
+| # | Item |
+|---|------|
+| 16 | Booking Transactions Ledger — `booking_transactions`, TransactionsTab |
+| 17 | Accounting Layer — `ledger_accounts/entries/lines`, auto-posting |
 
-## Content Outline
+## Phase 4 ✅
+| # | Item |
+|---|------|
+| 18 | System Health Monitor — `/settings?tab=system-health`, admin checks |
 
-The file will include YAML frontmatter and these sections:
+## Additional Features ✅
+- Guest Email System (Resend) — booking_confirmation, pre_arrival, checkout_summary
+- Guest Feedback System — dialog, display, reports, dashboard widget
+- Printable Invoice — react-to-print
+- PWA Support — service worker, manifest
+- Extend Stay / Move Room dialogs
+- Add Service Dialog with category filtering
+- Reports (Occupancy, Revenue, Financial, Feedback)
+- Mobile Responsive — bottom nav, responsive tables/tabs
+- Passport Photo Upload — secure storage in guest-documents bucket
+- Guest Details — services purchased with totals, VIP/blacklist badges
 
-1. **Project Overview Flow** -- Login to dashboard journey, auth guard logic, role-gating
-2. **Sidebar Navigation Flow** -- `collapsible="icon"` states, active item indicator, user popover, hidden pages filtering via `useUserSettings`
-3. **Responsive Behavior Flow** -- Desktop sidebar (`hidden md:flex`) vs mobile BottomNav with Sheet "More" menu, decision tree
-4. **Component Integration Flow** -- `DashboardLayout` wrapping `SidebarProvider` > `AppSidebar` + `SidebarInset` > `AppHeader` + `main` + `BottomNav`
-5. **Error States Flow** -- Auth loading, no-role "Access Pending", redirect to `/auth`, lazy-load fallback spinner
-
-Each section gets a Mermaid diagram plus relevant code snippets and tables pulled from the actual components.
-
-## File
-
-| File | Action |
-|------|--------|
-| `flows.md` | Create new |
-
-No code changes to any source files.
-
+## All items verified and complete. No remaining work.
