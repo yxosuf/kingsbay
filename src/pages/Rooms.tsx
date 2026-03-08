@@ -63,6 +63,7 @@ const derivedStatusConfig: Record<DerivedStatus, { label: string; color: string 
   arriving: { label: 'Arriving Today', color: 'bg-info/20 text-info border-info' },
   cleaning: { label: 'Cleaning', color: 'bg-orange-500/20 text-orange-700 border-orange-500' },
   dirty: { label: 'Dirty', color: 'bg-amber-500/20 text-amber-700 border-amber-500' },
+  inspected: { label: 'Inspected', color: 'bg-blue-500/20 text-blue-700 border-blue-500' },
   maintenance: { label: 'Maintenance', color: 'bg-muted text-muted-foreground border-muted-foreground' },
   available: { label: 'Available', color: 'bg-success/20 text-success border-success' },
 };
