@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
+import { useUserSettings } from '@/hooks/useUserSettings';
 
 const primaryTabs = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
