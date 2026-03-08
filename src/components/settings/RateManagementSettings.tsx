@@ -16,7 +16,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { Plus, Pencil, Trash2, DollarSign, Calendar, Sun, Tag, TrendingUp, History } from 'lucide-react';
+import { Plus, Pencil, Trash2, DollarSign, Calendar, Sun, Tag, TrendingUp, History, Plug } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { useAuth } from '@/hooks/useAuth';
