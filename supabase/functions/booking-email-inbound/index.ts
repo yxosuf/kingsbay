@@ -870,22 +870,7 @@ Deno.serve(async (req) => {
       .update({ parse_status: 'success' })
       .eq('id', logEntry?.id);
 
-    // Create notification for staff
-    const otaName = otaSource === 'airbnb' ? 'Airbnb' : 'Booking.com';
-    const notificationTitle = action === 'created' 
-      ? `New ${otaName} Booking` 
-      : `${otaName} Booking Updated`;
-    const notificationMessage = `${extracted.guest_name || 'Guest'} - ${extracted.check_in_date} to ${extracted.check_out_date}${needsReview ? ' (Needs Review)' : ''}`;
-    
-    await supabase
-      .from('notifications')
-      .insert({
-        property_id: propertyId,
-        type: needsReview ? 'warning' : 'info',
-        title: notificationTitle,
-        message: notificationMessage,
-        link: `/bookings/${bookingResult.id}`,
-      });
+    // Notification is auto-created by the booking trigger (trg_booking_notification)
 
     console.log(`[Email Inbound] Booking ${action}:`, bookingResult.id);
 

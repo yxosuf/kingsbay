@@ -22,9 +22,7 @@ export function useBrowserNotifications() {
     const notification = new Notification(title, {
       body: body || undefined,
       icon: '/pwa-192.png',
-      badge: '/pwa-192.png',
       tag: `pms-${Date.now()}`,
-      vibrate: [200, 100, 200],
     });
 
     if (link) {
