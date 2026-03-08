@@ -39,6 +39,7 @@ interface ChannelConnection {
   api_key: string | null;
   ical_import_url: string | null;
   ical_export_url: string | null;
+  ical_export_token: string | null;
   last_sync_at: string | null;
   sync_status: string;
   commission_rate: number | null;
@@ -63,6 +64,12 @@ export function ChannelCard({ channel, channelInfo, onUpdate, onDelete }: Channe
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [icalImportUrl, setIcalImportUrl] = useState(channel.ical_import_url || '');
   const [commissionRate, setCommissionRate] = useState(channel.commission_rate?.toString() || '');
+
+  // Generate token-based export URL
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  const exportUrl = channel.ical_export_token
+    ? `https://${projectId}.supabase.co/functions/v1/ical-export?property_id=${channel.property_id}&token=${channel.ical_export_token}`
+    : null;
 
   const handleToggle = (enabled: boolean) => {
     onUpdate(channel.id, { is_enabled: enabled });
@@ -133,15 +140,15 @@ export function ChannelCard({ channel, channelInfo, onUpdate, onDelete }: Channe
         </div>
 
         {/* iCal URLs Preview */}
-        {channel.is_enabled && channel.ical_export_url && (
+        {channel.is_enabled && exportUrl && (
           <div className="flex items-center gap-2 p-1.5 sm:p-2 bg-muted rounded text-[10px] sm:text-xs">
             <span className="text-muted-foreground shrink-0">Export:</span>
-            <span className="truncate flex-1 font-mono">{channel.ical_export_url}</span>
+            <span className="truncate flex-1 font-mono">{exportUrl}</span>
             <Button 
               variant="ghost" 
               size="icon" 
               className="h-5 w-5 sm:h-6 sm:w-6 shrink-0"
-              onClick={() => copyToClipboard(channel.ical_export_url!)}
+              onClick={() => copyToClipboard(exportUrl)}
             >
               <Copy className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
             </Button>
@@ -199,19 +206,19 @@ export function ChannelCard({ channel, channelInfo, onUpdate, onDelete }: Channe
                   </p>
                 </div>
 
-                {channel.ical_export_url && (
+                {exportUrl && (
                   <div className="space-y-2">
                     <Label>iCal Export URL (for {channelInfo.name})</Label>
                     <div className="flex gap-2">
                       <Input
-                        value={channel.ical_export_url}
+                        value={exportUrl}
                         readOnly
                         className="font-mono text-xs"
                       />
                       <Button 
                         variant="outline" 
                         size="icon"
-                        onClick={() => copyToClipboard(channel.ical_export_url!)}
+                        onClick={() => copyToClipboard(exportUrl)}
                       >
                         <Copy className="h-4 w-4" />
                       </Button>

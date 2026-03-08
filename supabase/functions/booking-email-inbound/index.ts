@@ -466,13 +466,21 @@ Deno.serve(async (req) => {
     const isTestMode = body?.testMode === true;
     console.log('[Email Inbound] isTestMode:', isTestMode);
     
-    // Verify inbound secret (skip for test mode)
+    // Verify inbound secret - REQUIRED for all requests including test mode
     const inboundSecret = req.headers.get('x-inbound-secret');
     const expectedSecret = Deno.env.get('EMAIL_INBOUND_SECRET');
     
-    console.log('[Email Inbound] Secret check:', { isTestMode, hasExpectedSecret: !!expectedSecret, hasInboundSecret: !!inboundSecret });
+    console.log('[Email Inbound] Secret check:', { hasExpectedSecret: !!expectedSecret, hasInboundSecret: !!inboundSecret });
     
-    if (!isTestMode && expectedSecret && inboundSecret !== expectedSecret) {
+    if (!expectedSecret) {
+      console.error('[Email Inbound] EMAIL_INBOUND_SECRET not configured - rejecting all requests');
+      return new Response(
+        JSON.stringify({ error: 'Webhook secret not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    if (inboundSecret !== expectedSecret) {
       console.error('[Email Inbound] Invalid secret - rejecting');
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),

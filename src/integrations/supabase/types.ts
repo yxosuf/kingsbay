@@ -252,6 +252,7 @@ export type Database = {
           channel_type: Database["public"]["Enums"]["channel_type"]
           commission_rate: number | null
           created_at: string
+          ical_export_token: string
           ical_export_url: string | null
           ical_import_url: string | null
           id: string
@@ -267,6 +268,7 @@ export type Database = {
           channel_type: Database["public"]["Enums"]["channel_type"]
           commission_rate?: number | null
           created_at?: string
+          ical_export_token?: string
           ical_export_url?: string | null
           ical_import_url?: string | null
           id?: string
@@ -282,6 +284,7 @@ export type Database = {
           channel_type?: Database["public"]["Enums"]["channel_type"]
           commission_rate?: number | null
           created_at?: string
+          ical_export_token?: string
           ical_export_url?: string | null
           ical_import_url?: string | null
           id?: string
@@ -1409,6 +1412,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_guest: {
+        Args: { guest_id: string; guest_property_id: string }
+        Returns: boolean
+      }
       check_booking_overlap: {
         Args: {
           p_check_in: string

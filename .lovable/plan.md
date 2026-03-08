@@ -1,59 +1,51 @@
+# Kings Bay PMS — Implementation Complete ✅
 
+All plan items have been implemented and verified.
 
-# Security Fixes Plan — Kings Bay PMS
+## Phase 1 — Critical Fixes ✅
+| # | Item |
+|---|------|
+| 1 | Viewer Role RLS — `is_write_staff()`, write-restricted policies |
+| 2 | Availability Calendar — `[check_in, check_out)` string comparison |
+| 3 | Hybrid Hold System — `hold_expires_at`, edge function, countdown UI |
+| 4 | Cleaning Timer — `cleaning_until`, edge function, auto-release |
+| 5 | Rooms Derived Status — Occupied/Due Out/Arriving/Cleaning/Dirty/Inspected/Clean |
+| 6 | Guests in Settings — Tab, `/guests` redirect, guest details with services |
+| 7 | Guest Retention — `archived_at`/`deleted_at`, edge function, filters |
+| 8 | Nationality + Phone Code — Country selector, `countryData.ts` |
+| 9 | FX Rate System — `CurrencyDisplay`, `useFxRate`, edge function |
+| 10 | Danger Zone — Admin-only, password confirm, per-property, audit |
 
-## Two Security Findings
+## Phase 2 — Operational ✅
+| # | Item |
+|---|------|
+| 11 | Front Desk Speed Mode — Quick actions, arrivals/departures |
+| 12 | Channel Manager — iCal, email inbound, needs_review flow |
+| 13 | Housekeeping Board — Drag-drop (Dirty→Cleaning→Clean→Inspected), staff assignment |
+| 14 | Notifications — Bell, preferences, edge functions |
+| 15 | Data Quality — Duplicate detection (phone/email/passport/NIC), admin merge tool |
 
-### Finding 1: Edge Functions Lack Authentication
-Four edge functions use `verify_jwt = false` but don't validate callers in code.
+## Phase 3 — Finance ✅
+| # | Item |
+|---|------|
+| 16 | Booking Transactions Ledger — `booking_transactions`, TransactionsTab |
+| 17 | Accounting Layer — `ledger_accounts/entries/lines`, auto-posting |
 
-### Finding 2: Guest PII Exposure Risk
-Complex RLS policy on `guests` table may allow edge-case unauthorized access.
+## Phase 4 ✅
+| # | Item |
+|---|------|
+| 18 | System Health Monitor — `/settings?tab=system-health`, admin checks |
 
----
+## Additional Features ✅
+- Guest Email System (Resend) — booking_confirmation, pre_arrival, checkout_summary
+- Guest Feedback System — dialog, display, reports, dashboard widget
+- Printable Invoice — react-to-print
+- PWA Support — service worker, manifest
+- Extend Stay / Move Room dialogs
+- Add Service Dialog with category filtering
+- Reports (Occupancy, Revenue, Financial, Feedback)
+- Mobile Responsive — bottom nav, responsive tables/tabs
+- Passport Photo Upload — secure storage in guest-documents bucket
+- Guest Details — services purchased with totals, VIP/blacklist badges
 
-## Fixes
-
-### 1. Secure `channel-sync` with JWT Authentication
-- Called from frontend via `supabase.functions.invoke()` which auto-sends the user's JWT
-- Add `getClaims()` validation at the top of the function
-- Restrict to `admin` and `manager` roles only
-- Then use service role client for the actual sync operations
-
-### 2. Secure `ical-import` with JWT + Service-Role Bypass
-- Called from two places: (a) frontend indirectly via channel-sync, and (b) directly by `channel-sync` using service role key
-- Add authentication: accept either a valid staff JWT OR a service-role Authorization header
-- This keeps the internal server-to-server call working while blocking unauthenticated external access
-
-### 3. Secure `ical-export` with Token-Based Authentication
-- This endpoint must remain "public" (no JWT) because OTA platforms (Booking.com, Airbnb) fetch it as a plain URL
-- Add an `ical_export_token` column (UUID) to `channel_connections`
-- Require `?token=<uuid>` query parameter on every export request
-- Validate the token against the database before returning calendar data
-- Auto-generate tokens when channels are created/enabled
-- **DB migration**: Add `ical_export_token` column with default `gen_random_uuid()`
-
-### 4. Harden `booking-email-inbound` Webhook
-- Make `EMAIL_INBOUND_SECRET` **required** — reject all requests if the secret is not configured (currently it skips the check)
-- Remove the `testMode` bypass that skips authentication entirely — test mode should still require the secret header
-- Change the logic from `if (!isTestMode && expectedSecret && ...)` to `if (!expectedSecret) reject` then `if (inboundSecret !== expectedSecret) reject`
-
-### 5. Simplify Guest RLS Policy
-- The current SELECT policy has deeply nested EXISTS subqueries that are hard to audit
-- Replace with a clearer security-definer function `can_view_guest(guest_row)` that encapsulates the same logic but is easier to verify
-- Keeps the same access rules: admin/manager see all, front_desk sees only property-scoped guests
-
----
-
-## Files Changed
-
-| File | Change |
-|------|--------|
-| `supabase/functions/channel-sync/index.ts` | Add JWT auth + role check |
-| `supabase/functions/ical-import/index.ts` | Add JWT/service-role auth check |
-| `supabase/functions/ical-export/index.ts` | Add token-based auth |
-| `supabase/functions/booking-email-inbound/index.ts` | Harden secret validation |
-| DB migration | Add `ical_export_token` column, create `can_view_guest()` function, replace guest RLS policy |
-| `src/pages/ChannelManager.tsx` | Auto-generate export URLs with token |
-| `src/components/settings/ChannelsSettings.tsx` | Same token-aware export URL logic |
-
+## All items verified and complete. No remaining work.
