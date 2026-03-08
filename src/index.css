@@ -255,6 +255,18 @@
     color: hsl(var(--muted-foreground));
   }
 
+  .gantt-bar-cleaning {
+    background: repeating-linear-gradient(
+      -45deg,
+      hsl(38 85% 48% / 0.15),
+      hsl(38 85% 48% / 0.15) 4px,
+      hsl(38 85% 48% / 0.08) 4px,
+      hsl(38 85% 48% / 0.08) 8px
+    );
+    border: 1px solid hsl(38 85% 48% / 0.3);
+    color: hsl(38 85% 35%);
+  }
+
   /* Weekend stripe */
   .weekend-col {
     background: repeating-linear-gradient(

@@ -31,6 +31,8 @@ interface Room {
   room_type: string;
   status: string;
   property_id: string;
+  housekeeping_status: string;
+  cleaning_until: string | null;
 }
 
 interface Booking {
@@ -102,7 +104,7 @@ export default function AvailabilityCalendar() {
 
       const { data: roomData, error: roomError } = await supabase
         .from('rooms')
-        .select('id, room_number, room_type, status, property_id')
+        .select('id, room_number, room_type, status, property_id, housekeeping_status, cleaning_until')
         .eq('property_id', selectedProperty.id)
         .order('room_number');
 
@@ -459,6 +461,33 @@ export default function AvailabilityCalendar() {
                               );
                             })}
 
+                            {/* Cleaning indicator on today */}
+                            {(room.housekeeping_status === 'cleaning' || room.housekeeping_status === 'dirty') && (() => {
+                              const todayStr = toDateString(new Date());
+                              const todayIdx = dateRange.findIndex(d => toDateString(d) === todayStr);
+                              if (todayIdx < 0) return null;
+                              const hasBookingToday = bookings.some(b => b.room_id === room.id && isDateInBookingRange(todayStr, b.check_in, b.check_out));
+                              if (hasBookingToday) return null;
+                              return (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div
+                                      className="gantt-bar gantt-bar-cleaning"
+                                      style={{ left: todayIdx * colWidth + 2, width: colWidth - 4 }}
+                                    >
+                                      {colWidth > 50 && <span>🧹</span>}
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{room.housekeeping_status === 'cleaning' ? 'Cleaning in progress' : 'Needs cleaning'}</p>
+                                    {room.cleaning_until && (
+                                      <p className="text-xs text-muted-foreground">Until {new Date(room.cleaning_until).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                    )}
+                                  </TooltipContent>
+                                </Tooltip>
+                              );
+                            })()}
+
                             {/* Maintenance overlay */}
                             {room.status === 'maintenance' && (
                               <div
@@ -482,6 +511,7 @@ export default function AvailabilityCalendar() {
                     { cls: 'gantt-bar-occupied', label: 'Occupied' },
                     { cls: 'gantt-bar-held', label: 'Held' },
                     { cls: 'gantt-bar-blocked', label: 'Blocked' },
+                    { cls: 'gantt-bar-cleaning', label: 'Cleaning' },
                   ].map(item => (
                     <div key={item.label} className="flex items-center gap-1.5">
                       <div className={cn("w-8 h-4 rounded", item.cls)} />
