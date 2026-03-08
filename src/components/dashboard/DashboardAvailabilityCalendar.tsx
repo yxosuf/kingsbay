@@ -337,6 +337,7 @@ export function DashboardAvailabilityCalendar() {
                 { cls: 'gantt-bar-occupied', label: 'Occupied' },
                 { cls: 'gantt-bar-held', label: 'Held' },
                 { cls: 'gantt-bar-blocked', label: 'Blocked' },
+                { cls: 'gantt-bar-cleaning', label: 'Cleaning' },
               ].map(item => (
                 <div key={item.label} className="flex items-center gap-1.5">
                   <div className={cn("w-6 h-3 rounded-sm", item.cls)} />
