@@ -212,18 +212,19 @@ export default function Dashboard() {
       if (propertyId) {
         const { data } = await supabase
           .from('property_inventory_settings')
-          .select('*')
+          .select('fx_usd_lkr_rate, fx_updated_at')
           .eq('property_id', propertyId)
           .maybeSingle();
         const rate = (data as any)?.fx_usd_lkr_rate;
+        const updatedAt = (data as any)?.fx_updated_at;
         if (rate) {
-          setExchangeRate({ usdToLkr: Number(rate) });
+          setExchangeRate({ usdToLkr: Number(rate), updatedAt: updatedAt || null });
           return;
         }
       }
-      setExchangeRate({ usdToLkr: 309.06 });
+      setExchangeRate({ usdToLkr: 309.06, updatedAt: null });
     } catch {
-      setExchangeRate({ usdToLkr: 309.06 });
+      setExchangeRate({ usdToLkr: 309.06, updatedAt: null });
     }
   };
 
