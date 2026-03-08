@@ -93,8 +93,9 @@ export default function BookingDetails() {
   const [linkedBookings, setLinkedBookings] = useState<{id: string; check_in: string; check_out: string; rooms: {room_number: string} | null}[]>([]);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState<string | null>(null);
-  const [fxRate, setFxRate] = useState<number | null>(null);
+  const [invoiceNumber, setInvoiceNumber] = useState<string | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
+  const { fxRate } = useFxRate(booking?.property_id);
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
