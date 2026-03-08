@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { CalendarDays, BedDouble, Tag, Check } from 'lucide-react';
 import { format, addDays, differenceInDays, eachDayOfInterval } from 'date-fns';
 import { toast } from 'sonner';
-import { calculateStayTotal, fetchRateEngineData, type RatePlan } from '@/lib/rateEngine';
+import { calculateStayTotal, type RatePlan } from '@/lib/rateEngine';
 import { parseLocalDate, toDateString } from '@/lib/dateUtils';
 
 interface AvailableRoom {
