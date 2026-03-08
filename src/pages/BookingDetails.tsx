@@ -650,12 +650,6 @@ export default function BookingDetails() {
                         Check Out
                       </Button>
                     )}
-                    {booking.status === 'checked_out' && invoiceNumber && (
-                      <Button variant="outline" size="sm" onClick={() => setShowPrintPreview(true)}>
-                        <Printer className="h-4 w-4 mr-1" />
-                        Print Invoice
-                      </Button>
-                    )}
                   </div>
                 </CardContent>
               </Card>
