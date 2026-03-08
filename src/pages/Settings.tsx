@@ -307,6 +307,8 @@ export default function Settings() {
         return <ReportsSettings />;
       case 'security':
         return isAdmin ? <DangerZoneSettings /> : null;
+      case 'system-health':
+        return isAdmin ? <SystemHealthSettings /> : null;
       default:
         return renderAccessRoles();
     }
