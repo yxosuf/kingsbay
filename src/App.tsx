@@ -48,6 +48,7 @@ const App = () => (
               <Route path="/properties" element={<Properties />} />
               <Route path="/channels" element={<ChannelManager />} />
               <Route path="/availability" element={<AvailabilityCalendar />} />
+              <Route path="/front-desk" element={<FrontDesk />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils';
 
 const mainNavItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
+  { title: 'Front Desk', url: '/front-desk', icon: MonitorSmartphone },
   { title: 'New Booking', url: '/bookings/new', icon: CalendarPlus },
   { title: 'Bookings', url: '/bookings', icon: BookOpen },
   { title: 'Room Status', url: '/rooms', icon: BedDouble },
