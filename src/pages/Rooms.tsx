@@ -491,14 +491,14 @@ export default function Rooms() {
               return (
                 <Card
                   key={room.id}
-                  className={`relative overflow-hidden border-l-4 ${
-                    derived.status === 'available' ? 'border-l-success'
-                    : derived.status === 'occupied' ? 'border-l-destructive'
-                    : derived.status === 'due_out' ? 'border-l-warning'
-                    : derived.status === 'arriving' ? 'border-l-info'
-                    : derived.status === 'cleaning' ? 'border-l-orange-500'
-                    : derived.status === 'dirty' ? 'border-l-amber-500'
-                    : 'border-l-muted-foreground'
+                  className={`relative overflow-hidden border-t-[3px] ${
+                    derived.status === 'available' ? 'border-t-success'
+                    : derived.status === 'occupied' ? 'border-t-destructive'
+                    : derived.status === 'due_out' ? 'border-t-warning'
+                    : derived.status === 'arriving' ? 'border-t-info'
+                    : derived.status === 'cleaning' ? 'border-t-warning'
+                    : derived.status === 'dirty' ? 'border-t-warning'
+                    : 'border-t-muted-foreground'
                   }`}
                 >
                   <CardHeader className="pb-2">
