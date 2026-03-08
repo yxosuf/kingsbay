@@ -561,7 +561,7 @@ export default function NewBooking() {
   const selectedRoom = rooms.find((r) => r.id === roomId);
 
   return (
-    <DashboardLayout title="New Booking">
+    <DashboardLayout title={isWalkIn ? "Walk-in Booking" : "New Booking"}>
       <div className="max-w-4xl mx-auto">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Step 1: Guest Information */}
