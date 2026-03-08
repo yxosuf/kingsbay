@@ -113,20 +113,7 @@ export default function BookingDetails() {
     }
   }, [id]);
 
-  // Fetch FX rate for USD display
-  useEffect(() => {
-    if (booking?.property_id) {
-      supabase
-        .from('property_inventory_settings')
-        .select('fx_usd_lkr_rate')
-        .eq('property_id', booking.property_id)
-        .maybeSingle()
-        .then(({ data }) => {
-          const rate = (data as any)?.fx_usd_lkr_rate;
-          if (rate) setFxRate(Number(rate));
-        });
-    }
-  }, [booking?.property_id]);
+  // FX rate is now handled by useFxRate hook above
 
   const fetchBookingDetails = async () => {
     try {
