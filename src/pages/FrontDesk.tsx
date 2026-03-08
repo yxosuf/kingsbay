@@ -271,9 +271,9 @@ export default function FrontDesk() {
           </Card>
 
           {/* In-House Guests */}
-          <Card>
+          <Card className="border-t-[3px] border-t-info">
             <CardHeader className="pb-3">
-              <SectionHeader icon={Hotel} title="In-House Guests" count={inHouse.length} color="text-blue-500" />
+              <SectionHeader icon={Hotel} title="In-House Guests" count={inHouse.length} color="text-info" />
             </CardHeader>
             <CardContent className="space-y-2">
               {loading ? (
