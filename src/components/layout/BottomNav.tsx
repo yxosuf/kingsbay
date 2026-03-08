@@ -126,15 +126,21 @@ export function BottomNav() {
             <div className="space-y-1">
               {filteredMoreItems.map((item) => {
                 const active = isActive(item.url);
+                const showBadge = 'showBadge' in item && item.showBadge && unreadCount > 0;
                 return (
                   <Button
                     key={item.title}
                     variant={active ? "secondary" : "ghost"}
-                    className="w-full justify-start h-12 text-base gap-3"
+                    className="w-full justify-start h-12 text-base gap-3 relative"
                     onClick={() => handleNav(item.url)}
                   >
                     <item.icon className={cn("h-5 w-5", active && "text-primary")} />
                     {item.title}
+                    {showBadge && (
+                      <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground px-1">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
                   </Button>
                 );
               })}
