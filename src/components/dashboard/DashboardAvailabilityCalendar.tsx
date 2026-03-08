@@ -72,8 +72,8 @@ export function DashboardAvailabilityCalendar() {
     setLoading(true);
 
     try {
-      const startDate = format(dateRange[0], 'yyyy-MM-dd');
-      const endDate = format(dateRange[dateRange.length - 1], 'yyyy-MM-dd');
+      const startDate = toDateString(dateRange[0]);
+      const endDate = toDateString(dateRange[dateRange.length - 1]);
 
       const { data: roomData, error: roomError } = await supabase
         .from('rooms')
