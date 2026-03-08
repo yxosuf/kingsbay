@@ -268,7 +268,7 @@ export function HotelSettings() {
               />
               {fxUpdatedAt && (
                 <p className="text-xs text-muted-foreground">
-                  Last updated: {new Date(fxUpdatedAt).toLocaleString()}
+                  Last updated: {new Date(fxUpdatedAt).toLocaleString()} · Auto-updates hourly
                 </p>
               )}
             </div>
