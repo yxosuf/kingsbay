@@ -129,7 +129,7 @@ export function NotificationSettings() {
             <Label className="text-sm font-medium">Minimum Priority</Label>
             <Select
               value={local.priority_threshold}
-              onValueChange={(v) => setLocal(prev => ({ ...prev, priority_threshold: v as any }))}
+              onValueChange={(v) => setLocal(prev => ({ ...prev, priority_threshold: v as NotificationPreferences['priority_threshold'] }))}
             >
               <SelectTrigger>
                 <SelectValue />

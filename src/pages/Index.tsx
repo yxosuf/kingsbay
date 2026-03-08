@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toDateString } from '@/lib/dateUtils';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { useUserSettings } from '@/hooks/useUserSettings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -70,6 +71,18 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { selectedProperty, showAllProperties, properties } = useProperty();
   const { canWrite } = useAuth();
+  const { settings, loading: settingsLoading } = useUserSettings();
+  const redirectChecked = useRef(false);
+
+  useEffect(() => {
+    if (!settingsLoading && !redirectChecked.current) {
+      redirectChecked.current = true;
+      const landing = settings.default_landing_page;
+      if (landing && landing !== '/') {
+        navigate(landing, { replace: true });
+      }
+    }
+  }, [settingsLoading, settings.default_landing_page, navigate]);
   const [stats, setStats] = useState<DashboardStats>({
     activeGuests: 0,
     totalRevenue: 0,
