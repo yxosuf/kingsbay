@@ -27,6 +27,8 @@ import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
 import { ServiceSelector, SelectedService } from '@/components/booking/ServiceSelector';
 import { checkRoomAvailability } from '@/lib/availabilityCheck';
 import { countries, getDialCodeByCountry } from '@/lib/countryData';
+import { postBookingConfirmed, postPayment } from '@/lib/ledgerUtils';
+import { AlertTriangle } from 'lucide-react';
 
 const bookingSchema = z.object({
   guestName: z.string().trim().min(2, 'Guest name is required'),
@@ -73,7 +75,9 @@ export default function NewBooking() {
   const [roomId, setRoomId] = useState('');
   const [checkIn, setCheckIn] = useState<Date>();
   const [checkOut, setCheckOut] = useState<Date>();
-  const [numGuests, setNumGuests] = useState(1);
+  const [numAdults, setNumAdults] = useState(1);
+  const [numChildren, setNumChildren] = useState(0);
+  const numGuests = numAdults + numChildren;
   const [specialRequests, setSpecialRequests] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [guestNationality, setGuestNationality] = useState('Sri Lanka');
@@ -277,6 +281,8 @@ export default function NewBooking() {
         check_in: format(checkIn!, 'yyyy-MM-dd'),
         check_out: format(checkOut!, 'yyyy-MM-dd'),
         num_guests: numGuests,
+        num_adults: numAdults,
+        num_children: numChildren,
         status: 'confirmed' as const,
         special_requests: specialRequests.trim() || null,
         total_amount: effectiveTotal,
@@ -317,6 +323,65 @@ export default function NewBooking() {
 
       // Update room status to reserved
       await supabase.from('rooms').update({ status: 'reserved' }).eq('id', roomId);
+
+      // Airbnb auto-pay: create invoice + payment transaction + mark as paid
+      if (bookingSource === 'airbnb' && newBooking && selectedProperty?.id) {
+        const serviceChargesTotal = calculateServicesTotal();
+        const taxRate = 0.1;
+        const taxAmt = (effectiveTotal + serviceChargesTotal) * taxRate;
+        const invoiceTotal = effectiveTotal + serviceChargesTotal + taxAmt;
+
+        // Create invoice
+        const { data: invoice } = await supabase
+          .from('invoices')
+          .insert({
+            invoice_number: `INV-${Date.now()}`,
+            booking_id: newBooking.id,
+            room_charges: effectiveTotal,
+            service_charges: serviceChargesTotal,
+            tax_amount: taxAmt,
+            total_amount: invoiceTotal,
+            payment_status: 'paid' as const,
+            created_by: user?.id,
+            property_id: selectedProperty.id,
+          })
+          .select('id')
+          .single();
+
+        // Create payment transaction
+        if (invoice) {
+          const { data: txn } = await supabase
+            .from('booking_transactions')
+            .insert({
+              booking_id: newBooking.id,
+              transaction_type: 'payment' as any,
+              amount: invoiceTotal,
+              currency: 'LKR',
+              method: 'online' as any,
+              notes: 'Airbnb prepaid',
+              created_by: user?.id,
+              property_id: selectedProperty.id,
+            })
+            .select('id')
+            .single();
+
+          // Create payment record
+          await supabase.from('payments').insert({
+            invoice_id: invoice.id,
+            amount: invoiceTotal,
+            method: 'online' as any,
+            notes: 'Airbnb prepaid',
+            property_id: selectedProperty.id,
+            received_by: user?.id,
+          });
+
+          // Post ledger entries
+          if (txn) {
+            await postBookingConfirmed(newBooking.id, effectiveTotal, serviceChargesTotal, taxAmt, selectedProperty.id, user?.id);
+            await postPayment(txn.id, invoiceTotal, 'online', selectedProperty.id, newBooking.id, user?.id);
+          }
+        }
+      }
 
       toast.success('Booking created successfully!');
       navigate('/bookings');
@@ -598,12 +663,12 @@ export default function NewBooking() {
                   </Select>
                 </div>
 
-                {/* Number of Guests */}
+                {/* Adults */}
                 <div className="space-y-2">
-                  <Label>Number of Guests</Label>
+                  <Label>Adults *</Label>
                   <Select
-                    value={numGuests.toString()}
-                    onValueChange={(v) => setNumGuests(parseInt(v))}
+                    value={numAdults.toString()}
+                    onValueChange={(v) => setNumAdults(parseInt(v))}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -611,7 +676,27 @@ export default function NewBooking() {
                     <SelectContent>
                       {[1, 2, 3, 4, 5, 6].map((n) => (
                         <SelectItem key={n} value={n.toString()}>
-                          {n} {n === 1 ? 'guest' : 'guests'}
+                          {n} {n === 1 ? 'adult' : 'adults'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Children */}
+                <div className="space-y-2">
+                  <Label>Children</Label>
+                  <Select
+                    value={numChildren.toString()}
+                    onValueChange={(v) => setNumChildren(parseInt(v))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[0, 1, 2, 3, 4].map((n) => (
+                        <SelectItem key={n} value={n.toString()}>
+                          {n} {n === 1 ? 'child' : 'children'}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -728,6 +813,19 @@ export default function NewBooking() {
                       </div>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Passport Photo Warning for OTA */}
+              {bookingSource !== 'direct' && !guestIdPassport && (
+                <div className="flex items-start gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-700">Passport photo recommended</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      OTA bookings should have passport/ID information for compliance. You can still proceed without it.
+                    </p>
+                  </div>
                 </div>
               )}
 

@@ -34,6 +34,7 @@ interface InvoiceData {
   serviceCharges: number;
   taxRate: number;
   taxAmount: number;
+  bankFeeAmount?: number;
   totalAmount: number;
   property?: {
     name: string;
@@ -224,6 +225,12 @@ export const PrintableInvoice = forwardRef<HTMLDivElement, PrintableInvoiceProps
               <div className="flex justify-between py-2">
                 <span className="text-gray-600">Service Charges</span>
                 <span>Rs. {data.serviceCharges.toLocaleString()}</span>
+              </div>
+            )}
+            {data.bankFeeAmount != null && data.bankFeeAmount > 0 && (
+              <div className="flex justify-between py-2">
+                <span className="text-gray-600">Card Bank Fee (3%)</span>
+                <span>Rs. {data.bankFeeAmount.toLocaleString()}</span>
               </div>
             )}
             <div className="flex justify-between py-2">

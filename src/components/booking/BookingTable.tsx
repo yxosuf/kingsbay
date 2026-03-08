@@ -141,6 +141,7 @@ export function BookingTable({ bookings, loading, onActionComplete }: BookingTab
           <TableHead>Check-in</TableHead>
           <TableHead>Check-out</TableHead>
           <TableHead>Status</TableHead>
+          <TableHead>Guests</TableHead>
           <TableHead>Amount</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
@@ -169,6 +170,11 @@ export function BookingTable({ bookings, loading, onActionComplete }: BookingTab
                   <HoldCountdown expiresAt={booking.hold_expires_at} />
                 )}
               </div>
+            </TableCell>
+            <TableCell>
+              {(booking as any).num_adults && (booking as any).num_children !== undefined
+                ? `${(booking as any).num_adults}A + ${(booking as any).num_children}C`
+                : `${booking.num_guests} guest${booking.num_guests !== 1 ? 's' : ''}`}
             </TableCell>
             <TableCell>Rs. {booking.total_amount?.toLocaleString() || '0'}</TableCell>
             <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>

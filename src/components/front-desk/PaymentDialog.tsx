@@ -22,7 +22,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { useFxRate } from '@/hooks/useFxRate';
 import { useAuth } from '@/hooks/useAuth';
-import { postPayment } from '@/lib/ledgerUtils';
+import { postPayment, postBankFee } from '@/lib/ledgerUtils';
 import { toast } from 'sonner';
 
 interface PaymentDialogProps {
@@ -50,8 +50,12 @@ export function PaymentDialog({ open, onOpenChange, booking, onSuccess }: Paymen
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const bankFeeRate = 0.03;
+  const payAmount = parseFloat(amount) || 0;
+  const bankFee = method === 'card' ? Math.round(payAmount * bankFeeRate) : 0;
+  const totalWithFee = payAmount + bankFee;
+
   const handleSubmit = async () => {
-    const payAmount = parseFloat(amount);
     if (isNaN(payAmount) || payAmount <= 0) {
       toast.error('Please enter a valid amount');
       return;
@@ -65,18 +69,18 @@ export function PaymentDialog({ open, onOpenChange, booking, onSuccess }: Paymen
     try {
       const invoice = unpaidInvoices[0];
 
-      // 1. Insert payment record
+      // 1. Insert payment record (total including bank fee)
       const { error: payErr } = await supabase.from('payments').insert({
         invoice_id: invoice.id,
-        amount: payAmount,
+        amount: totalWithFee,
         method: method as any,
-        notes: notes.trim() || null,
+        notes: bankFee > 0 ? `${notes.trim() || ''} [Includes 3% card fee: Rs. ${bankFee.toLocaleString()}]`.trim() : notes.trim() || null,
         property_id: selectedProperty?.id || null,
         received_by: user?.id || null,
       });
       if (payErr) throw payErr;
 
-      // 2. Create booking transaction
+      // 2. Create booking transaction for payment amount
       const { data: txn, error: txnErr } = await supabase
         .from('booking_transactions')
         .insert({
@@ -93,12 +97,40 @@ export function PaymentDialog({ open, onOpenChange, booking, onSuccess }: Paymen
         .single();
       if (txnErr) throw txnErr;
 
-      // 3. Post ledger entry
+      // 3. Post ledger entry for the payment
       if (txn && selectedProperty?.id) {
         await postPayment(txn.id, payAmount, method, selectedProperty.id, booking.id, user?.id);
       }
 
-      // 4. Update invoice payment status
+      // 4. If card fee, create separate transaction + ledger entry
+      if (bankFee > 0 && selectedProperty?.id) {
+        const { data: feeTxn } = await supabase
+          .from('booking_transactions')
+          .insert({
+            booking_id: booking.id,
+            transaction_type: 'adjustment' as any,
+            amount: bankFee,
+            currency: 'LKR',
+            method: method as any,
+            notes: '3% card bank fee',
+            created_by: user?.id || null,
+            property_id: selectedProperty?.id || null,
+          })
+          .select('id')
+          .single();
+
+        if (feeTxn) {
+          await postBankFee(feeTxn.id, bankFee, method, selectedProperty.id, booking.id, user?.id);
+        }
+
+        // Update booking bank_fee_amount
+        await supabase
+          .from('bookings')
+          .update({ bank_fee_amount: bankFee } as any)
+          .eq('id', booking.id);
+      }
+
+      // 5. Update invoice payment status
       const { data: existingPayments } = await supabase
         .from('payments')
         .select('amount')
@@ -116,7 +148,7 @@ export function PaymentDialog({ open, onOpenChange, booking, onSuccess }: Paymen
         .update({ payment_status: newStatus })
         .eq('id', invoice.id);
 
-      toast.success(`Payment of LKR ${payAmount.toLocaleString()} recorded`);
+      toast.success(`Payment of LKR ${totalWithFee.toLocaleString()} recorded${bankFee > 0 ? ` (includes Rs. ${bankFee.toLocaleString()} card fee)` : ''}`);
       setAmount('');
       setNotes('');
       onSuccess();
@@ -167,6 +199,24 @@ export function PaymentDialog({ open, onOpenChange, booking, onSuccess }: Paymen
               </p>
             )}
           </div>
+
+          {method === 'card' && payAmount > 0 && (
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg space-y-1">
+              <p className="text-sm font-medium text-amber-700">3% Card Bank Fee</p>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Payment amount</span>
+                <span>Rs. {payAmount.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Bank fee (3%)</span>
+                <span>Rs. {bankFee.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-sm font-medium pt-1 border-t border-amber-500/20">
+                <span>Total charged</span>
+                <span>Rs. {totalWithFee.toLocaleString()}</span>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Payment Method</label>
