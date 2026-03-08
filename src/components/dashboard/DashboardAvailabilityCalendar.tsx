@@ -169,8 +169,8 @@ export function DashboardAvailabilityCalendar() {
           <TooltipProvider>
             <div className="overflow-x-auto scrollbar-thin -mx-2 sm:mx-0">
               {/* Header */}
-              <div className="grid" style={{ gridTemplateColumns: `90px repeat(${dateRange.length}, 1fr)` }}>
-                <div className="p-1.5 text-xs font-medium text-muted-foreground sticky left-0 bg-card z-10 border-b">
+              <div className="grid" style={{ gridTemplateColumns: `${isMobile ? '60px' : '90px'} repeat(${dateRange.length}, 1fr)` }}>
+                <div className="p-1 sm:p-1.5 text-[10px] sm:text-xs font-medium text-muted-foreground sticky left-0 bg-card z-10 border-b">
                   Room
                 </div>
                 {dateRange.map(date => (
@@ -181,9 +181,9 @@ export function DashboardAvailabilityCalendar() {
                       isToday(date) && "bg-primary/5"
                     )}
                   >
-                    <div className="text-[10px] text-muted-foreground">{format(date, 'EEE')}</div>
+                    <div className="text-[9px] sm:text-[10px] text-muted-foreground">{format(date, 'EEE')}</div>
                     <div className={cn(
-                      "text-sm",
+                      "text-xs sm:text-sm",
                       isToday(date) && "text-primary font-bold"
                     )}>
                       {format(date, 'd')}
