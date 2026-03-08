@@ -241,7 +241,7 @@ export default function Properties() {
                           <Power className="h-4 w-4 mr-2" />{property.is_active ? 'Deactivate' : 'Activate'}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(property.id)}>
+                        <DropdownMenuItem className="text-destructive" onClick={() => setDeletePropertyId(property.id)}>
                           <Trash2 className="h-4 w-4 mr-2" />Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
