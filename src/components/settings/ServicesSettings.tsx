@@ -233,7 +233,7 @@ export function ServicesSettings() {
                           </div>
                           <div className="min-w-0">
                             <p className="font-medium text-sm truncate">{service.name}</p>
-                            <p className="text-xs text-muted-foreground">{categoryLabels[service.category]}</p>
+                            <p className="text-xs text-muted-foreground">{categoryLabelsFull[service.category]}</p>
                           </div>
                         </div>
                         <Badge variant={service.is_active ? 'success' : 'secondary'} className="shrink-0 text-[10px]">
