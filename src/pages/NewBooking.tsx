@@ -113,12 +113,30 @@ export default function NewBooking() {
 
   const fetchAvailableRooms = async () => {
     try {
-      let query = supabase.from('rooms').select('*').eq('status', 'available');
+      let query = supabase.from('rooms').select('id, room_number, room_type, price, status, max_guests').neq('status', 'maintenance');
       if (selectedProperty?.id) {
         query = query.eq('property_id', selectedProperty.id);
       }
-      const { data } = await query;
-      setRooms(data || []);
+      const { data: allRooms } = await query;
+
+      // If dates are selected, exclude rooms with conflicting bookings
+      if (checkIn && checkOut && selectedProperty?.id) {
+        const checkInStr = format(checkIn, 'yyyy-MM-dd');
+        const checkOutStr = format(checkOut, 'yyyy-MM-dd');
+
+        const { data: conflicting } = await supabase
+          .from('bookings')
+          .select('room_id')
+          .eq('property_id', selectedProperty.id)
+          .in('status', ['confirmed', 'checked_in', 'pending', 'needs_review'])
+          .lt('check_in', checkOutStr)
+          .gt('check_out', checkInStr);
+
+        const bookedRoomIds = new Set((conflicting || []).map(b => b.room_id));
+        setRooms((allRooms || []).filter(r => !bookedRoomIds.has(r.id)));
+      } else {
+        setRooms(allRooms || []);
+      }
     } catch (error) {
       console.error('Error fetching rooms:', error);
     }
