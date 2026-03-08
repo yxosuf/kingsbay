@@ -34,6 +34,9 @@ import { BookingTimeline } from '@/components/booking/BookingTimeline';
 import { BookingStatusBadge } from '@/components/booking/BookingStatusBadge';
 import { AdminStatusOverride } from '@/components/booking/AdminStatusOverride';
 import { cn } from '@/lib/utils';
+import { FeedbackDialog } from '@/components/feedback/FeedbackDialog';
+import { FeedbackCard } from '@/components/feedback/FeedbackDisplay';
+import { useGuestFeedback } from '@/hooks/useGuestFeedback';
 
 interface BookingDetailsData {
   id: string;
