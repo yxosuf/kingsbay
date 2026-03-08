@@ -130,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setRole(null);
     setProfile(null);
+    setGuestId(null);
   };
 
   const value = {
