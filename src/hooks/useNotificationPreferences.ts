@@ -58,13 +58,13 @@ export function useNotificationPreferences() {
     setSaving(true);
     try {
       const { error } = await supabase
-        .from('notification_preferences' as any)
+        .from('notification_preferences')
         .upsert({
           user_id: user.id,
-          categories: prefs.categories,
+          categories: prefs.categories as unknown as Record<string, unknown>,
           priority_threshold: prefs.priority_threshold,
-          delivery_channels: prefs.delivery_channels,
-        } as any, { onConflict: 'user_id' });
+          delivery_channels: prefs.delivery_channels as unknown as Record<string, unknown>,
+        }, { onConflict: 'user_id' });
 
       if (error) throw error;
       setPreferences(prefs);
