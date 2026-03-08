@@ -188,7 +188,7 @@ export function DashboardAvailabilityCalendar() {
               <div style={{ width: '100%' }}>
                 {/* Header */}
                 <div className="flex border-b">
-                  <div className="w-[90px] shrink-0 p-1.5 text-xs font-medium text-muted-foreground sticky left-0 bg-card z-10">
+                  <div style={{ width: labelWidth }} className="shrink-0 p-1.5 text-xs font-medium text-muted-foreground sticky left-0 bg-card z-10">
                     Room
                   </div>
                   {dateRange.map(date => (
