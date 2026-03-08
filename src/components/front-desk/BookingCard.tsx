@@ -264,6 +264,18 @@ export function BookingCard({ booking, onActionComplete, badge }: BookingCardPro
               </Button>
             </>
           )}
+
+          {canWrite && hasUnpaidInvoice && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive h-7 text-xs"
+              onClick={() => setPaymentOpen(true)}
+            >
+              <Banknote className="h-3.5 w-3.5 mr-1" />
+              Pay
+            </Button>
+          )}
         </div>
       </div>
 
