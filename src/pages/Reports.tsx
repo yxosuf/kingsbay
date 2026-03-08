@@ -12,6 +12,7 @@ import { useProperty } from '@/hooks/useProperty';
 import { RevenueReport } from '@/components/reports/RevenueReport';
 import { OccupancyReport } from '@/components/reports/OccupancyReport';
 import { FinancialSummary } from '@/components/reports/FinancialSummary';
+import { FeedbackReport } from '@/components/reports/FeedbackReport';
 import { cn } from '@/lib/utils';
 
 export default function Reports() {
@@ -106,6 +107,7 @@ export default function Reports() {
             <TabsTrigger value="revenue" className="rounded-xl">Revenue</TabsTrigger>
             <TabsTrigger value="occupancy" className="rounded-xl">Occupancy</TabsTrigger>
             <TabsTrigger value="financial" className="rounded-xl">Financial</TabsTrigger>
+            <TabsTrigger value="feedback" className="rounded-xl">Feedback</TabsTrigger>
           </TabsList>
 
           <TabsContent value="revenue" className="mt-5">
@@ -116,6 +118,9 @@ export default function Reports() {
           </TabsContent>
           <TabsContent value="financial" className="mt-5">
             <FinancialSummary dateRange={dateRange} propertyId={propertyId} showAllProperties={showAllProperties} propertyName={propertyName} />
+          </TabsContent>
+          <TabsContent value="feedback" className="mt-5">
+            <FeedbackReport dateRange={dateRange} propertyId={propertyId} showAllProperties={showAllProperties} propertyName={propertyName} />
           </TabsContent>
         </Tabs>
       </div>
