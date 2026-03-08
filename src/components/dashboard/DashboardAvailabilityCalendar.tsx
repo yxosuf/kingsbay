@@ -115,7 +115,22 @@ export function DashboardAvailabilityCalendar() {
     }
   };
 
-  const colWidth = 50;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const labelWidth = 90;
+  const colWidth = containerWidth > 0 ? Math.floor((containerWidth - labelWidth) / dateRange.length) : 50;
 
   const getRoomBookings = (room: Room) => {
     const startStr = toDateString(dateRange[0]);
