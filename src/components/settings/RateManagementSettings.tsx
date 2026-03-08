@@ -69,6 +69,9 @@ export function RateManagementSettings() {
         <TabsContent value="occupancy">
           <OccupancyPricingTab propertyId={propertyId} isAdmin={isAdmin} />
         </TabsContent>
+        <TabsContent value="otasync">
+          <OtaSyncTab />
+        </TabsContent>
         {isAdmin && (
           <TabsContent value="changelog">
             <ChangeLogTab propertyId={propertyId} />
