@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Bell, Info, AlertTriangle, CheckCircle, XCircle,
+  Bell, Info, AlertTriangle,
   CalendarDays, LogIn, Wrench, Wifi, Megaphone,
-  ChevronRight,
+  ChevronRight, BellRing,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { useAuth } from '@/hooks/useAuth';
+import { useBrowserNotifications } from '@/hooks/useBrowserNotifications';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -43,46 +44,41 @@ const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: 'system', label: 'System' },
 ];
 
+// Role-based action permissions
+const ACTION_ROLE_MAP: Record<string, string[]> = {
+  check_in: ['admin', 'manager', 'front_desk'],
+  check_out: ['admin', 'manager', 'front_desk'],
+  view_booking: ['admin', 'manager', 'front_desk', 'viewer'],
+  retry_sync: ['admin', 'manager'],
+  view_room: ['admin', 'manager', 'front_desk', 'viewer'],
+  assign_staff: ['admin', 'manager'],
+};
+
 function getCategoryIcon(category: string) {
   switch (category) {
-    case 'booking':
-      return <CalendarDays className="h-4 w-4" />;
-    case 'checkin_checkout':
-      return <LogIn className="h-4 w-4" />;
-    case 'availability':
-      return <AlertTriangle className="h-4 w-4" />;
-    case 'maintenance':
-      return <Wrench className="h-4 w-4" />;
-    case 'channel_sync':
-      return <Wifi className="h-4 w-4" />;
-    case 'general':
-      return <Megaphone className="h-4 w-4" />;
-    default:
-      return <Info className="h-4 w-4" />;
+    case 'booking': return <CalendarDays className="h-4 w-4" />;
+    case 'checkin_checkout': return <LogIn className="h-4 w-4" />;
+    case 'availability': return <AlertTriangle className="h-4 w-4" />;
+    case 'maintenance': return <Wrench className="h-4 w-4" />;
+    case 'channel_sync': return <Wifi className="h-4 w-4" />;
+    case 'general': return <Megaphone className="h-4 w-4" />;
+    default: return <Info className="h-4 w-4" />;
   }
 }
 
 function getPriorityColor(priority: string) {
   switch (priority) {
-    case 'high':
-      return 'text-destructive';
-    case 'medium':
-      return 'text-warning';
-    case 'low':
-    default:
-      return 'text-muted-foreground';
+    case 'high': return 'text-destructive';
+    case 'medium': return 'text-warning';
+    default: return 'text-muted-foreground';
   }
 }
 
 function getPriorityDot(priority: string) {
   switch (priority) {
-    case 'high':
-      return 'bg-destructive';
-    case 'medium':
-      return 'bg-warning';
-    case 'low':
-    default:
-      return 'bg-muted-foreground';
+    case 'high': return 'bg-destructive';
+    case 'medium': return 'bg-warning';
+    default: return 'bg-muted-foreground';
   }
 }
 
@@ -101,7 +97,8 @@ function getActionLabel(actionType: string | null): string | null {
 export function NotificationBell() {
   const navigate = useNavigate();
   const { selectedProperty, showAllProperties } = useProperty();
-  const { canWrite } = useAuth();
+  const { role } = useAuth();
+  const { permission, requestPermission } = useBrowserNotifications();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -202,6 +199,11 @@ export function NotificationBell() {
     }
   };
 
+  const canPerformAction = (actionType: string | null): boolean => {
+    if (!actionType || !role) return false;
+    return (ACTION_ROLE_MAP[actionType] || []).includes(role);
+  };
+
   const formatTime = (d: string) => formatDistanceToNow(new Date(d), { addSuffix: true });
 
   return (
@@ -221,6 +223,12 @@ export function NotificationBell() {
         <div className="flex items-center justify-between px-4 py-3">
           <h4 className="text-sm font-semibold">Notifications</h4>
           <div className="flex items-center gap-2">
+            {permission === 'default' && (
+              <Button variant="ghost" size="sm" className="h-auto px-2 py-1 text-xs text-primary gap-1" onClick={requestPermission}>
+                <BellRing className="h-3 w-3" />
+                Enable push
+              </Button>
+            )}
             {unreadCount > 0 && (
               <Button variant="ghost" size="sm" className="h-auto px-2 py-1 text-xs text-muted-foreground" onClick={handleMarkAllRead}>
                 Mark all read
@@ -281,12 +289,10 @@ export function NotificationBell() {
                   )}
                   onClick={() => handleClick(n)}
                 >
-                  {/* Icon */}
                   <div className={cn('flex-shrink-0 mt-0.5', getPriorityColor(n.priority))}>
                     {getCategoryIcon(n.category)}
                   </div>
 
-                  {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <span className={cn('h-1.5 w-1.5 rounded-full flex-shrink-0', getPriorityDot(n.priority))} />
@@ -299,7 +305,7 @@ export function NotificationBell() {
                     )}
                     <div className="flex items-center justify-between mt-1 ml-3">
                       <p className="text-[10px] text-muted-foreground">{formatTime(n.created_at)}</p>
-                      {n.action_type && canWrite && (
+                      {n.action_type && canPerformAction(n.action_type) && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -313,7 +319,6 @@ export function NotificationBell() {
                     </div>
                   </div>
 
-                  {/* Unread dot */}
                   {!n.is_read && (
                     <div className="flex-shrink-0">
                       <div className="h-2 w-2 rounded-full bg-primary" />

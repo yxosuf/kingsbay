@@ -116,6 +116,43 @@ Deno.serve(async (req) => {
 
     console.log(`[Channel Sync] Completed - Success: ${successCount}, Failed: ${failedCount}`);
 
+    // Create notifications for sync results
+    if (failedCount > 0) {
+      const failedChannels = results.filter(r => r.status === 'failed');
+      for (const failed of failedChannels) {
+        await supabase
+          .from('notifications')
+          .insert({
+            property_id: propertyId || null,
+            type: 'channel_sync',
+            category: 'channel_sync',
+            priority: 'high',
+            title: `${failed.channelType.replace('_', '.')} Sync Failed`,
+            message: failed.error || 'Unknown sync error',
+            link: '/channels',
+            target_roles: ['admin', 'manager'],
+            action_type: 'retry_sync',
+            action_entity_id: failed.channelId,
+          });
+      }
+    }
+
+    if (successCount > 0 && failedCount === 0) {
+      // Only notify on all-success if there were channels synced
+      await supabase
+        .from('notifications')
+        .insert({
+          property_id: propertyId || null,
+          type: 'channel_sync',
+          category: 'channel_sync',
+          priority: 'low',
+          title: `Channel Sync Complete`,
+          message: `${successCount} channel(s) synced successfully`,
+          link: '/channels',
+          target_roles: ['admin', 'manager'],
+        });
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
