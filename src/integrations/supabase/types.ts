@@ -1144,6 +1144,56 @@ export type Database = {
           },
         ]
       }
+      ota_integrations: {
+        Row: {
+          api_key: string | null
+          created_at: string
+          display_name: string
+          id: string
+          is_enabled: boolean
+          last_availability_push_at: string | null
+          last_rate_push_at: string | null
+          ota_name: string
+          property_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          api_key?: string | null
+          created_at?: string
+          display_name: string
+          id?: string
+          is_enabled?: boolean
+          last_availability_push_at?: string | null
+          last_rate_push_at?: string | null
+          ota_name: string
+          property_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          is_enabled?: boolean
+          last_availability_push_at?: string | null
+          last_rate_push_at?: string | null
+          ota_name?: string
+          property_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ota_integrations_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       passport_photos: {
         Row: {
           created_at: string
