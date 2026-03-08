@@ -183,10 +183,10 @@ export function ServicesSettings() {
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-        <TabsList>
-          <TabsTrigger value="all">All Services</TabsTrigger>
+        <TabsList className="w-full flex flex-wrap h-auto gap-1">
+          <TabsTrigger value="all" className="flex-1 min-w-[80px] text-xs sm:text-sm">All</TabsTrigger>
           {Object.entries(categoryLabels).map(([key, label]) => (
-            <TabsTrigger key={key} value={key}>{label}</TabsTrigger>
+            <TabsTrigger key={key} value={key} className="flex-1 min-w-[80px] text-xs sm:text-sm">{label}</TabsTrigger>
           ))}
         </TabsList>
 
