@@ -461,6 +461,33 @@ export default function AvailabilityCalendar() {
                               );
                             })}
 
+                            {/* Cleaning indicator on today */}
+                            {(room.housekeeping_status === 'cleaning' || room.housekeeping_status === 'dirty') && (() => {
+                              const todayStr = toDateString(new Date());
+                              const todayIdx = dateRange.findIndex(d => toDateString(d) === todayStr);
+                              if (todayIdx < 0) return null;
+                              const hasBookingToday = bookings.some(b => b.room_id === room.id && isDateInBookingRange(todayStr, b.check_in, b.check_out));
+                              if (hasBookingToday) return null;
+                              return (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div
+                                      className="gantt-bar gantt-bar-cleaning"
+                                      style={{ left: todayIdx * colWidth + 2, width: colWidth - 4 }}
+                                    >
+                                      {colWidth > 50 && <span>🧹</span>}
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{room.housekeeping_status === 'cleaning' ? 'Cleaning in progress' : 'Needs cleaning'}</p>
+                                    {room.cleaning_until && (
+                                      <p className="text-xs text-muted-foreground">Until {new Date(room.cleaning_until).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                    )}
+                                  </TooltipContent>
+                                </Tooltip>
+                              );
+                            })()}
+
                             {/* Maintenance overlay */}
                             {room.status === 'maintenance' && (
                               <div
