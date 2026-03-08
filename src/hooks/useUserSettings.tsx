@@ -15,6 +15,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   hidden_pages: [],
   default_landing_page: '/',
   theme: 'system',
+  favorite_settings: [],
 };
 
 interface UserSettingsContextType {
