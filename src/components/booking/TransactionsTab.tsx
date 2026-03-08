@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CurrencyDisplay } from '@/components/ui/CurrencyDisplay';
+import { RefundDialog } from '@/components/booking/RefundDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
-import { ArrowDownCircle, ArrowUpCircle, Receipt, Settings2 } from 'lucide-react';
+import { ArrowDownCircle, ArrowUpCircle, Receipt, Settings2, Undo2 } from 'lucide-react';
 
 interface Transaction {
   id: string;
@@ -20,13 +22,15 @@ interface Transaction {
 
 interface TransactionsTabProps {
   bookingId: string;
+  propertyId: string | null;
   totalAmount: number;
   fxRate: number | null;
 }
 
-export function TransactionsTab({ bookingId, totalAmount, fxRate }: TransactionsTabProps) {
+export function TransactionsTab({ bookingId, propertyId, totalAmount, fxRate }: TransactionsTabProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showRefundDialog, setShowRefundDialog] = useState(false);
 
   useEffect(() => {
     fetchTransactions();
@@ -109,11 +113,17 @@ export function TransactionsTab({ bookingId, totalAmount, fxRate }: Transactions
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <Receipt className="h-5 w-5" />
           Transactions
         </CardTitle>
+        {totalPayments > 0 && (
+          <Button variant="outline" size="sm" onClick={() => setShowRefundDialog(true)}>
+            <Undo2 className="h-4 w-4 mr-1" />
+            Issue Refund
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Balance Summary */}
@@ -177,6 +187,16 @@ export function TransactionsTab({ bookingId, totalAmount, fxRate }: Transactions
           </div>
         )}
       </CardContent>
+
+      <RefundDialog
+        open={showRefundDialog}
+        onOpenChange={setShowRefundDialog}
+        bookingId={bookingId}
+        propertyId={propertyId}
+        maxRefundable={totalPayments - totalRefunds}
+        fxRate={fxRate}
+        onSuccess={fetchTransactions}
+      />
     </Card>
   );
 }

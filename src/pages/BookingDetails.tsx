@@ -593,6 +593,7 @@ export default function BookingDetails() {
             {/* Transactions */}
             <TransactionsTab
               bookingId={booking.id}
+              propertyId={booking.property_id}
               totalAmount={grandTotal}
               fxRate={fxRate}
             />
