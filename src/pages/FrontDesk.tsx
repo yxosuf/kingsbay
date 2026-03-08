@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BookingQuickActions } from '@/components/booking/BookingQuickActions';
+import { StatCard } from '@/components/front-desk/StatCard';
+import { SectionHeader } from '@/components/front-desk/SectionHeader';
+import { BookingCard, type FrontDeskBooking } from '@/components/front-desk/BookingCard';
 import { PropertyBadge } from '@/components/layout/PropertyBadge';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
@@ -13,7 +15,6 @@ import { toDateString, parseLocalDate } from '@/lib/dateUtils';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import {
-  LogIn,
   LogOut,
   Plane,
   Hotel,
@@ -22,20 +23,6 @@ import {
   Plus,
   Clock,
 } from 'lucide-react';
-
-interface FrontDeskBooking {
-  id: string;
-  check_in: string;
-  check_out: string;
-  status: string;
-  num_guests: number | null;
-  total_amount: number | null;
-  room_id: string;
-  property_id: string | null;
-  booking_source: string;
-  guests: { name: string; phone: string | null } | null;
-  rooms: { room_number: string; room_type: string } | null;
-}
 
 interface PendingPaymentBooking {
   id: string;
@@ -64,9 +51,8 @@ export default function FrontDesk() {
 
   const fetchAll = useCallback(async () => {
     try {
-      const propertyFilter = !showAllProperties && selectedProperty?.id
-        ? selectedProperty.id
-        : null;
+      const propertyFilter =
+        !showAllProperties && selectedProperty?.id ? selectedProperty.id : null;
 
       const baseSelect = `
         id, check_in, check_out, status, num_guests, total_amount,
@@ -104,12 +90,12 @@ export default function FrontDesk() {
       // Pending payments: invoices with payment_status != 'paid'
       let paymentsQ = supabase
         .from('bookings')
-        .select(`
-          id, check_in, check_out, status, total_amount, room_id,
+        .select(
+          `id, check_in, check_out, status, total_amount, room_id,
           guests (name),
           rooms (room_number),
-          invoices (id, total_amount, payment_status)
-        `)
+          invoices (id, total_amount, payment_status)`
+        )
         .in('status', ['checked_in', 'checked_out'])
         .order('check_out', { ascending: true });
       if (propertyFilter) paymentsQ = paymentsQ.eq('property_id', propertyFilter);
@@ -144,8 +130,27 @@ export default function FrontDesk() {
     }
   }, [selectedProperty, showAllProperties, today]);
 
+  // Initial fetch
   useEffect(() => {
     fetchAll();
+  }, [fetchAll]);
+
+  // Realtime subscription on bookings table
+  useEffect(() => {
+    const channel = supabase
+      .channel('front-desk-bookings')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'bookings' },
+        () => {
+          fetchAll();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [fetchAll]);
 
   const handleRefresh = () => {
@@ -198,7 +203,7 @@ export default function FrontDesk() {
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <StatCard icon={Plane} label="Arrivals" count={arrivals.length} color="text-emerald-500" />
+          <StatCard icon={Plane} label="Today Arrivals" count={arrivals.length} color="text-emerald-500" />
           <StatCard icon={Hotel} label="In-House" count={inHouse.length} color="text-blue-500" />
           <StatCard icon={LogOut} label="Departures" count={departures.length} color="text-amber-500" />
           <StatCard icon={CreditCard} label="Pending Pay" count={pendingPayments.length} color="text-rose-500" />
@@ -209,11 +214,7 @@ export default function FrontDesk() {
           {/* Today Arrivals */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Plane className="h-4 w-4 text-emerald-500" />
-                Today Arrivals
-                <Badge variant="secondary" className="ml-auto">{arrivals.length}</Badge>
-              </CardTitle>
+              <SectionHeader icon={Plane} title="Today Arrivals" count={arrivals.length} color="text-emerald-500" />
             </CardHeader>
             <CardContent className="space-y-2">
               {loading ? (
@@ -222,9 +223,16 @@ export default function FrontDesk() {
                 <EmptyState message="No arrivals today" />
               ) : (
                 arrivals.map((b) => (
-                  <BookingCard key={b.id} booking={b} onActionComplete={fetchAll} badge={
-                    <Badge variant="outline" className="text-xs">{b.booking_source.replace('_', '.')}</Badge>
-                  } />
+                  <BookingCard
+                    key={b.id}
+                    booking={b}
+                    onActionComplete={fetchAll}
+                    badge={
+                      <Badge variant="outline" className="text-xs">
+                        {b.booking_source.replace('_', '.')}
+                      </Badge>
+                    }
+                  />
                 ))
               )}
             </CardContent>
@@ -233,11 +241,7 @@ export default function FrontDesk() {
           {/* Today Departures */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <LogOut className="h-4 w-4 text-amber-500" />
-                Today Departures
-                <Badge variant="secondary" className="ml-auto">{departures.length}</Badge>
-              </CardTitle>
+              <SectionHeader icon={LogOut} title="Today Departures" count={departures.length} color="text-amber-500" />
             </CardHeader>
             <CardContent className="space-y-2">
               {loading ? (
@@ -246,11 +250,16 @@ export default function FrontDesk() {
                 <EmptyState message="No departures today" />
               ) : (
                 departures.map((b) => (
-                  <BookingCard key={b.id} booking={b} onActionComplete={fetchAll} badge={
-                    <Badge variant="outline" className="text-xs flex items-center gap-1">
-                      <Clock className="h-3 w-3" /> Due Out
-                    </Badge>
-                  } />
+                  <BookingCard
+                    key={b.id}
+                    booking={b}
+                    onActionComplete={fetchAll}
+                    badge={
+                      <Badge variant="outline" className="text-xs flex items-center gap-1">
+                        <Clock className="h-3 w-3" /> Due Out
+                      </Badge>
+                    }
+                  />
                 ))
               )}
             </CardContent>
@@ -259,26 +268,29 @@ export default function FrontDesk() {
           {/* In-House Guests */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Hotel className="h-4 w-4 text-blue-500" />
-                In-House Guests
-                <Badge variant="secondary" className="ml-auto">{inHouse.length}</Badge>
-              </CardTitle>
+              <SectionHeader icon={Hotel} title="In-House Guests" count={inHouse.length} color="text-blue-500" />
             </CardHeader>
             <CardContent className="space-y-2">
               {loading ? (
                 <SectionSkeleton />
               ) : inHouse.length === 0 ? (
-                <EmptyState message="No in-house guests" />
+                <EmptyState message="No guests in house" />
               ) : (
                 inHouse.map((b) => {
                   const nights = nightsRemaining(b.check_out);
                   return (
-                    <BookingCard key={b.id} booking={b} onActionComplete={fetchAll} badge={
-                      <Badge variant="outline" className="text-xs">
-                        {nights === 0 ? 'Due today' : `${nights} night${nights > 1 ? 's' : ''} left`}
-                      </Badge>
-                    } />
+                    <BookingCard
+                      key={b.id}
+                      booking={b}
+                      onActionComplete={fetchAll}
+                      badge={
+                        <Badge variant="outline" className="text-xs">
+                          {nights === 0
+                            ? 'Due today'
+                            : `${nights} night${nights > 1 ? 's' : ''} left`}
+                        </Badge>
+                      }
+                    />
                   );
                 })
               )}
@@ -288,21 +300,21 @@ export default function FrontDesk() {
           {/* Pending Payments */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <CreditCard className="h-4 w-4 text-rose-500" />
-                Pending Payments
-                <Badge variant="secondary" className="ml-auto">{pendingPayments.length}</Badge>
-              </CardTitle>
+              <SectionHeader icon={CreditCard} title="Pending Payments" count={pendingPayments.length} color="text-rose-500" />
             </CardHeader>
             <CardContent className="space-y-2">
               {loading ? (
                 <SectionSkeleton />
               ) : pendingPayments.length === 0 ? (
-                <EmptyState message="All payments settled" />
+                <EmptyState message="No pending payments" />
               ) : (
                 pendingPayments.map((b) => {
-                  const unpaidInvoices = b.invoices?.filter((inv) => inv.payment_status !== 'paid') || [];
-                  const unpaidTotal = unpaidInvoices.reduce((sum, inv) => sum + Number(inv.total_amount), 0);
+                  const unpaidInvoices =
+                    b.invoices?.filter((inv) => inv.payment_status !== 'paid') || [];
+                  const unpaidTotal = unpaidInvoices.reduce(
+                    (sum, inv) => sum + Number(inv.total_amount),
+                    0
+                  );
                   return (
                     <div
                       key={b.id}
@@ -310,9 +322,12 @@ export default function FrontDesk() {
                       onClick={() => navigate(`/bookings/${b.id}`)}
                     >
                       <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{b.guests?.name || 'Unknown Guest'}</p>
+                        <p className="text-sm font-medium truncate">
+                          {b.guests?.name || 'Unknown Guest'}
+                        </p>
                         <p className="text-xs text-muted-foreground">
-                          Room {b.rooms?.room_number || '—'} · {unpaidInvoices.length} invoice{unpaidInvoices.length > 1 ? 's' : ''}
+                          Room {b.rooms?.room_number || '—'} · {unpaidInvoices.length} invoice
+                          {unpaidInvoices.length > 1 ? 's' : ''}
                         </p>
                       </div>
                       <div className="text-right shrink-0 ml-3">
@@ -320,7 +335,9 @@ export default function FrontDesk() {
                           LKR {unpaidTotal.toLocaleString()}
                         </p>
                         <Badge variant="destructive" className="text-[10px]">
-                          {unpaidInvoices[0]?.payment_status === 'partial' ? 'Partial' : 'Unpaid'}
+                          {unpaidInvoices[0]?.payment_status === 'partial'
+                            ? 'Partial'
+                            : 'Unpaid'}
                         </Badge>
                       </div>
                     </div>
@@ -332,57 +349,5 @@ export default function FrontDesk() {
         </div>
       </div>
     </DashboardLayout>
-  );
-}
-
-function StatCard({ icon: Icon, label, count, color }: { icon: any; label: string; count: number; color: string }) {
-  return (
-    <Card className="p-4">
-      <div className="flex items-center gap-3">
-        <div className={`rounded-lg bg-muted p-2 ${color}`}>
-          <Icon className="h-5 w-5" />
-        </div>
-        <div>
-          <p className="text-2xl font-bold">{count}</p>
-          <p className="text-xs text-muted-foreground">{label}</p>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-function BookingCard({
-  booking,
-  onActionComplete,
-  badge,
-}: {
-  booking: FrontDeskBooking;
-  onActionComplete: () => void;
-  badge?: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-col gap-2 rounded-xl border p-3 hover:bg-muted/30 transition-colors">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-medium truncate">{booking.guests?.name || 'Unknown Guest'}</p>
-            {badge}
-          </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Room {booking.rooms?.room_number || '—'} · {booking.rooms?.room_type || ''}
-            {booking.num_guests ? ` · ${booking.num_guests} guest${booking.num_guests > 1 ? 's' : ''}` : ''}
-          </p>
-          {booking.guests?.phone && (
-            <p className="text-xs text-muted-foreground">{booking.guests.phone}</p>
-          )}
-        </div>
-        {booking.total_amount != null && (
-          <p className="text-xs font-medium shrink-0">
-            LKR {Number(booking.total_amount).toLocaleString()}
-          </p>
-        )}
-      </div>
-      <BookingQuickActions booking={booking} onActionComplete={onActionComplete} compact />
-    </div>
   );
 }
