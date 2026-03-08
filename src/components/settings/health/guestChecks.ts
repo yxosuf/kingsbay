@@ -27,7 +27,7 @@ export async function runGuestChecks(propertyId: string | null): Promise<HealthC
 
   // Passport compliance for foreign guests
   try {
-    let query = supabase.from('guests').select('id, passport_number, passport_photo_path').eq('guest_type', 'foreign').is('deleted_at', null);
+    let query = supabase.from('guests').select('id, passport_number, passport_photo_path').eq('guest_type', 'international').is('deleted_at', null);
     if (propertyId) query = query.eq('property_id', propertyId);
     const { data: foreignGuests } = await query;
     const total = foreignGuests?.length || 0;

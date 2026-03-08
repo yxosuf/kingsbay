@@ -32,7 +32,7 @@ export async function runChannelChecks(propertyId: string | null): Promise<Healt
   // Sync errors in last 7 days
   try {
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { count } = await supabase.from('sync_logs').select('id', { count: 'exact', head: true }).eq('status', 'error').gte('created_at', weekAgo);
+    const { count } = await supabase.from('sync_logs').select('id', { count: 'exact', head: true }).eq('status', 'failed').gte('created_at', weekAgo);
     const cnt = count || 0;
     results.push({ name: 'Sync Errors (7d)', description: 'Failed syncs in the last 7 days', status: cnt === 0 ? 'pass' : cnt <= 3 ? 'warn' : 'fail', detail: cnt === 0 ? 'No sync errors' : `${cnt} failed sync(s) in 7 days`, icon: createElement(AlertTriangle, { className: 'h-4 w-4' }) });
   } catch {
