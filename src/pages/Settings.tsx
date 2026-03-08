@@ -46,6 +46,7 @@ import { DangerZoneSettings } from '@/components/settings/DangerZoneSettings';
 import { NotificationSettings } from '@/components/settings/NotificationSettings';
 import { SystemHealthSettings } from '@/components/settings/SystemHealthSettings';
 import { HotelSettings } from '@/components/settings/HotelSettings';
+import { OtherSettings } from '@/components/settings/OtherSettings';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 
