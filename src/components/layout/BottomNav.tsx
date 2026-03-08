@@ -107,10 +107,17 @@ export function BottomNav() {
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
           <SheetTrigger asChild>
             <button className="flex flex-col items-center justify-center gap-0.5 min-w-[56px] h-full px-2 relative">
-              <MoreHorizontal className={cn(
-                "h-5 w-5 transition-colors",
-                sheetOpen ? "text-primary" : "text-muted-foreground"
-              )} />
+              <div className="relative">
+                <MoreHorizontal className={cn(
+                  "h-5 w-5 transition-colors",
+                  sheetOpen ? "text-primary" : "text-muted-foreground"
+                )} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-destructive text-[8px] font-medium text-destructive-foreground">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </div>
               <span className={cn(
                 "text-[10px] font-medium transition-colors",
                 sheetOpen ? "text-primary" : "text-muted-foreground"
