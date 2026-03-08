@@ -235,20 +235,20 @@ export default function AvailabilityCalendar() {
       <div className="space-y-5">
         {/* Header Controls */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => navigatePeriod('prev')}>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Button variant="outline" size="icon" className="h-8 w-8 sm:h-10 sm:w-10" onClick={() => navigatePeriod('prev')}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="icon" onClick={() => navigatePeriod('next')}>
+            <Button variant="outline" size="icon" className="h-8 w-8 sm:h-10 sm:w-10" onClick={() => navigatePeriod('next')}>
               <ChevronRight className="h-4 w-4" />
             </Button>
-            <h2 className="text-lg font-semibold">
+            <h2 className="text-sm sm:text-lg font-semibold">
               {viewMode === 'week' 
                 ? `${format(dateRange[0], 'MMM d')} – ${format(dateRange[dateRange.length - 1], 'MMM d, yyyy')}`
                 : format(currentDate, 'MMMM yyyy')
               }
             </h2>
-            <Button variant="ghost" size="sm" onClick={() => setCurrentDate(new Date())}>
+            <Button variant="ghost" size="sm" className="h-7 text-xs sm:text-sm" onClick={() => setCurrentDate(new Date())}>
               Today
             </Button>
           </div>
