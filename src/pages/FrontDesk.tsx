@@ -296,11 +296,14 @@ export default function FrontDesk() {
                       booking={b}
                       onActionComplete={fetchAll}
                       badge={
-                        <Badge variant="outline" className="text-xs">
-                          {nights === 0
-                            ? 'Due today'
-                            : `${nights} night${nights > 1 ? 's' : ''} left`}
-                        </Badge>
+                        <>
+                          <Badge variant="outline" className="text-xs">
+                            {nights === 0
+                              ? 'Due today'
+                              : `${nights} night${nights > 1 ? 's' : ''} left`}
+                          </Badge>
+                          <PaymentStatusBadge invoices={(b as any).invoices} />
+                        </>
                       }
                     />
                   );
