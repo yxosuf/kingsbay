@@ -1,51 +1,42 @@
-# Kings Bay PMS — Implementation Complete ✅
 
-All plan items have been implemented and verified.
 
-## Phase 1 — Critical Fixes ✅
-| # | Item |
-|---|------|
-| 1 | Viewer Role RLS — `is_write_staff()`, write-restricted policies |
-| 2 | Availability Calendar — `[check_in, check_out)` string comparison |
-| 3 | Hybrid Hold System — `hold_expires_at`, edge function, countdown UI |
-| 4 | Cleaning Timer — `cleaning_until`, edge function, auto-release |
-| 5 | Rooms Derived Status — Occupied/Due Out/Arriving/Cleaning/Dirty/Inspected/Clean |
-| 6 | Guests in Settings — Tab, `/guests` redirect, guest details with services |
-| 7 | Guest Retention — `archived_at`/`deleted_at`, edge function, filters |
-| 8 | Nationality + Phone Code — Country selector, `countryData.ts` |
-| 9 | FX Rate System — `CurrencyDisplay`, `useFxRate`, edge function |
-| 10 | Danger Zone — Admin-only, password confirm, per-property, audit |
+# Booking Details Breakdown + Rate Calendar Assessment
 
-## Phase 2 — Operational ✅
-| # | Item |
-|---|------|
-| 11 | Front Desk Speed Mode — Quick actions, arrivals/departures |
-| 12 | Channel Manager — iCal, email inbound, needs_review flow |
-| 13 | Housekeeping Board — Drag-drop (Dirty→Cleaning→Clean→Inspected), staff assignment |
-| 14 | Notifications — Bell, preferences, edge functions |
-| 15 | Data Quality — Duplicate detection (phone/email/passport/NIC), admin merge tool |
+## Current State
 
-## Phase 3 — Finance ✅
-| # | Item |
-|---|------|
-| 16 | Booking Transactions Ledger — `booking_transactions`, TransactionsTab |
-| 17 | Accounting Layer — `ledger_accounts/entries/lines`, auto-posting |
+After reviewing the code:
 
-## Phase 4 ✅
-| # | Item |
-|---|------|
-| 18 | System Health Monitor — `/settings?tab=system-health`, admin checks |
+1. **BookingDetails.tsx** (lines 402-454) — Already renders the nightly breakdown table with rate plan name, but **only** when `price_breakdown` is stored on the booking. Existing bookings created before this column was added will show nothing.
 
-## Additional Features ✅
-- Guest Email System (Resend) — booking_confirmation, pre_arrival, checkout_summary
-- Guest Feedback System — dialog, display, reports, dashboard widget
-- Printable Invoice — react-to-print
-- PWA Support — service worker, manifest
-- Extend Stay / Move Room dialogs
-- Add Service Dialog with category filtering
-- Reports (Occupancy, Revenue, Financial, Feedback)
-- Mobile Responsive — bottom nav, responsive tables/tabs
-- Passport Photo Upload — secure storage in guest-documents bucket
-- Guest Details — services purchased with totals, VIP/blacklist badges
+2. **RateCalendar.tsx** — Bulk date selection is **fully implemented** (lines 164-252, 286-305, 424-461). Color coding for Override/Seasonal/Weekend/Closed is working (lines 254-260). Single-cell override editing works for admins.
 
-## All items verified and complete. No remaining work.
+## What Needs to Be Built
+
+### Add fallback recalculation for existing bookings
+
+For bookings where `price_breakdown` is null (created before the rate engine integration), recalculate the breakdown on-the-fly using `calculateStayTotal` and display it with a note that it reflects current rates, not the original booking rates.
+
+**Changes to `src/pages/BookingDetails.tsx`:**
+
+1. Import `calculateStayTotal` from `@/lib/rateEngine`
+2. Add a `useEffect` that fires when booking loads and `price_breakdown` is null
+3. Call `calculateStayTotal(propertyId, roomType, roomBasePrice, checkIn, checkOut, ratePlanId, numGuests)` 
+4. Store result in local state `calculatedBreakdown`
+5. In the render, use `booking.price_breakdown || calculatedBreakdown` for the breakdown table
+6. When using `calculatedBreakdown`, show an info badge: "Estimated — based on current rates" to distinguish from immutable stored breakdowns
+7. Also display the rate plan name from the booking's `rate_plan_id` by fetching it if not in the stored breakdown
+
+**Also fetch rate plan name independently** — if the booking has `rate_plan_id` but no `price_breakdown`, query `rate_plans` table for the name and display it in the Room & Stay card.
+
+### No changes needed for Rate Calendar
+
+Bulk edit, cell overrides, month navigation, and color coding are all functional.
+
+## Files Modified
+
+| File | Change |
+|------|--------|
+| `src/pages/BookingDetails.tsx` | Add fallback breakdown recalculation + rate plan name fetch |
+
+No database changes needed.
+
