@@ -391,13 +391,67 @@ export default function BookingDetails() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
                   <InfoRow icon={Calendar} label="Check-in" value={format(new Date(booking.check_in), 'PPP')} />
                   <InfoRow icon={Calendar} label="Check-out" value={format(new Date(booking.check_out), 'PPP')} />
                   <InfoRow icon={Clock} label="Duration" value={`${nights} night${nights !== 1 ? 's' : ''}`} />
                   <InfoRow icon={DollarSign} label="Rate / Night" value={`Rs. ${booking.rooms?.price.toLocaleString()}`} />
                 </div>
+
+                {/* Nightly Price Breakdown from stored data */}
+                {booking.price_breakdown?.nights && booking.price_breakdown.nights.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                      <DollarSign className="h-3 w-3" />
+                      Nightly Breakdown
+                      {booking.price_breakdown.ratePlanName && (
+                        <Badge variant="outline" className="text-[10px] ml-1">{booking.price_breakdown.ratePlanName}</Badge>
+                      )}
+                    </p>
+                    <div className="rounded-lg border overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-muted/50 text-xs">
+                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
+                            <th className="text-right px-3 py-2 font-medium text-muted-foreground">Base Rate</th>
+                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">Adjustments</th>
+                            <th className="text-right px-3 py-2 font-medium text-muted-foreground">Final Rate</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {booking.price_breakdown.nights.map((n: any) => {
+                            const adjustments: string[] = [];
+                            if (n.override) adjustments.push('Manual Override');
+                            if (n.seasonal) adjustments.push(n.seasonal);
+                            if (n.dayOfWeek) adjustments.push('Day-of-week');
+                            if (n.occupancy) adjustments.push('Occupancy');
+                            return (
+                              <tr key={n.date} className="border-t border-border/50">
+                                <td className="px-3 py-1.5 text-muted-foreground">{n.date}</td>
+                                <td className="px-3 py-1.5 text-right">Rs. {n.basePrice.toLocaleString()}</td>
+                                <td className="px-3 py-1.5">
+                                  {adjustments.length > 0 ? (
+                                    <span className="text-xs text-primary">{adjustments.join(', ')}</span>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">—</span>
+                                  )}
+                                </td>
+                                <td className="px-3 py-1.5 text-right font-medium">Rs. {n.finalPrice.toLocaleString()}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    {booking.price_breakdown.discount > 0 && (
+                      <div className="flex justify-between text-sm px-1">
+                        <span className="text-muted-foreground">Discount ({booking.price_breakdown.discountCode})</span>
+                        <span className="text-success">- Rs. {booking.price_breakdown.discount.toLocaleString()}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
