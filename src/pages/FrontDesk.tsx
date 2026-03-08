@@ -244,9 +244,9 @@ export default function FrontDesk() {
           </Card>
 
           {/* Today Departures */}
-          <Card>
+          <Card className="border-t-[3px] border-t-warning">
             <CardHeader className="pb-3">
-              <SectionHeader icon={LogOut} title="Today Departures" count={departures.length} color="text-amber-500" />
+              <SectionHeader icon={LogOut} title="Today Departures" count={departures.length} color="text-warning" />
             </CardHeader>
             <CardContent className="space-y-2">
               {loading ? (
