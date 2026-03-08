@@ -30,6 +30,7 @@ import { ServiceSelector, SelectedService } from '@/components/booking/ServiceSe
 import { checkRoomAvailability } from '@/lib/availabilityCheck';
 import { countries, getDialCodeByCountry } from '@/lib/countryData';
 import { postBookingConfirmed, postPayment } from '@/lib/ledgerUtils';
+import { calculateStayTotal, getActiveRatePlans, type StayTotal } from '@/lib/rateEngine';
 
 
 const bookingSchema = z.object({
