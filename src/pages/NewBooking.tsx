@@ -94,6 +94,8 @@ export default function NewBooking() {
   const [selectedRatePlanId, setSelectedRatePlanId] = useState<string>('');
   const [stayBreakdown, setStayBreakdown] = useState<StayTotal | null>(null);
   const [calculatingRate, setCalculatingRate] = useState(false);
+  const [discountCode, setDiscountCode] = useState('');
+  const [discountError, setDiscountError] = useState('');
 
   // Booked dates for calendar indicators
   const [bookedDateSet, setBookedDateSet] = useState<Set<string>>(new Set());
