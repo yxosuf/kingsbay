@@ -186,6 +186,21 @@ export function GuestsSettings() {
 
   return (
     <>
+      <Tabs defaultValue="list" className="space-y-4">
+        <TabsList className="w-full sm:w-auto">
+          <TabsTrigger value="list" className="flex-1 sm:flex-none gap-1.5">
+            <Users className="h-4 w-4" />
+            <span>Guest List</span>
+          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="duplicates" className="flex-1 sm:flex-none gap-1.5">
+              <GitMerge className="h-4 w-4" />
+              <span>Duplicates</span>
+            </TabsTrigger>
+          )}
+        </TabsList>
+
+        <TabsContent value="list">
       <div className="space-y-5">
         {/* Header with property badge */}
         <div className="flex items-center justify-between">
