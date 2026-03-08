@@ -360,6 +360,79 @@ export default function GuestDetails() {
           </CardContent>
         </Card>
 
+        {/* Passport / ID Document */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <FileImage className="h-5 w-5" />
+              Passport / ID Document
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row gap-4 items-start">
+              {passportPhotoUrl ? (
+                <div className="relative group">
+                  <img
+                    src={passportPhotoUrl}
+                    alt="Passport photo"
+                    className="w-48 h-32 object-cover rounded-lg border"
+                  />
+                  {guest.passport_photo_uploaded_at && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Uploaded {format(new Date(guest.passport_photo_uploaded_at), 'PP')}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="w-48 h-32 rounded-lg border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
+                  <div className="text-center text-muted-foreground">
+                    <FileImage className="h-8 w-8 mx-auto mb-1 opacity-40" />
+                    <p className="text-xs">No photo</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-3 flex-1">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Passport #</p>
+                    <p className="font-medium">{guest.passport_number || guest.id_passport || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">NIC #</p>
+                    <p className="font-medium">{guest.nic_number || 'Not provided'}</p>
+                  </div>
+                </div>
+
+                {canWrite && (
+                  <div>
+                    <label htmlFor="passport-upload">
+                      <Button variant="outline" size="sm" asChild disabled={uploadingPhoto}>
+                        <span className="cursor-pointer">
+                          {uploadingPhoto ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Upload className="h-4 w-4 mr-2" />
+                          )}
+                          {passportPhotoUrl ? 'Replace Photo' : 'Upload Photo'}
+                        </span>
+                      </Button>
+                    </label>
+                    <input
+                      id="passport-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handlePassportUpload}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Max 5MB. Stored securely.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
