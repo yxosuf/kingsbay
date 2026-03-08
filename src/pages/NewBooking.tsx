@@ -378,6 +378,17 @@ export default function NewBooking() {
         return;
       }
 
+      // Build immutable price breakdown for storage
+      const priceBreakdown = stayBreakdown ? {
+        nights: stayBreakdown.nights,
+        subtotal: stayBreakdown.subtotal,
+        discount: stayBreakdown.discount,
+        discountCode: stayBreakdown.discountCode,
+        total: stayBreakdown.total,
+        ratePlanName: stayBreakdown.ratePlanName,
+        extraGuestFee: stayBreakdown.extraGuestFee,
+      } : null;
+
       // Create booking
       const { data: newBooking, error: bookingError } = await supabase.from('bookings').insert({
         guest_id: guestId,
@@ -397,6 +408,10 @@ export default function NewBooking() {
         commission_amount: commissionAmt,
         ota_reference: bookingSource !== 'direct' ? otaReference.trim() || null : null,
         property_id: selectedProperty.id,
+        rate_plan_id: selectedRatePlanId || null,
+        discount_code_id: stayBreakdown?.discountCodeId || null,
+        discount_amount: stayBreakdown?.discount || 0,
+        price_breakdown: priceBreakdown,
       } as any).select().single();
 
       if (bookingError) throw bookingError;
