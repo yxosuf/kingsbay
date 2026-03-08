@@ -62,11 +62,12 @@ interface PendingUser {
   created_at: string;
 }
 
-type SettingsSection = 'access' | 'property' | 'guests' | 'services' | 'channels' | 'reports' | 'security' | 'system-health';
+type SettingsSection = 'access' | 'property' | 'notifications' | 'guests' | 'services' | 'channels' | 'reports' | 'security' | 'system-health';
 
 const SETTINGS_NAV: { id: SettingsSection; label: string; icon: typeof Shield; description: string; adminOnly?: boolean }[] = [
   { id: 'access', label: 'Access & Roles', icon: ShieldCheck, description: 'Users, staff, and permissions' },
   { id: 'property', label: 'Property', icon: Building2, description: 'Name, times, currency, tax' },
+  { id: 'notifications', label: 'Notifications', icon: BellRing, description: 'Alert preferences & delivery' },
   { id: 'guests', label: 'Guest Settings', icon: User, description: 'Guest list and management' },
   { id: 'services', label: 'Services', icon: UtensilsCrossed, description: 'Service catalog and pricing' },
   { id: 'channels', label: 'Channel Manager', icon: Megaphone, description: 'OTA connections and sync' },
