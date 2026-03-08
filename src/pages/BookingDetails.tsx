@@ -124,6 +124,9 @@ export default function BookingDetails() {
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState<string | null>(null);
+  const [calculatedBreakdown, setCalculatedBreakdown] = useState<StayTotal | null>(null);
+  const [ratePlanName, setRatePlanName] = useState<string | null>(null);
+  const [breakdownLoading, setBreakdownLoading] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const { fxRate } = useFxRate(booking?.property_id);
   const { feedback: bookingFeedback, refetch: refetchFeedback } = useGuestFeedback({
