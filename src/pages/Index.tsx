@@ -351,24 +351,24 @@ export default function Dashboard() {
               )}
               onClick={stat.onClick}
             >
-              <CardContent className="p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div className="space-y-1 min-w-0">
-                    <p className="text-xs sm:text-sm text-muted-foreground font-medium truncate">{stat.title}</p>
+              <CardContent className="p-3 sm:p-6">
+                <div className="flex flex-row items-center justify-between gap-2 sm:gap-3">
+                  <div className="space-y-0.5 sm:space-y-1 min-w-0">
+                    <p className="text-[11px] sm:text-sm text-muted-foreground font-medium truncate">{stat.title}</p>
                     <p className={cn(
-                      "text-xl sm:text-2xl font-bold text-foreground truncate animate-fade-in-up",
+                      "text-lg sm:text-2xl font-bold text-foreground truncate animate-fade-in-up",
                     )} style={{ animationDelay: `${i * 80}ms` }}>
                       {stat.value}
                     </p>
                     {stat.subtitle && (
-                      <p className="text-xs text-muted-foreground">{stat.subtitle}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">{stat.subtitle}</p>
                     )}
                   </div>
                   <div className={cn(
-                    "p-2.5 sm:p-3 rounded-xl self-start sm:self-auto shrink-0",
+                    "p-1.5 sm:p-3 rounded-xl shrink-0",
                     stat.bgColor
                   )}>
-                    <stat.icon className={cn("h-5 w-5 sm:h-6 sm:w-6", stat.color)} />
+                    <stat.icon className={cn("h-4 w-4 sm:h-6 sm:w-6", stat.color)} />
                   </div>
                 </div>
               </CardContent>
