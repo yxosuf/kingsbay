@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Bell, Info, AlertTriangle,
   CalendarDays, LogIn, Wrench, Wifi, Megaphone,
-  ChevronRight, BellRing,
+  ChevronRight, BellRing, Settings2, FileStack,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { useAuth } from '@/hooks/useAuth';
 import { useBrowserNotifications } from '@/hooks/useBrowserNotifications';
+import { useNotificationPreferences } from '@/hooks/useNotificationPreferences';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -33,6 +34,8 @@ interface Notification {
   action_type: string | null;
   action_entity_id: string | null;
   expires_at: string | null;
+  image_url: string | null;
+  actions: any[] | null;
 }
 
 type FilterTab = 'all' | 'high' | 'booking' | 'system';
@@ -99,18 +102,20 @@ export function NotificationBell() {
   const { selectedProperty, showAllProperties } = useProperty();
   const { role } = useAuth();
   const { permission, requestPermission } = useBrowserNotifications();
+  const { shouldShowNotification } = useNotificationPreferences();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
+  const [showDigest, setShowDigest] = useState(false);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       let query = supabase
         .from('notifications')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(30);
+        .limit(50);
 
       if (selectedProperty && !showAllProperties) {
         query = query.eq('property_id', selectedProperty.id);
@@ -128,6 +133,8 @@ export function NotificationBell() {
           action_type: n.action_type || null,
           action_entity_id: n.action_entity_id || null,
           expires_at: n.expires_at || null,
+          image_url: n.image_url || null,
+          actions: n.actions || null,
         }))
       );
     } catch (error) {
@@ -135,37 +142,77 @@ export function NotificationBell() {
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchNotifications();
   }, [selectedProperty, showAllProperties]);
 
+  useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
+
+  // Realtime sync across devices
   useEffect(() => {
     const channel = supabase
-      .channel('notifications-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => {
-        fetchNotifications();
+      .channel('notifications-bell-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const n = payload.new as any;
+          setNotifications(prev => [{
+            ...n,
+            category: n.category || n.type || 'general',
+            priority: n.priority || 'medium',
+            target_roles: n.target_roles || null,
+            action_type: n.action_type || null,
+            action_entity_id: n.action_entity_id || null,
+            expires_at: n.expires_at || null,
+            image_url: n.image_url || null,
+            actions: n.actions || null,
+          }, ...prev].slice(0, 50));
+        } else if (payload.eventType === 'UPDATE') {
+          const updated = payload.new as any;
+          setNotifications(prev => prev.map(n => n.id === updated.id ? {
+            ...n,
+            ...updated,
+            category: updated.category || updated.type || 'general',
+            image_url: updated.image_url || null,
+            actions: updated.actions || null,
+          } : n));
+        } else if (payload.eventType === 'DELETE') {
+          const deleted = payload.old as any;
+          setNotifications(prev => prev.filter(n => n.id !== deleted.id));
+        }
       })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, [selectedProperty, showAllProperties]);
 
+  // Separate notifications into visible vs digest based on preferences
+  const { visibleNotifications, digestNotifications } = useMemo(() => {
+    const visible: Notification[] = [];
+    const digest: Notification[] = [];
+    for (const n of notifications) {
+      if (shouldShowNotification(n.category, n.priority)) {
+        visible.push(n);
+      } else {
+        digest.push(n);
+      }
+    }
+    return { visibleNotifications: visible, digestNotifications: digest };
+  }, [notifications, shouldShowNotification]);
+
   const filtered = useMemo(() => {
+    const source = showDigest ? digestNotifications : visibleNotifications;
     switch (activeFilter) {
       case 'high':
-        return notifications.filter((n) => n.priority === 'high');
+        return source.filter((n) => n.priority === 'high');
       case 'booking':
-        return notifications.filter((n) => ['booking', 'checkin_checkout'].includes(n.category));
+        return source.filter((n) => ['booking', 'checkin_checkout'].includes(n.category));
       case 'system':
-        return notifications.filter((n) => ['channel_sync', 'maintenance', 'availability'].includes(n.category));
+        return source.filter((n) => ['channel_sync', 'maintenance', 'availability'].includes(n.category));
       default:
-        return notifications;
+        return source;
     }
-  }, [notifications, activeFilter]);
+  }, [visibleNotifications, digestNotifications, activeFilter, showDigest]);
 
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
+  const unreadCount = visibleNotifications.filter((n) => !n.is_read).length;
+  const digestUnread = digestNotifications.filter(n => !n.is_read).length;
 
   const handleClick = async (notification: Notification) => {
     if (!notification.is_read) {
@@ -222,7 +269,7 @@ export function NotificationBell() {
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3">
           <h4 className="text-sm font-semibold">Notifications</h4>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             {permission === 'default' && (
               <Button variant="ghost" size="sm" className="h-auto px-2 py-1 text-xs text-primary gap-1" onClick={requestPermission}>
                 <BellRing className="h-3 w-3" />
@@ -237,8 +284,40 @@ export function NotificationBell() {
             <Button variant="ghost" size="sm" className="h-auto px-2 py-1 text-xs text-muted-foreground" onClick={() => { setOpen(false); navigate('/notifications'); }}>
               View all
             </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => { setOpen(false); navigate('/settings?tab=notifications'); }}
+              title="Notification settings"
+            >
+              <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
+            </Button>
           </div>
         </div>
+
+        {/* Digest toggle */}
+        {digestNotifications.length > 0 && (
+          <div className="px-4 pb-2">
+            <button
+              onClick={() => setShowDigest(!showDigest)}
+              className={cn(
+                'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-colors border',
+                showDigest
+                  ? 'bg-primary/10 border-primary/30 text-primary'
+                  : 'bg-muted/50 border-border text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <FileStack className="h-3.5 w-3.5" />
+              <span className="flex-1 text-left font-medium">
+                {showDigest ? 'Showing digest' : 'Digest summary'}
+              </span>
+              <span className="text-[10px] bg-muted rounded-full px-1.5 py-0.5">
+                {digestUnread > 0 ? `${digestUnread} new` : `${digestNotifications.length} items`}
+              </span>
+            </button>
+          </div>
+        )}
 
         {/* Filter tabs */}
         <div className="flex gap-1 px-4 pb-2">
@@ -276,7 +355,9 @@ export function NotificationBell() {
           ) : filtered.length === 0 ? (
             <div className="p-8 text-center">
               <Bell className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
-              <p className="text-sm text-muted-foreground">No notifications</p>
+              <p className="text-sm text-muted-foreground">
+                {showDigest ? 'No digest items' : 'No notifications'}
+              </p>
             </div>
           ) : (
             <div className="divide-y divide-border">
@@ -289,8 +370,13 @@ export function NotificationBell() {
                   )}
                   onClick={() => handleClick(n)}
                 >
+                  {/* Icon or image */}
                   <div className={cn('flex-shrink-0 mt-0.5', getPriorityColor(n.priority))}>
-                    {getCategoryIcon(n.category)}
+                    {n.image_url ? (
+                      <img src={n.image_url} alt="" className="h-8 w-8 rounded-full object-cover" />
+                    ) : (
+                      getCategoryIcon(n.category)
+                    )}
                   </div>
 
                   <div className="flex-1 min-w-0">
@@ -305,7 +391,27 @@ export function NotificationBell() {
                     )}
                     <div className="flex items-center justify-between mt-1 ml-3">
                       <p className="text-[10px] text-muted-foreground">{formatTime(n.created_at)}</p>
-                      {n.action_type && canPerformAction(n.action_type) && (
+                      {/* Render action buttons from actions array or fallback to action_type */}
+                      {n.actions && Array.isArray(n.actions) && n.actions.length > 0 ? (
+                        <div className="flex gap-1">
+                          {n.actions.slice(0, 2).map((action: any, i: number) => (
+                            <Button
+                              key={i}
+                              variant="ghost"
+                              size="sm"
+                              className="h-auto px-2 py-0.5 text-[10px] text-primary hover:text-primary font-medium gap-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (action.link) { setOpen(false); navigate(action.link); }
+                                else handleAction(e, n);
+                              }}
+                            >
+                              {action.label}
+                              <ChevronRight className="h-3 w-3" />
+                            </Button>
+                          ))}
+                        </div>
+                      ) : n.action_type && canPerformAction(n.action_type) ? (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -315,7 +421,7 @@ export function NotificationBell() {
                           {getActionLabel(n.action_type)}
                           <ChevronRight className="h-3 w-3" />
                         </Button>
-                      )}
+                      ) : null}
                     </div>
                   </div>
 
