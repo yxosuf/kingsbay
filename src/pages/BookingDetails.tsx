@@ -80,7 +80,7 @@ export default function BookingDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, canWrite } = useAuth();
   const isCheckout = location.pathname.includes('/checkout');
 
   const [booking, setBooking] = useState<BookingDetails | null>(null);
