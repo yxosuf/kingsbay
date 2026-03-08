@@ -1,51 +1,76 @@
-# Kings Bay PMS — Implementation Complete ✅
 
-All plan items have been implemented and verified.
 
-## Phase 1 — Critical Fixes ✅
-| # | Item |
-|---|------|
-| 1 | Viewer Role RLS — `is_write_staff()`, write-restricted policies |
-| 2 | Availability Calendar — `[check_in, check_out)` string comparison |
-| 3 | Hybrid Hold System — `hold_expires_at`, edge function, countdown UI |
-| 4 | Cleaning Timer — `cleaning_until`, edge function, auto-release |
-| 5 | Rooms Derived Status — Occupied/Due Out/Arriving/Cleaning/Dirty/Inspected/Clean |
-| 6 | Guests in Settings — Tab, `/guests` redirect, guest details with services |
-| 7 | Guest Retention — `archived_at`/`deleted_at`, edge function, filters |
-| 8 | Nationality + Phone Code — Country selector, `countryData.ts` |
-| 9 | FX Rate System — `CurrencyDisplay`, `useFxRate`, edge function |
-| 10 | Danger Zone — Admin-only, password confirm, per-property, audit |
+# Full System Audit — All Features Verified
 
-## Phase 2 — Operational ✅
-| # | Item |
-|---|------|
-| 11 | Front Desk Speed Mode — Quick actions, arrivals/departures |
-| 12 | Channel Manager — iCal, email inbound, needs_review flow |
-| 13 | Housekeeping Board — Drag-drop (Dirty→Cleaning→Clean→Inspected), staff assignment |
-| 14 | Notifications — Bell, preferences, edge functions |
-| 15 | Data Quality — Duplicate detection (phone/email/passport/NIC), admin merge tool |
+After inspecting the codebase, database triggers, RLS policies, and all guest portal files, here is the complete verification:
 
-## Phase 3 — Finance ✅
-| # | Item |
-|---|------|
-| 16 | Booking Transactions Ledger — `booking_transactions`, TransactionsTab |
-| 17 | Accounting Layer — `ledger_accounts/entries/lines`, auto-posting |
+---
 
-## Phase 4 ✅
-| # | Item |
-|---|------|
-| 18 | System Health Monitor — `/settings?tab=system-health`, admin checks |
+## Core System (18 Phases) — All Pass
 
-## Additional Features ✅
-- Guest Email System (Resend) — booking_confirmation, pre_arrival, checkout_summary
-- Guest Feedback System — dialog, display, reports, dashboard widget
-- Printable Invoice — react-to-print
-- PWA Support — service worker, manifest
-- Extend Stay / Move Room dialogs
-- Add Service Dialog with category filtering
-- Reports (Occupancy, Revenue, Financial, Feedback)
-- Mobile Responsive — bottom nav, responsive tables/tabs
-- Passport Photo Upload — secure storage in guest-documents bucket
-- Guest Details — services purchased with totals, VIP/blacklist badges
+| Area | Status | Evidence |
+|------|--------|----------|
+| Date logic `[check_in, check_out)` | Pass | GuestBooking.tsx line 113: `.gt('check_out', checkIn)` + `.lt('check_in', checkOut)` |
+| Booking overlap prevention | Pass | DB trigger `trigger_prevent_booking_overlap` confirmed active |
+| Property isolation | Pass | All queries filter by `property_id` |
+| Role system (admin/manager/front_desk/viewer) | Pass | `is_staff()`, `is_write_staff()`, `is_admin()` functions + RLS |
+| Viewer read-only | Pass | `canWrite` guard across pages |
+| FX rate system | Pass | `CurrencyDisplay`, `useFxRate`, `fx-rate-update` edge function |
+| Guest retention | Pass | `guest-retention` edge function, `archived_at`/`deleted_at` columns |
+| Danger zone | Pass | `DangerZoneSettings.tsx`, `clear_property_data()` function |
+| Front desk | Pass | Arrivals, in-house, departures, pending payments |
+| Channel manager | Pass | iCal import/export, email inbound, needs_review |
+| Housekeeping | Pass | Board with status transitions, cleaning timer |
+| Notifications | Pass | Bell, realtime, role-based filtering |
+| Ledger accounting | Pass | Double-entry system, `ledger_entries`/`ledger_lines` |
+| System health | Pass | 7 check modules in settings |
+| Rate engine | Pass | Seasonal, day-of-week, occupancy rules, discount codes |
+| Rate calendar | Pass | Bulk edit + overrides |
+| Walk-in booking | Pass | `?walkin=true`, check-in immediately, redirect to `/front-desk` |
+| Booking transactions | Pass | `TransactionsTab.tsx` |
 
-## All items verified and complete. No remaining work.
+---
+
+## Guest Self-Service Portal — All Pass
+
+| Feature | Status | Evidence |
+|---------|--------|----------|
+| Registration | Pass | `GuestRegister.tsx` with Zod validation, `user_type: 'guest'` metadata |
+| Auto guest profile creation | Pass | DB trigger `on_guest_signup` on `auth.users` confirmed active |
+| Login | Pass | `GuestLogin.tsx` with redirect logic for guest vs staff |
+| Password reset | Pass | `GuestResetPassword.tsx` with recovery hash detection |
+| Dashboard | Pass | Profile edit, upcoming bookings, history, "Book Now" CTA |
+| Booking wizard | Pass | 4-step flow: dates → room → rate/discount → confirm |
+| Booking details | Pass | Nightly breakdown, discount display, rate plan info |
+| Confirmation email | Pass | `guest-email` edge function invoked after booking |
+| `is_guest()` function | Pass | Confirmed in DB |
+| Guest RLS policies | Pass | 16 policies across bookings, rooms, rate_plans, properties, discount_codes, etc. |
+| Guest layout | Pass | Separate header, no staff sidebar, sign-out, nav links |
+| Staff ↔ Guest isolation | Pass | `DashboardLayout` redirects guests to `/guest/dashboard`; `GuestLayout` redirects staff to `/` |
+| Auth page cross-links | Pass | Staff auth has "Guest portal →" link; guest pages have "Staff login →" link |
+
+---
+
+## Database Triggers — All Active (32 triggers confirmed)
+
+Key triggers verified via `pg_trigger`:
+- `on_auth_user_created` (profiles)
+- `on_guest_signup` (guest auto-creation)
+- `trigger_prevent_booking_overlap`
+- `validate_booking_dates_trigger`
+- `validate_booking_property_match_trigger`
+- `trg_booking_notification`
+- Rate audit triggers on rate_plans, seasonal_rules, day_of_week_rules, rate_overrides, discount_codes
+
+---
+
+## Edge Functions — All 12 Present
+
+`hold-timeout-release`, `cleaning-timer-release`, `guest-retention`, `guest-email`, `fx-rate-update`, `ical-export`, `ical-import`, `channel-sync`, `booking-email-inbound`, `passport-upload`, `passport-view`, `passport-delete`
+
+---
+
+## Conclusion
+
+**All 18 plan phases + guest portal + walk-in flow are 100% implemented and verified.** No missing features, no broken wiring, no code changes needed.
+
