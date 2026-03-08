@@ -51,6 +51,8 @@ export default function Properties() {
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [saving, setSaving] = useState(false);
   const [deletePropertyId, setDeletePropertyId] = useState<string | null>(null);
+  const [deleteCounts, setDeleteCounts] = useState<{ rooms: number; bookings: number; guests: number } | null>(null);
+  const [loadingCounts, setLoadingCounts] = useState(false);
   const [name, setName] = useState('');
   const [propertyType, setPropertyType] = useState<Property['property_type']>('hotel');
   const [location, setLocation] = useState('');
