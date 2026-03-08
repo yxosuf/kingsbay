@@ -485,7 +485,7 @@ export default function Rooms() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4">
             {roomsWithDerived.map(({ room, derived, cleaningCountdown }) => {
               const config = derivedStatusConfig[derived.status];
               return (
@@ -501,64 +501,62 @@ export default function Rooms() {
                     : 'border-t-muted-foreground'
                   }`}
                 >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <CardTitle className="text-lg">Room {room.room_number}</CardTitle>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <div className={`h-2 w-2 rounded-full ${
+                  <CardHeader className="p-2.5 sm:p-6 pb-1 sm:pb-2">
+                    <div className="flex items-center justify-between gap-1">
+                      <CardTitle className="text-sm sm:text-lg">Room {room.room_number}</CardTitle>
+                      <div className="flex items-center gap-1">
+                        <div className={`h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full shrink-0 ${
                           derived.status === 'available' ? 'bg-success'
                           : derived.status === 'occupied' ? 'bg-destructive'
                           : derived.status === 'due_out' ? 'bg-warning'
                           : derived.status === 'arriving' ? 'bg-info'
                           : 'bg-muted-foreground'
                         }`} />
-                        <Badge variant="outline" className={config.color}>
+                        <Badge variant="outline" className={`${config.color} text-[10px] sm:text-xs px-1 sm:px-2 py-0`}>
                           {config.label}
                         </Badge>
                       </div>
                     </div>
-                    <p className="text-sm text-muted-foreground capitalize">{room.room_type}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground capitalize">{room.room_type}</p>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex justify-between text-sm">
+                  <CardContent className="p-2.5 sm:p-6 pt-1 sm:pt-0 space-y-1.5 sm:space-y-4">
+                    <div className="flex justify-between text-xs sm:text-sm">
                       <span className="text-muted-foreground">Rate</span>
-                      <span className="font-medium">Rs. {room.price.toLocaleString()}/night</span>
+                      <span className="font-medium">Rs. {room.price.toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between text-sm">
+                    <div className="hidden sm:flex justify-between text-sm">
                       <span className="text-muted-foreground">Max Guests</span>
                       <span>{room.max_guests}</span>
                     </div>
                     {room.floor && (
-                      <div className="flex justify-between text-sm">
+                      <div className="hidden sm:flex justify-between text-sm">
                         <span className="text-muted-foreground">Floor</span>
                         <span>{room.floor}</span>
                       </div>
                     )}
                     {derived.guestName && (
-                      <div className="flex justify-between text-sm">
+                      <div className="flex justify-between text-xs sm:text-sm">
                         <span className="text-muted-foreground">Guest</span>
-                        <span className="font-medium truncate ml-2">{derived.guestName}</span>
+                        <span className="font-medium truncate ml-1 sm:ml-2">{derived.guestName}</span>
                       </div>
                     )}
                     {cleaningCountdown && (
-                      <div className="text-xs text-orange-600 font-medium">
+                      <div className="text-[10px] sm:text-xs text-orange-600 font-medium">
                         🧹 {cleaningCountdown}
                       </div>
                     )}
 
                     {/* Quick Actions */}
-                    <div className="flex gap-2 pt-2">
+                    <div className="flex gap-1 sm:gap-2 pt-1 sm:pt-2">
                       {canWrite && (derived.status === 'dirty' || derived.status === 'cleaning') && (
                         <Button
                           variant="outline"
                           size="sm"
-                          className="flex-1"
+                          className="flex-1 text-xs h-7 sm:h-9"
                           onClick={() => handleMarkClean(room.id)}
                         >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Mark Clean
+                          <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-1" />
+                          <span className="hidden sm:inline">Mark </span>Clean
                         </Button>
                       )}
                       {isAdmin && (
@@ -566,7 +564,7 @@ export default function Rooms() {
                           value={room.status}
                           onValueChange={(value) => handleStatusChange(room.id, value as RoomStatus)}
                         >
-                          <SelectTrigger className="flex-1">
+                          <SelectTrigger className="flex-1 h-7 sm:h-9 text-xs sm:text-sm">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -580,17 +578,18 @@ export default function Rooms() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-7 w-7 sm:h-9 sm:w-9"
                             onClick={() => openEditDialog(room)}
                           >
-                            <Edit className="h-4 w-4" />
+                            <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="text-destructive"
+                            className="h-7 w-7 sm:h-9 sm:w-9 text-destructive"
                             onClick={() => handleDelete(room.id)}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
                         </>
                       )}
