@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Bell, CalendarDays, LogIn, AlertTriangle, Wrench, Wifi, Megaphone, Info,
-  ChevronRight, Trash2, CheckCheck, Check, BellRing,
+  ChevronRight, Trash2, CheckCheck, Check, BellRing, FileStack, Settings2,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { useAuth } from '@/hooks/useAuth';
 import { useBrowserNotifications } from '@/hooks/useBrowserNotifications';
+import { useNotificationPreferences } from '@/hooks/useNotificationPreferences';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -31,6 +32,8 @@ interface Notification {
   action_type: string | null;
   action_entity_id: string | null;
   expires_at: string | null;
+  image_url: string | null;
+  actions: any[] | null;
 }
 
 type FilterTab = 'all' | 'high' | 'medium' | 'low' | 'booking' | 'system';
@@ -118,6 +121,7 @@ function SwipeableCard({
   canPerformAction: boolean;
   role: string | null;
 }) {
+  const navigate = useNavigate();
   const cardRef = useRef<HTMLDivElement>(null);
   const [swipeX, setSwipeX] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
@@ -136,7 +140,6 @@ function SwipeableCard({
     const dx = e.touches[0].clientX - startX.current;
     const dy = e.touches[0].clientY - startY.current;
 
-    // Only start swiping if horizontal movement > vertical
     if (!isDragging.current && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
       isDragging.current = true;
       setIsSwiping(true);
@@ -144,7 +147,6 @@ function SwipeableCard({
 
     if (isDragging.current) {
       e.preventDefault();
-      // Clamp swipe distance
       const clampedX = Math.max(-120, Math.min(120, dx));
       setSwipeX(clampedX);
     }
@@ -152,11 +154,9 @@ function SwipeableCard({
 
   const handleTouchEnd = useCallback(() => {
     if (swipeX < -60 && !notification.is_read) {
-      // Swipe left → mark as read
       onMarkRead(notification.id);
       toast.success('Marked as read');
     } else if (swipeX > 60 && canPerformAction && notification.action_type) {
-      // Swipe right → perform action
       onAction(notification);
     }
 
@@ -173,7 +173,6 @@ function SwipeableCard({
     <div className="relative overflow-hidden rounded-lg">
       {/* Swipe background indicators */}
       <div className="absolute inset-0 flex">
-        {/* Right action (swipe right) */}
         <div className={cn(
           'flex items-center justify-start pl-4 w-1/2 transition-opacity',
           swipeX > 30 ? 'opacity-100' : 'opacity-0',
@@ -185,7 +184,6 @@ function SwipeableCard({
             </span>
           )}
         </div>
-        {/* Left action (swipe left = mark read) */}
         <div className={cn(
           'flex items-center justify-end pr-4 w-1/2 transition-opacity',
           swipeX < -30 ? 'opacity-100' : 'opacity-0',
@@ -211,10 +209,14 @@ function SwipeableCard({
       >
         <div className="flex gap-3">
           <div className={cn(
-            'flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full bg-muted',
-            getPriorityColor(notification.priority)
+            'flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full bg-muted overflow-hidden',
+            !notification.image_url && getPriorityColor(notification.priority)
           )}>
-            {getCategoryIcon(notification.category)}
+            {notification.image_url ? (
+              <img src={notification.image_url} alt="" className="h-10 w-10 rounded-full object-cover" />
+            ) : (
+              getCategoryIcon(notification.category)
+            )}
           </div>
 
           <div className="flex-1 min-w-0">
@@ -236,7 +238,27 @@ function SwipeableCard({
               <p className="text-[11px] text-muted-foreground">
                 {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
               </p>
-              {notification.action_type && actionAllowed && (
+              {/* Rich actions or single action */}
+              {notification.actions && Array.isArray(notification.actions) && notification.actions.length > 0 ? (
+                <div className="flex gap-1">
+                  {notification.actions.slice(0, 2).map((action: any, i: number) => (
+                    <Button
+                      key={i}
+                      variant="outline"
+                      size="sm"
+                      className="h-7 px-2.5 text-xs gap-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (action.link) navigate(action.link);
+                        else onAction(notification);
+                      }}
+                    >
+                      {action.label}
+                      <ChevronRight className="h-3 w-3" />
+                    </Button>
+                  ))}
+                </div>
+              ) : notification.action_type && actionAllowed ? (
                 <Button
                   variant="outline"
                   size="sm"
@@ -246,7 +268,7 @@ function SwipeableCard({
                   {getActionLabel(notification.action_type)}
                   <ChevronRight className="h-3 w-3" />
                 </Button>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
@@ -260,11 +282,13 @@ export default function Notifications() {
   const { selectedProperty, showAllProperties } = useProperty();
   const { canWrite, isAdmin, role } = useAuth();
   const { permission, requestPermission } = useBrowserNotifications();
+  const { shouldShowNotification } = useNotificationPreferences();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
+  const [showDigest, setShowDigest] = useState(false);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       let query = supabase
         .from('notifications')
@@ -288,6 +312,8 @@ export default function Notifications() {
           action_type: n.action_type || null,
           action_entity_id: n.action_entity_id || null,
           expires_at: n.expires_at || null,
+          image_url: n.image_url || null,
+          actions: n.actions || null,
         }))
       );
     } catch (error) {
@@ -295,30 +321,65 @@ export default function Notifications() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedProperty, showAllProperties]);
 
-  useEffect(() => { fetchNotifications(); }, [selectedProperty, showAllProperties]);
+  useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
 
+  // Realtime sync across devices
   useEffect(() => {
     const channel = supabase
       .channel('notifications-page-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => fetchNotifications())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const n = payload.new as any;
+          setNotifications(prev => [{
+            ...n,
+            category: n.category || n.type || 'general',
+            priority: n.priority || 'medium',
+            image_url: n.image_url || null,
+            actions: n.actions || null,
+          }, ...prev].slice(0, 100));
+        } else if (payload.eventType === 'UPDATE') {
+          const updated = payload.new as any;
+          setNotifications(prev => prev.map(x => x.id === updated.id ? { ...x, ...updated } : x));
+        } else if (payload.eventType === 'DELETE') {
+          const deleted = payload.old as any;
+          setNotifications(prev => prev.filter(x => x.id !== deleted.id));
+        }
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [selectedProperty, showAllProperties]);
 
+  // Split by preferences
+  const { visibleNotifications, digestNotifications } = useMemo(() => {
+    const visible: Notification[] = [];
+    const digest: Notification[] = [];
+    for (const n of notifications) {
+      if (shouldShowNotification(n.category, n.priority)) {
+        visible.push(n);
+      } else {
+        digest.push(n);
+      }
+    }
+    return { visibleNotifications: visible, digestNotifications: digest };
+  }, [notifications, shouldShowNotification]);
+
+  const source = showDigest ? digestNotifications : visibleNotifications;
+
   const filtered = useMemo(() => {
     switch (activeFilter) {
-      case 'high': return notifications.filter((n) => n.priority === 'high');
-      case 'medium': return notifications.filter((n) => n.priority === 'medium');
-      case 'low': return notifications.filter((n) => n.priority === 'low');
-      case 'booking': return notifications.filter((n) => ['booking', 'checkin_checkout'].includes(n.category));
-      case 'system': return notifications.filter((n) => ['channel_sync', 'maintenance', 'availability'].includes(n.category));
-      default: return notifications;
+      case 'high': return source.filter((n) => n.priority === 'high');
+      case 'medium': return source.filter((n) => n.priority === 'medium');
+      case 'low': return source.filter((n) => n.priority === 'low');
+      case 'booking': return source.filter((n) => ['booking', 'checkin_checkout'].includes(n.category));
+      case 'system': return source.filter((n) => ['channel_sync', 'maintenance', 'availability'].includes(n.category));
+      default: return source;
     }
-  }, [notifications, activeFilter]);
+  }, [source, activeFilter]);
 
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
+  const unreadCount = visibleNotifications.filter((n) => !n.is_read).length;
+  const digestUnread = digestNotifications.filter(n => !n.is_read).length;
 
   const handleClick = async (n: Notification) => {
     if (!n.is_read) {
@@ -378,7 +439,7 @@ export default function Notifications() {
           <div className="flex items-center gap-2">
             <Bell className="h-5 w-5 text-primary" />
             <span className="text-sm text-muted-foreground">
-              {unreadCount} unread · {notifications.length} total
+              {unreadCount} unread · {visibleNotifications.length} total
             </span>
           </div>
           <div className="flex gap-2">
@@ -388,6 +449,15 @@ export default function Notifications() {
                 <span className="hidden sm:inline">Mark all read</span>
               </Button>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs"
+              onClick={() => navigate('/settings?tab=notifications')}
+            >
+              <Settings2 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Settings</span>
+            </Button>
             {isAdmin && notifications.length > 0 && (
               <Button variant="outline" size="sm" className="gap-1.5 text-xs text-destructive hover:text-destructive" onClick={handleDeleteAll}>
                 <Trash2 className="h-3.5 w-3.5" />
@@ -396,6 +466,33 @@ export default function Notifications() {
             )}
           </div>
         </div>
+
+        {/* Digest card */}
+        {digestNotifications.length > 0 && (
+          <button
+            onClick={() => setShowDigest(!showDigest)}
+            className={cn(
+              'w-full flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors text-left',
+              showDigest
+                ? 'bg-primary/10 border-primary/30'
+                : 'bg-muted/30 border-border hover:bg-muted/50'
+            )}
+          >
+            <div className="p-2 rounded-full bg-muted">
+              <FileStack className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium">
+                {showDigest ? 'Viewing digest notifications' : 'Digest Summary'}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {digestNotifications.length} low-priority notifications
+                {digestUnread > 0 && ` · ${digestUnread} unread`}
+              </p>
+            </div>
+            <ChevronRight className={cn('h-4 w-4 text-muted-foreground transition-transform', showDigest && 'rotate-90')} />
+          </button>
+        )}
 
         {/* Filters */}
         <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
@@ -440,7 +537,9 @@ export default function Notifications() {
         ) : filtered.length === 0 ? (
           <div className="py-16 text-center">
             <Bell className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
-            <p className="text-muted-foreground">No notifications to show</p>
+            <p className="text-muted-foreground">
+              {showDigest ? 'No digest items to show' : 'No notifications to show'}
+            </p>
           </div>
         ) : (
           <div className="space-y-2">
