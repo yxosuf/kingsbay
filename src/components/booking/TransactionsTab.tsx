@@ -120,7 +120,7 @@ export function TransactionsTab({ bookingId, propertyId, totalAmount, fxRate }: 
           <Receipt className="h-5 w-5" />
           Transactions
         </CardTitle>
-        {totalPayments > 0 && (
+        {canWrite && totalPayments > 0 && (
           <Button variant="outline" size="sm" onClick={() => setShowRefundDialog(true)}>
             <Undo2 className="h-4 w-4 mr-1" />
             Issue Refund

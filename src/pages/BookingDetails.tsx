@@ -670,7 +670,7 @@ export default function BookingDetails() {
                   </div>
                 )}
 
-                {booking.status === 'checked_in' && (
+                {canWrite && booking.status === 'checked_in' && (
                   <Button
                     className="w-full mt-4"
                     onClick={() => setShowCheckoutDialog(true)}
