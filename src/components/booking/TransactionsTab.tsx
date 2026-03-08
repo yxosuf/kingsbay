@@ -29,6 +29,7 @@ interface TransactionsTabProps {
 }
 
 export function TransactionsTab({ bookingId, propertyId, totalAmount, fxRate }: TransactionsTabProps) {
+  const { canWrite } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRefundDialog, setShowRefundDialog] = useState(false);
