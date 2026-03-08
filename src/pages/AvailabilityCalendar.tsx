@@ -331,7 +331,7 @@ export default function AvailabilityCalendar() {
                     }}
                   >
                     {/* Header row */}
-                    <div className="p-2 text-xs font-medium text-muted-foreground sticky left-0 bg-card z-30 border-r border-b">
+                    <div className="p-1.5 sm:p-2 text-[10px] sm:text-xs font-medium text-muted-foreground sticky left-0 bg-card z-30 border-r border-b">
                       Room
                     </div>
                     {dateRange.map(date => (

@@ -198,7 +198,7 @@ export function DashboardAvailabilityCalendar() {
 
                   return (
                     <>
-                      <div key={`label-${room.id}`} className="p-1.5 sticky left-0 bg-card z-10 flex items-center border-b">
+                      <div key={`label-${room.id}`} className="p-1 sm:p-1.5 sticky left-0 bg-card z-10 flex items-center border-b">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="font-medium text-xs truncate">{room.room_number}</span>
