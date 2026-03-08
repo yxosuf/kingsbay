@@ -105,6 +105,7 @@ export type Database = {
       }
       bookings: {
         Row: {
+          bank_fee_amount: number | null
           booking_source: Database["public"]["Enums"]["booking_source"]
           cancel_reason: string | null
           cancelled_at: string | null
@@ -125,6 +126,8 @@ export type Database = {
           imported_via: string | null
           needs_review: boolean | null
           no_show_at: string | null
+          num_adults: number
+          num_children: number
           num_guests: number | null
           ota_price: number | null
           ota_reference: string | null
@@ -139,6 +142,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          bank_fee_amount?: number | null
           booking_source?: Database["public"]["Enums"]["booking_source"]
           cancel_reason?: string | null
           cancelled_at?: string | null
@@ -159,6 +163,8 @@ export type Database = {
           imported_via?: string | null
           needs_review?: boolean | null
           no_show_at?: string | null
+          num_adults?: number
+          num_children?: number
           num_guests?: number | null
           ota_price?: number | null
           ota_reference?: string | null
@@ -173,6 +179,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          bank_fee_amount?: number | null
           booking_source?: Database["public"]["Enums"]["booking_source"]
           cancel_reason?: string | null
           cancelled_at?: string | null
@@ -193,6 +200,8 @@ export type Database = {
           imported_via?: string | null
           needs_review?: boolean | null
           no_show_at?: string | null
+          num_adults?: number
+          num_children?: number
           num_guests?: number | null
           ota_price?: number | null
           ota_reference?: string | null
