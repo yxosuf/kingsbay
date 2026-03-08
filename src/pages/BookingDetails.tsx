@@ -80,7 +80,7 @@ export default function BookingDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, canWrite } = useAuth();
   const isCheckout = location.pathname.includes('/checkout');
 
   const [booking, setBooking] = useState<BookingDetails | null>(null);
@@ -340,7 +340,7 @@ export default function BookingDetails() {
             Back to Bookings
           </Button>
           <div className="flex flex-wrap gap-2">
-            {(booking.status === 'checked_in' || booking.status === 'confirmed') && (
+            {canWrite && (booking.status === 'checked_in' || booking.status === 'confirmed') && (
               <>
                 <Button variant="outline" onClick={() => setShowAddServiceDialog(true)}>
                   <Plus className="h-4 w-4 mr-2" />
@@ -352,7 +352,7 @@ export default function BookingDetails() {
                 </Button>
               </>
             )}
-            {booking.status === 'checked_in' && (
+            {canWrite && booking.status === 'checked_in' && (
               <Button onClick={() => setShowCheckoutDialog(true)}>
                 Check Out & Generate Invoice
               </Button>
@@ -670,7 +670,7 @@ export default function BookingDetails() {
                   </div>
                 )}
 
-                {booking.status === 'checked_in' && (
+                {canWrite && booking.status === 'checked_in' && (
                   <Button
                     className="w-full mt-4"
                     onClick={() => setShowCheckoutDialog(true)}

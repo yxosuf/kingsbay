@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,7 @@ interface TransactionsTabProps {
 }
 
 export function TransactionsTab({ bookingId, propertyId, totalAmount, fxRate }: TransactionsTabProps) {
+  const { canWrite } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRefundDialog, setShowRefundDialog] = useState(false);
@@ -118,7 +120,7 @@ export function TransactionsTab({ bookingId, propertyId, totalAmount, fxRate }: 
           <Receipt className="h-5 w-5" />
           Transactions
         </CardTitle>
-        {totalPayments > 0 && (
+        {canWrite && totalPayments > 0 && (
           <Button variant="outline" size="sm" onClick={() => setShowRefundDialog(true)}>
             <Undo2 className="h-4 w-4 mr-1" />
             Issue Refund
