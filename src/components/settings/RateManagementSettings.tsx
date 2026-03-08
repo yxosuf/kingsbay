@@ -27,6 +27,7 @@ import { Calendar as CalendarUI } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CurrencyDisplay } from '@/components/ui/CurrencyDisplay';
+import { OtaSyncTab } from './OtaSyncTab';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
