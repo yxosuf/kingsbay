@@ -1,9 +1,8 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -17,13 +16,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { ChevronLeft, ChevronRight, Calendar, AlertTriangle, BedDouble, ShieldCheck, Lock, Package } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, AlertTriangle, BedDouble, ShieldCheck, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { toast } from 'sonner';
-import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isToday, addWeeks, subWeeks, startOfMonth, endOfMonth, isWeekend } from 'date-fns';
+import { format, eachDayOfInterval, isToday, addWeeks, subWeeks, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWeekend } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toDateString, isDateInBookingRange } from '@/lib/dateUtils';
+import { getCellStatus, cellStatusClass, filterRoomBookings, type CellStatus } from '@/lib/calendarCellStatus';
 
 interface Room {
   id: string;
@@ -42,9 +42,7 @@ interface Booking {
   check_out: string;
   status: string;
   hold_expires_at: string | null;
-  guest: {
-    name: string;
-  };
+  guest: { name: string };
 }
 
 interface RoomAvailability {
@@ -88,6 +86,9 @@ export default function AvailabilityCalendar() {
     }
   }, [currentDate, viewMode]);
 
+  const rangeStart = useMemo(() => toDateString(dateRange[0]), [dateRange]);
+  const rangeEnd = useMemo(() => toDateString(dateRange[dateRange.length - 1]), [dateRange]);
+
   useEffect(() => {
     if (selectedProperty?.id) {
       fetchData();
@@ -99,9 +100,6 @@ export default function AvailabilityCalendar() {
     setLoading(true);
 
     try {
-      const startDate = format(dateRange[0], 'yyyy-MM-dd');
-      const endDate = format(dateRange[dateRange.length - 1], 'yyyy-MM-dd');
-
       const { data: roomData, error: roomError } = await supabase
         .from('rooms')
         .select('id, room_number, room_type, status, property_id, housekeeping_status, cleaning_until')
@@ -118,8 +116,8 @@ export default function AvailabilityCalendar() {
           guest:guests(name)
         `)
         .eq('property_id', selectedProperty.id)
-        .lt('check_in', endDate)
-        .gt('check_out', startDate)
+        .lt('check_in', rangeEnd)
+        .gt('check_out', rangeStart)
         .in('status', ['confirmed', 'checked_in', 'pending', 'needs_review']);
 
       if (bookingError) throw bookingError;
@@ -132,8 +130,8 @@ export default function AvailabilityCalendar() {
         .from('room_availability')
         .select('*')
         .in('room_id', (roomData || []).map(r => r.id))
-        .gte('date', startDate)
-        .lte('date', endDate);
+        .gte('date', rangeStart)
+        .lte('date', rangeEnd);
 
       if (availabilityError) throw availabilityError;
       setAvailability(availabilityData || []);
@@ -161,36 +159,6 @@ export default function AvailabilityCalendar() {
   const filteredRooms = selectedRoomType === 'all' 
     ? rooms 
     : rooms.filter(r => r.room_type === selectedRoomType);
-
-  // Get bookings for a specific room, visible in the date range
-  const getRoomBookings = (room: Room) => {
-    const startStr = toDateString(dateRange[0]);
-    const endStr = toDateString(dateRange[dateRange.length - 1]);
-    
-    return bookings.filter(b => {
-      if (b.room_id !== room.id) return false;
-      if (b.status === 'needs_review') {
-        if (!b.hold_expires_at) return false;
-        if (new Date(b.hold_expires_at) <= new Date()) return false;
-      }
-      // Booking overlaps with visible range: check_in < endStr+1 && check_out > startStr
-      return b.check_in <= endStr && b.check_out > startStr;
-    });
-  };
-
-  // Get block ranges for a room
-  const getRoomBlocks = (room: Room) => {
-    return availability.filter(a => a.room_id === room.id && !a.is_available);
-  };
-
-  // Calculate pixel position for a date within the range
-  const getDateIndex = (dateStr: string): number => {
-    const startStr = toDateString(dateRange[0]);
-    if (dateStr < startStr) return 0;
-    const endStr = toDateString(dateRange[dateRange.length - 1]);
-    if (dateStr > endStr) return dateRange.length;
-    return dateRange.findIndex(d => toDateString(d) === dateStr);
-  };
 
   const getInventorySummary = (date: Date) => {
     const dateStr = toDateString(date);
@@ -229,25 +197,24 @@ export default function AvailabilityCalendar() {
     }
   };
 
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(0);
-
-  useEffect(() => {
-    if (!containerRef.current) return;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setContainerWidth(entry.contentRect.width);
-      }
-    });
-    observer.observe(containerRef.current);
-    return () => observer.disconnect();
-  }, []);
-
-  const labelWidth = 120;
-  const minColWidth = viewMode === 'month' ? 36 : 80;
-  const colWidth = containerWidth > 0 
-    ? Math.max(minColWidth, (containerWidth - labelWidth) / dateRange.length) 
-    : minColWidth;
+  const renderCellTooltip = (status: CellStatus) => {
+    if (status.type === 'available') return null;
+    if (status.booking) {
+      return (
+        <TooltipContent>
+          <p className="font-medium">{status.booking.guest?.name || 'Guest'}</p>
+          <p className="text-xs text-muted-foreground">
+            {status.booking.check_in} → {status.booking.check_out} · {status.type}
+          </p>
+        </TooltipContent>
+      );
+    }
+    return (
+      <TooltipContent>
+        <p>{status.reason || status.type}</p>
+      </TooltipContent>
+    );
+  };
 
   if (!selectedProperty) {
     return (
@@ -333,7 +300,7 @@ export default function AvailabilityCalendar() {
           ))}
         </div>
 
-        {/* Gantt Calendar Grid */}
+        {/* Cell-Based Calendar Grid */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
@@ -352,46 +319,45 @@ export default function AvailabilityCalendar() {
               </div>
             ) : (
               <TooltipProvider>
-                <div ref={containerRef} className="overflow-x-auto scrollbar-thin">
-                  <div style={{ width: '100%', minWidth: `${labelWidth + dateRange.length * minColWidth}px` }}>
+                <div className="overflow-x-auto scrollbar-thin">
+                  <div
+                    className="grid"
+                    style={{
+                      gridTemplateColumns: `120px repeat(${dateRange.length}, minmax(${viewMode === 'month' ? '36px' : '80px'}, 1fr))`,
+                    }}
+                  >
                     {/* Header row */}
-                    <div className="flex border-b sticky top-0 bg-card z-20">
-                      <div style={{ width: labelWidth }} className="shrink-0 p-2 text-xs font-medium text-muted-foreground sticky left-0 bg-card z-30 border-r">
-                        Room
-                      </div>
-                      {dateRange.map(date => {
-                        const weekend = isWeekend(date);
-                        const today = isToday(date);
-                        return (
-                          <div
-                            key={date.toISOString()}
-                            className={cn(
-                              "text-center border-r border-b-0 flex-1 min-w-0",
-                              weekend && "weekend-col",
-                              today && "bg-primary/5"
-                            )}
-                          >
-                            <div className="text-[10px] text-muted-foreground pt-1">{format(date, 'EEE')}</div>
-                            <div className={cn(
-                              "text-sm pb-1",
-                              today && "text-primary font-bold"
-                            )}>
-                              {format(date, 'd')}
-                            </div>
-                          </div>
-                        );
-                      })}
+                    <div className="p-2 text-xs font-medium text-muted-foreground sticky left-0 bg-card z-30 border-r border-b">
+                      Room
                     </div>
+                    {dateRange.map(date => (
+                      <div
+                        key={date.toISOString()}
+                        className={cn(
+                          "text-center border-r border-b",
+                          isWeekend(date) && "weekend-col",
+                          isToday(date) && "bg-primary/5"
+                        )}
+                      >
+                        <div className="text-[10px] text-muted-foreground pt-1">{format(date, 'EEE')}</div>
+                        <div className={cn(
+                          "text-sm pb-1",
+                          isToday(date) && "text-primary font-bold"
+                        )}>
+                          {format(date, 'd')}
+                        </div>
+                      </div>
+                    ))}
 
-                    {/* Room rows with Gantt bars */}
+                    {/* Room rows */}
                     {filteredRooms.map(room => {
-                      const roomBookings = getRoomBookings(room);
-                      const roomBlocks = getRoomBlocks(room);
+                      const roomBookings = filterRoomBookings(bookings, room.id, rangeStart, rangeEnd);
+                      const roomBlocks = availability.filter(a => a.room_id === room.id && !a.is_available);
 
                       return (
-                        <div key={room.id} className="flex border-b hover:bg-muted/20 transition-colors relative group" style={{ height: 44 }}>
+                        <>
                           {/* Room label */}
-                          <div style={{ width: labelWidth }} className="shrink-0 p-2 sticky left-0 bg-card z-10 border-r flex items-center">
+                          <div key={`label-${room.id}`} className="p-2 sticky left-0 bg-card z-10 border-r border-b flex items-center group">
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <div className="truncate">
@@ -405,117 +371,37 @@ export default function AvailabilityCalendar() {
                             </Tooltip>
                           </div>
 
-                          {/* Date cells background */}
-                          <div className="flex flex-1 relative">
-                            {dateRange.map(date => (
+                          {/* Date cells */}
+                          {dateRange.map(date => {
+                            const dateStr = toDateString(date);
+                            const status = getCellStatus(dateStr, room, roomBookings, roomBlocks);
+                            const statusCls = cellStatusClass(status.type);
+                            const isClickable = !!status.booking;
+
+                            const cell = (
                               <div
-                                key={date.toISOString()}
+                                key={`${room.id}-${dateStr}`}
                                 className={cn(
-                                  "border-r flex-1 min-w-0",
-                                  isWeekend(date) && "weekend-col",
-                                  isToday(date) && "today-line"
+                                  "border-r border-b h-11 transition-colors hover:brightness-95",
+                                  isWeekend(date) && status.type === 'available' && "weekend-col",
+                                  isToday(date) && status.type === 'available' && "today-line",
+                                  statusCls,
+                                  isClickable && "cursor-pointer"
                                 )}
-                                style={{ height: '100%' }}
+                                onClick={isClickable ? () => navigate(`/bookings/${status.booking!.id}`) : undefined}
                               />
-                            ))}
+                            );
 
-                            {/* Gantt booking bars */}
-                            {roomBookings.map(booking => {
-                              const startIdx = Math.max(0, getDateIndex(booking.check_in));
-                              // check_out is exclusive: bar ends at check_out column start
-                              const endDateStr = booking.check_out;
-                              const endIdx = Math.min(dateRange.length, getDateIndex(endDateStr) + 1);
-                              if (endIdx <= startIdx) return null;
+                            if (status.type === 'available') return cell;
 
-                              const barType = booking.status === 'checked_in' ? 'occupied' 
-                                : booking.status === 'needs_review' ? 'held' 
-                                : 'reserved';
-
-                              const left = startIdx * colWidth;
-                              const width = (endIdx - startIdx) * colWidth - 4;
-
-                              return (
-                                <Tooltip key={booking.id}>
-                                  <TooltipTrigger asChild>
-                                    <div
-                                      className={cn("gantt-bar", `gantt-bar-${barType}`)}
-                                      style={{ left: left + 2, width: Math.max(width, 20) }}
-                                      onClick={() => navigate(`/bookings/${booking.id}`)}
-                                    >
-                                      {width > 60 && (
-                                        <span className="truncate">{booking.guest?.name || 'Guest'}</span>
-                                      )}
-                                    </div>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="font-medium">{booking.guest?.name || 'Guest'}</p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {booking.check_in} → {booking.check_out} · {barType}
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              );
-                            })}
-
-                            {/* Block bars */}
-                            {roomBlocks.map(block => {
-                              const idx = getDateIndex(block.date);
-                              if (idx < 0) return null;
-                              return (
-                                <Tooltip key={block.id}>
-                                  <TooltipTrigger asChild>
-                                    <div
-                                      className="gantt-bar gantt-bar-blocked"
-                                      style={{ left: idx * colWidth + 2, width: colWidth - 4 }}
-                                    >
-                                      {colWidth > 50 && <span>✕</span>}
-                                    </div>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>{block.blocked_reason || 'Blocked'}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              );
-                            })}
-
-                            {/* Cleaning indicator on today */}
-                            {(room.housekeeping_status === 'cleaning' || room.housekeeping_status === 'dirty') && (() => {
-                              const todayStr = toDateString(new Date());
-                              const todayIdx = dateRange.findIndex(d => toDateString(d) === todayStr);
-                              if (todayIdx < 0) return null;
-                              const hasBookingToday = bookings.some(b => b.room_id === room.id && isDateInBookingRange(todayStr, b.check_in, b.check_out));
-                              if (hasBookingToday) return null;
-                              return (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <div
-                                      className="gantt-bar gantt-bar-cleaning"
-                                      style={{ left: todayIdx * colWidth + 2, width: colWidth - 4 }}
-                                    >
-                                      {colWidth > 50 && <span>🧹</span>}
-                                    </div>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>{room.housekeeping_status === 'cleaning' ? 'Cleaning in progress' : 'Needs cleaning'}</p>
-                                    {room.cleaning_until && (
-                                      <p className="text-xs text-muted-foreground">Until {new Date(room.cleaning_until).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                                    )}
-                                  </TooltipContent>
-                                </Tooltip>
-                              );
-                            })()}
-
-                            {/* Maintenance overlay */}
-                            {room.status === 'maintenance' && (
-                              <div
-                                className="gantt-bar gantt-bar-blocked"
-                                style={{ left: 2, width: dateRange.length * colWidth - 4 }}
-                              >
-                                {colWidth * dateRange.length > 120 && <span>Maintenance</span>}
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                            return (
+                              <Tooltip key={`${room.id}-${dateStr}`}>
+                                <TooltipTrigger asChild>{cell}</TooltipTrigger>
+                                {renderCellTooltip(status)}
+                              </Tooltip>
+                            );
+                          })}
+                        </>
                       );
                     })}
                   </div>
@@ -524,11 +410,11 @@ export default function AvailabilityCalendar() {
                 {/* Legend */}
                 <div className="flex flex-wrap gap-4 mt-4 pt-3 border-t px-3">
                   {[
-                    { cls: 'gantt-bar-reserved', label: 'Reserved' },
-                    { cls: 'gantt-bar-occupied', label: 'Occupied' },
-                    { cls: 'gantt-bar-held', label: 'Held' },
-                    { cls: 'gantt-bar-blocked', label: 'Blocked' },
-                    { cls: 'gantt-bar-cleaning', label: 'Cleaning' },
+                    { cls: 'cell-reserved', label: 'Reserved' },
+                    { cls: 'cell-occupied', label: 'Occupied' },
+                    { cls: 'cell-held', label: 'Held' },
+                    { cls: 'cell-blocked', label: 'Blocked' },
+                    { cls: 'cell-cleaning', label: 'Cleaning' },
                   ].map(item => (
                     <div key={item.label} className="flex items-center gap-1.5">
                       <div className={cn("w-8 h-4 rounded", item.cls)} />
