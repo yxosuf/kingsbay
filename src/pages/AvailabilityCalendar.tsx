@@ -366,11 +366,10 @@ export default function AvailabilityCalendar() {
                           <div
                             key={date.toISOString()}
                             className={cn(
-                              "text-center border-r border-b-0 flex-shrink-0",
+                              "text-center border-r border-b-0 flex-1 min-w-0",
                               weekend && "weekend-col",
                               today && "bg-primary/5"
                             )}
-                            style={{ width: colWidth }}
                           >
                             <div className="text-[10px] text-muted-foreground pt-1">{format(date, 'EEE')}</div>
                             <div className={cn(
