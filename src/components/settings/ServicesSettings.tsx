@@ -38,6 +38,13 @@ const categoryIcons: Record<ServiceCategory, typeof UtensilsCrossed> = {
 
 const categoryLabels: Record<ServiceCategory, string> = {
   room_service: 'Room Service',
+  transport: 'Transport',
+  facilities: 'Facilities',
+  special_request: 'Special',
+};
+
+const categoryLabelsFull: Record<ServiceCategory, string> = {
+  room_service: 'Room Service',
   transport: 'Transport & Tours',
   facilities: 'Facilities & Spa',
   special_request: 'Special Requests',
