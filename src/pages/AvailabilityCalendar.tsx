@@ -353,7 +353,7 @@ export default function AvailabilityCalendar() {
             ) : (
               <TooltipProvider>
                 <div ref={containerRef} className="overflow-x-auto scrollbar-thin">
-                  <div style={{ minWidth: `${labelWidth + dateRange.length * minColWidth}px` }}>
+                  <div style={{ width: '100%', minWidth: `${labelWidth + dateRange.length * minColWidth}px` }}>
                     {/* Header row */}
                     <div className="flex border-b sticky top-0 bg-card z-20">
                       <div style={{ width: labelWidth }} className="shrink-0 p-2 text-xs font-medium text-muted-foreground sticky left-0 bg-card z-30 border-r">
@@ -366,11 +366,10 @@ export default function AvailabilityCalendar() {
                           <div
                             key={date.toISOString()}
                             className={cn(
-                              "text-center border-r border-b-0 flex-shrink-0",
+                              "text-center border-r border-b-0 flex-1 min-w-0",
                               weekend && "weekend-col",
                               today && "bg-primary/5"
                             )}
-                            style={{ width: colWidth }}
                           >
                             <div className="text-[10px] text-muted-foreground pt-1">{format(date, 'EEE')}</div>
                             <div className={cn(
@@ -412,11 +411,11 @@ export default function AvailabilityCalendar() {
                               <div
                                 key={date.toISOString()}
                                 className={cn(
-                                  "border-r flex-shrink-0",
+                                  "border-r flex-1 min-w-0",
                                   isWeekend(date) && "weekend-col",
                                   isToday(date) && "today-line"
                                 )}
-                                style={{ width: colWidth, height: '100%' }}
+                                style={{ height: '100%' }}
                               />
                             ))}
 
