@@ -19,6 +19,7 @@ import Settings from "./pages/Settings";
 import Properties from "./pages/Properties";
 import ChannelManager from "./pages/ChannelManager";
 import AvailabilityCalendar from "./pages/AvailabilityCalendar";
+import FrontDesk from "./pages/FrontDesk";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
