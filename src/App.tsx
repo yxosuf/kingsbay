@@ -19,6 +19,7 @@ import Settings from "./pages/Settings";
 import Properties from "./pages/Properties";
 import ChannelManager from "./pages/ChannelManager";
 import AvailabilityCalendar from "./pages/AvailabilityCalendar";
+import FrontDesk from "./pages/FrontDesk";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ const App = () => (
               <Route path="/properties" element={<Properties />} />
               <Route path="/channels" element={<ChannelManager />} />
               <Route path="/availability" element={<AvailabilityCalendar />} />
+              <Route path="/front-desk" element={<FrontDesk />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
