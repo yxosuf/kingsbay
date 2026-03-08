@@ -86,6 +86,7 @@ export function UserSettingsProvider({ children }: { children: ReactNode }) {
         hidden_pages: merged.hidden_pages,
         default_landing_page: merged.default_landing_page,
         theme: merged.theme,
+        favorite_settings: merged.favorite_settings,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' });
 
