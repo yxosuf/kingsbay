@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Bell, CalendarDays, LogIn, AlertTriangle, Wrench, Wifi, Megaphone, Info,
-  ChevronRight, Trash2, CheckCheck,
+  ChevronRight, Trash2, CheckCheck, Check, BellRing,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { useAuth } from '@/hooks/useAuth';
+import { useBrowserNotifications } from '@/hooks/useBrowserNotifications';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -42,6 +43,16 @@ const FILTERS: { key: FilterTab; label: string }[] = [
   { key: 'booking', label: 'Bookings' },
   { key: 'system', label: 'System' },
 ];
+
+// Role-based action permissions
+const ACTION_ROLE_MAP: Record<string, string[]> = {
+  check_in: ['admin', 'manager', 'front_desk'],
+  check_out: ['admin', 'manager', 'front_desk'],
+  view_booking: ['admin', 'manager', 'front_desk', 'viewer'],
+  retry_sync: ['admin', 'manager'],
+  view_room: ['admin', 'manager', 'front_desk', 'viewer'],
+  assign_staff: ['admin', 'manager'],
+};
 
 function getCategoryIcon(category: string) {
   switch (category) {
@@ -91,10 +102,164 @@ function getActionLabel(a: string | null) {
   }
 }
 
+// Swipeable notification card component
+function SwipeableCard({
+  notification,
+  onMarkRead,
+  onAction,
+  onClick,
+  canPerformAction,
+  role,
+}: {
+  notification: Notification;
+  onMarkRead: (id: string) => void;
+  onAction: (n: Notification) => void;
+  onClick: (n: Notification) => void;
+  canPerformAction: boolean;
+  role: string | null;
+}) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [swipeX, setSwipeX] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const isDragging = useRef(false);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX;
+    startY.current = e.touches[0].clientY;
+    isDragging.current = false;
+    setIsSwiping(false);
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    const dx = e.touches[0].clientX - startX.current;
+    const dy = e.touches[0].clientY - startY.current;
+
+    // Only start swiping if horizontal movement > vertical
+    if (!isDragging.current && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
+      isDragging.current = true;
+      setIsSwiping(true);
+    }
+
+    if (isDragging.current) {
+      e.preventDefault();
+      // Clamp swipe distance
+      const clampedX = Math.max(-120, Math.min(120, dx));
+      setSwipeX(clampedX);
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (swipeX < -60 && !notification.is_read) {
+      // Swipe left → mark as read
+      onMarkRead(notification.id);
+      toast.success('Marked as read');
+    } else if (swipeX > 60 && canPerformAction && notification.action_type) {
+      // Swipe right → perform action
+      onAction(notification);
+    }
+
+    setSwipeX(0);
+    setIsSwiping(false);
+    isDragging.current = false;
+  }, [swipeX, notification, onMarkRead, onAction, canPerformAction]);
+
+  const actionAllowed = notification.action_type
+    ? (ACTION_ROLE_MAP[notification.action_type] || []).includes(role || '')
+    : false;
+
+  return (
+    <div className="relative overflow-hidden rounded-lg">
+      {/* Swipe background indicators */}
+      <div className="absolute inset-0 flex">
+        {/* Right action (swipe right) */}
+        <div className={cn(
+          'flex items-center justify-start pl-4 w-1/2 transition-opacity',
+          swipeX > 30 ? 'opacity-100' : 'opacity-0',
+          actionAllowed ? 'bg-primary/20' : 'bg-muted'
+        )}>
+          {actionAllowed && (
+            <span className="text-xs font-medium text-primary">
+              {getActionLabel(notification.action_type)}
+            </span>
+          )}
+        </div>
+        {/* Left action (swipe left = mark read) */}
+        <div className={cn(
+          'flex items-center justify-end pr-4 w-1/2 transition-opacity',
+          swipeX < -30 ? 'opacity-100' : 'opacity-0',
+          'bg-success/20'
+        )}>
+          <Check className="h-5 w-5 text-success" />
+        </div>
+      </div>
+
+      <Card
+        ref={cardRef}
+        className={cn(
+          'p-4 cursor-pointer border-l-4 transition-shadow hover:shadow-md relative',
+          getPriorityBorder(notification.priority),
+          !notification.is_read && 'bg-accent/20',
+          isSwiping ? '' : 'transition-transform duration-200'
+        )}
+        style={{ transform: `translateX(${swipeX}px)` }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={() => !isSwiping && onClick(notification)}
+      >
+        <div className="flex gap-3">
+          <div className={cn(
+            'flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full bg-muted',
+            getPriorityColor(notification.priority)
+          )}>
+            {getCategoryIcon(notification.category)}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className={cn('h-2 w-2 rounded-full flex-shrink-0', getPriorityDot(notification.priority))} />
+                <p className={cn('text-sm truncate', !notification.is_read ? 'font-semibold' : 'font-medium')}>
+                  {notification.title}
+                </p>
+              </div>
+              {!notification.is_read && <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />}
+            </div>
+
+            {notification.message && (
+              <p className="text-xs text-muted-foreground line-clamp-2 mt-1 ml-3.5">{notification.message}</p>
+            )}
+
+            <div className="flex items-center justify-between mt-2 ml-3.5">
+              <p className="text-[11px] text-muted-foreground">
+                {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+              </p>
+              {notification.action_type && actionAllowed && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2.5 text-xs gap-1"
+                  onClick={(e) => { e.stopPropagation(); onAction(notification); }}
+                >
+                  {getActionLabel(notification.action_type)}
+                  <ChevronRight className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 export default function Notifications() {
   const navigate = useNavigate();
   const { selectedProperty, showAllProperties } = useProperty();
-  const { canWrite, isAdmin } = useAuth();
+  const { canWrite, isAdmin, role } = useAuth();
+  const { permission, requestPermission } = useBrowserNotifications();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
@@ -163,6 +328,15 @@ export default function Notifications() {
     if (n.link) navigate(n.link);
   };
 
+  const handleMarkRead = async (id: string) => {
+    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    setNotifications((prev) => prev.map((x) => (x.id === id ? { ...x, is_read: true } : x)));
+  };
+
+  const handleAction = (n: Notification) => {
+    if (n.link) navigate(n.link);
+  };
+
   const handleMarkAllRead = async () => {
     const ids = notifications.filter((n) => !n.is_read).map((n) => n.id);
     if (!ids.length) return;
@@ -180,11 +354,25 @@ export default function Notifications() {
     toast.success('All notifications deleted');
   };
 
-  const formatTime = (d: string) => formatDistanceToNow(new Date(d), { addSuffix: true });
-
   return (
     <DashboardLayout title="Notifications">
       <div className="max-w-3xl mx-auto space-y-4 p-4 sm:p-6 pb-24 md:pb-6">
+        {/* Push notification prompt */}
+        {permission === 'default' && (
+          <Card className="p-4 border-primary/30 bg-primary/5">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-primary/10">
+                <BellRing className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">Enable push notifications</p>
+                <p className="text-xs text-muted-foreground">Get alerted for high-priority events even when this tab is in the background</p>
+              </div>
+              <Button size="sm" onClick={requestPermission}>Enable</Button>
+            </div>
+          </Card>
+        )}
+
         {/* Stats bar */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -227,6 +415,11 @@ export default function Notifications() {
           ))}
         </div>
 
+        {/* Swipe hint on mobile */}
+        <p className="text-[10px] text-muted-foreground text-center sm:hidden">
+          ← Swipe left to mark read · Swipe right to act →
+        </p>
+
         <Separator />
 
         {/* Notification cards */}
@@ -252,57 +445,15 @@ export default function Notifications() {
         ) : (
           <div className="space-y-2">
             {filtered.map((n) => (
-              <Card
+              <SwipeableCard
                 key={n.id}
-                className={cn(
-                  'p-4 cursor-pointer border-l-4 transition-all hover:shadow-md',
-                  getPriorityBorder(n.priority),
-                  !n.is_read && 'bg-accent/20'
-                )}
-                onClick={() => handleClick(n)}
-              >
-                <div className="flex gap-3">
-                  {/* Icon */}
-                  <div className={cn(
-                    'flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full bg-muted',
-                    getPriorityColor(n.priority)
-                  )}>
-                    {getCategoryIcon(n.category)}
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className={cn('h-2 w-2 rounded-full flex-shrink-0', getPriorityDot(n.priority))} />
-                        <p className={cn('text-sm truncate', !n.is_read ? 'font-semibold' : 'font-medium')}>
-                          {n.title}
-                        </p>
-                      </div>
-                      {!n.is_read && <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />}
-                    </div>
-
-                    {n.message && (
-                      <p className="text-xs text-muted-foreground line-clamp-2 mt-1 ml-3.5">{n.message}</p>
-                    )}
-
-                    <div className="flex items-center justify-between mt-2 ml-3.5">
-                      <p className="text-[11px] text-muted-foreground">{formatTime(n.created_at)}</p>
-                      {n.action_type && canWrite && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 px-2.5 text-xs gap-1"
-                          onClick={(e) => { e.stopPropagation(); if (n.link) navigate(n.link); }}
-                        >
-                          {getActionLabel(n.action_type)}
-                          <ChevronRight className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </Card>
+                notification={n}
+                onMarkRead={handleMarkRead}
+                onAction={handleAction}
+                onClick={handleClick}
+                canPerformAction={canWrite}
+                role={role}
+              />
             ))}
           </div>
         )}
