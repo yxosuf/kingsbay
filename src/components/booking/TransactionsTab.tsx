@@ -22,6 +22,7 @@ interface Transaction {
 
 interface TransactionsTabProps {
   bookingId: string;
+  propertyId: string | null;
   totalAmount: number;
   fxRate: number | null;
 }
