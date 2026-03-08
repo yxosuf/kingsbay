@@ -130,7 +130,7 @@ export function DashboardAvailabilityCalendar() {
   }, []);
 
   const labelWidth = 90;
-  const colWidth = containerWidth > 0 ? Math.floor((containerWidth - labelWidth) / dateRange.length) : 50;
+  const colWidth = containerWidth > 0 ? (containerWidth - labelWidth) / dateRange.length : 50;
 
   const getRoomBookings = (room: Room) => {
     const startStr = toDateString(dateRange[0]);
