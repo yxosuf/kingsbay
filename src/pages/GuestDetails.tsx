@@ -102,6 +102,15 @@ export default function GuestDetails() {
 
       if (error) throw error;
       setGuest(data);
+      // Load passport photo URL if exists
+      if (data?.passport_photo_path) {
+        const { data: urlData } = await supabase.storage
+          .from('guest-documents')
+          .createSignedUrl(data.passport_photo_path, 3600);
+        if (urlData?.signedUrl) setPassportPhotoUrl(urlData.signedUrl);
+      } else {
+        setPassportPhotoUrl(null);
+      }
     } catch (error) {
       logError('Error fetching guest', error);
       toast.error(getSafeErrorMessage(error));
