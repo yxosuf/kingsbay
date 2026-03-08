@@ -60,6 +60,7 @@ export function BookingCard({ booking, onActionComplete, badge }: BookingCardPro
 
   const isArrival = booking.status === 'confirmed' || booking.status === 'pending';
   const isInHouse = booking.status === 'checked_in';
+  const hasUnpaidInvoice = booking.invoices?.some((inv) => inv.payment_status !== 'paid');
 
   const handleCheckIn = async () => {
     setProcessing(true);
