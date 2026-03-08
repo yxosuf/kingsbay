@@ -62,6 +62,8 @@ interface WeatherData {
 interface ExchangeRate {
   usdToLkr: number;
   updatedAt: string | null;
+  previousRate: number | null;
+  isStale: boolean;
 }
 
 export default function Dashboard() {
