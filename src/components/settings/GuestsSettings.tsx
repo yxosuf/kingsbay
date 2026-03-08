@@ -376,6 +376,14 @@ export function GuestsSettings() {
           </CardContent>
         </Card>
       </div>
+        </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="duplicates">
+            <DuplicateGuestDetection />
+          </TabsContent>
+        )}
+      </Tabs>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
