@@ -308,6 +308,13 @@ export default function NewBooking() {
       return;
     }
 
+    // CLOSED DATE CHECK: Block booking if any night is closed
+    if (stayBreakdown && stayBreakdown.nights.some(n => n.closed)) {
+      toast.error('Room is closed for one or more selected dates. Please choose different dates.');
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
 
     try {
