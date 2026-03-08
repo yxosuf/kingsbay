@@ -281,6 +281,8 @@ export default function NewBooking() {
         check_in: format(checkIn!, 'yyyy-MM-dd'),
         check_out: format(checkOut!, 'yyyy-MM-dd'),
         num_guests: numGuests,
+        num_adults: numAdults,
+        num_children: numChildren,
         status: 'confirmed' as const,
         special_requests: specialRequests.trim() || null,
         total_amount: effectiveTotal,
