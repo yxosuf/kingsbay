@@ -58,6 +58,7 @@ interface WeatherData {
 
 interface ExchangeRate {
   usdToLkr: number;
+  updatedAt: string | null;
 }
 
 export default function Dashboard() {
@@ -211,18 +212,19 @@ export default function Dashboard() {
       if (propertyId) {
         const { data } = await supabase
           .from('property_inventory_settings')
-          .select('*')
+          .select('fx_usd_lkr_rate, fx_updated_at')
           .eq('property_id', propertyId)
           .maybeSingle();
         const rate = (data as any)?.fx_usd_lkr_rate;
+        const updatedAt = (data as any)?.fx_updated_at;
         if (rate) {
-          setExchangeRate({ usdToLkr: Number(rate) });
+          setExchangeRate({ usdToLkr: Number(rate), updatedAt: updatedAt || null });
           return;
         }
       }
-      setExchangeRate({ usdToLkr: 309.06 });
+      setExchangeRate({ usdToLkr: 309.06, updatedAt: null });
     } catch {
-      setExchangeRate({ usdToLkr: 309.06 });
+      setExchangeRate({ usdToLkr: 309.06, updatedAt: null });
     }
   };
 
@@ -565,7 +567,20 @@ export default function Dashboard() {
                     <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
                       Rs. {exchangeRate?.usdToLkr?.toFixed(2) || '--'}
                     </p>
-                    <p className="text-xs text-muted-foreground/70 hidden sm:block mt-1">Real-time market rate</p>
+                    {exchangeRate?.updatedAt ? (
+                      <p className="text-[10px] sm:text-xs text-muted-foreground/70 mt-1">
+                        Updated {(() => {
+                          const mins = Math.round((Date.now() - new Date(exchangeRate.updatedAt).getTime()) / 60000);
+                          if (mins < 1) return 'just now';
+                          if (mins < 60) return `${mins} min ago`;
+                          const hrs = Math.round(mins / 60);
+                          if (hrs < 24) return `${hrs}h ago`;
+                          return `${Math.round(hrs / 24)}d ago`;
+                        })()}
+                      </p>
+                    ) : (
+                      <p className="text-[10px] sm:text-xs text-muted-foreground/70 hidden sm:block mt-1">Auto-updates hourly</p>
+                    )}
                   </div>
                   <div className="p-2.5 sm:p-3 rounded-xl bg-success/10 shrink-0">
                     <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-success" />

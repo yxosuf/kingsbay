@@ -4,11 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Hotel, Clock, Save, DollarSign, MapPin, Receipt, Globe } from 'lucide-react';
+import { Hotel, Clock, Save, DollarSign, MapPin, Receipt, Globe, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 export function HotelSettings() {
   const { selectedProperty } = useProperty();
@@ -20,6 +21,7 @@ export function HotelSettings() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savingFx, setSavingFx] = useState(false);
+  const [fetchingLive, setFetchingLive] = useState(false);
 
   useEffect(() => {
     if (selectedProperty?.id) {
@@ -74,6 +76,26 @@ export function HotelSettings() {
       toast.error('Failed to save settings');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleFetchLiveRate = async () => {
+    setFetchingLive(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fx-rate-update');
+      if (error) throw error;
+      if (data?.success && data?.rate) {
+        setFxRate(String(data.rate));
+        setFxUpdatedAt(new Date().toISOString());
+        toast.success(`Live rate fetched: 1 USD = LKR ${Number(data.rate).toFixed(2)}`);
+      } else {
+        throw new Error(data?.error || 'Failed to fetch live rate');
+      }
+    } catch (error: any) {
+      console.error('Error fetching live rate:', error);
+      toast.error('Failed to fetch live exchange rate');
+    } finally {
+      setFetchingLive(false);
     }
   };
 
@@ -247,17 +269,23 @@ export function HotelSettings() {
               />
               {fxUpdatedAt && (
                 <p className="text-xs text-muted-foreground">
-                  Last updated: {new Date(fxUpdatedAt).toLocaleString()}
+                  Last updated: {new Date(fxUpdatedAt).toLocaleString()} · Auto-updates hourly
                 </p>
               )}
             </div>
             {isAdmin && (
               <>
                 <Separator />
-                <Button onClick={handleSaveFx} disabled={savingFx} size="sm">
-                  <Save className="h-4 w-4 mr-2" />
-                  {savingFx ? 'Saving...' : 'Update Rate'}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button onClick={handleSaveFx} disabled={savingFx} size="sm">
+                    <Save className="h-4 w-4 mr-2" />
+                    {savingFx ? 'Saving...' : 'Save Manual Rate'}
+                  </Button>
+                  <Button onClick={handleFetchLiveRate} disabled={fetchingLive} size="sm" variant="outline">
+                    <RefreshCw className={cn("h-4 w-4 mr-2", fetchingLive && "animate-spin")} />
+                    {fetchingLive ? 'Fetching...' : 'Fetch Live Rate'}
+                  </Button>
+                </div>
               </>
             )}
           </div>
