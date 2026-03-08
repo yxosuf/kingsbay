@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Download, FileSpreadsheet, AlertTriangle, BarChart3, ExternalLink } from 'lucide-react';
+import { Download, FileSpreadsheet, BarChart3, ExternalLink, FileText, Users, ShoppingBag } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { PropertyBadge } from '@/components/layout/PropertyBadge';
+import { cn } from '@/lib/utils';
 
 export function ReportsSettings() {
   const navigate = useNavigate();
@@ -169,74 +171,106 @@ export function ReportsSettings() {
     }
   };
 
+  const exportCards = [
+    {
+      title: 'Full Guest Details',
+      description: 'All guest information including name, contact, address, passport, notes, and booking stats.',
+      icon: Users,
+      color: 'text-info',
+      bg: 'bg-info/10',
+      border: 'border-info/20',
+      action: exportFullGuestDetails,
+    },
+    {
+      title: 'Guest Services Report',
+      description: 'Detailed breakdown of all services purchased per guest and booking.',
+      icon: ShoppingBag,
+      color: 'text-success',
+      bg: 'bg-success/10',
+      border: 'border-success/20',
+      action: exportGuestServicesReport,
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      {/* Property Indicator */}
-      <Alert className="border-info bg-info/10">
-        <AlertTriangle className="h-4 w-4 text-info" />
-        <AlertTitle className="text-info">Report Scope</AlertTitle>
-        <AlertDescription>
-          Reports are filtered by: <strong>{showAllProperties ? 'All Properties' : selectedProperty?.name || 'No property selected'}</strong>.
-          Change the property in the header to generate reports for a different property.
-        </AlertDescription>
-      </Alert>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <FileText className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-lg">Reports & Exports</h3>
+            <p className="text-sm text-muted-foreground">View analytics and export data</p>
+          </div>
+        </div>
+        <PropertyBadge />
+      </div>
 
-      {/* Live Reports Link */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
-            Live Reports & Analytics
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            View interactive revenue, occupancy, and financial reports with charts, KPIs, and ledger reconciliation.
-          </p>
-          <Button onClick={() => navigate('/reports')}>
-            <ExternalLink className="h-4 w-4 mr-2" />
-            Open Reports Dashboard
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Data Export Options */}
-      <Separator />
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileSpreadsheet className="h-5 w-5" />
-            Data Exports
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Button
-              variant="outline"
-              onClick={exportFullGuestDetails}
-              disabled={loading}
-              className="flex-1"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export Full Guest Details
-            </Button>
-            <Button
-              variant="outline"
-              onClick={exportGuestServicesReport}
-              disabled={loading}
-              className="flex-1"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export Guest Services Report
+      {/* Live Reports Link Card */}
+      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent overflow-hidden">
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-primary/10">
+                <BarChart3 className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h4 className="font-semibold">Live Reports & Analytics</h4>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Interactive revenue, occupancy, and financial reports with charts and KPIs
+                </p>
+              </div>
+            </div>
+            <Button onClick={() => navigate('/reports')} className="shrink-0">
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Open Reports
             </Button>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Full Guest Details: Includes all guest information (name, contact, address, passport, notes, booking stats).
-            <br />
-            Guest Services Report: Detailed breakdown of all services purchased per guest/booking.
-          </p>
         </CardContent>
       </Card>
+
+      <Separator />
+
+      {/* Data Exports */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
+          <h4 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Data Exports</h4>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          {exportCards.map((card) => {
+            const Icon = card.icon;
+            return (
+              <Card key={card.title} className={cn("border", card.border, "hover:shadow-sm transition-shadow")}>
+                <CardContent className="p-5 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className={cn("p-2.5 rounded-xl shrink-0", card.bg)}>
+                      <Icon className={cn("h-5 w-5", card.color)} />
+                    </div>
+                    <div>
+                      <h4 className="font-medium">{card.title}</h4>
+                      <p className="text-sm text-muted-foreground mt-1">{card.description}</p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={card.action}
+                    disabled={loading}
+                    className="w-full"
+                    size="sm"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    {loading ? 'Exporting...' : 'Export CSV'}
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

@@ -29,13 +29,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Search, Eye, User, Trash2, RotateCcw } from 'lucide-react';
+import { Search, Eye, User, Trash2, RotateCcw, Users, UserCheck, Archive, UserX } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { PropertyBadge } from '@/components/layout/PropertyBadge';
+import { cn } from '@/lib/utils';
 
 interface Guest {
   id: string;
@@ -50,6 +51,13 @@ interface Guest {
 }
 
 type GuestFilter = 'active' | 'archived' | 'deleted' | 'all';
+
+const filterConfig: Record<GuestFilter, { label: string; icon: React.ElementType; color: string }> = {
+  active: { label: 'Active', icon: UserCheck, color: 'text-success' },
+  archived: { label: 'Archived', icon: Archive, color: 'text-warning' },
+  deleted: { label: 'Deleted', icon: UserX, color: 'text-destructive' },
+  all: { label: 'All', icon: Users, color: 'text-muted-foreground' },
+};
 
 export function GuestsSettings() {
   const navigate = useNavigate();
@@ -77,7 +85,6 @@ export function GuestsSettings() {
         `)
         .order('created_at', { ascending: false });
 
-      // Apply filter
       switch (filter) {
         case 'active':
           query = query.is('deleted_at', null).is('archived_at', null);
@@ -89,7 +96,6 @@ export function GuestsSettings() {
           query = query.not('deleted_at', 'is', null);
           break;
         case 'all':
-          // No filter
           break;
       }
 
@@ -167,63 +173,106 @@ export function GuestsSettings() {
 
   const getGuestStatusBadge = (guest: Guest) => {
     if (guest.deleted_at) return <Badge variant="destructive">Deleted</Badge>;
-    if (guest.archived_at) return <Badge variant="secondary">Archived</Badge>;
+    if (guest.archived_at) return <Badge variant="warning">Archived</Badge>;
     const active = getActiveBooking(guest);
-    if (active) return <Badge className="bg-success/20 text-success border-success">Checked In</Badge>;
+    if (active) return <Badge variant="success">Checked In</Badge>;
     return <Badge variant="secondary">Active</Badge>;
   };
 
+  const currentFilter = filterConfig[filter];
+  const FilterIcon = currentFilter.icon;
+
   return (
     <>
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Viewing:</span>
+      <div className="space-y-5">
+        {/* Header with property badge */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Users className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">Guest Management</h3>
+              <p className="text-sm text-muted-foreground">View and manage guest records</p>
+            </div>
+          </div>
           <PropertyBadge />
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1 sm:max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by name, phone, or email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Select value={filter} onValueChange={(v) => setFilter(v as GuestFilter)}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="archived">Archived</SelectItem>
-              <SelectItem value="deleted">Deleted</SelectItem>
-              <SelectItem value="all">All</SelectItem>
-            </SelectContent>
-          </Select>
+        {/* Filter summary cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {(Object.entries(filterConfig) as [GuestFilter, typeof filterConfig['active']][]).map(([key, cfg]) => {
+            const Icon = cfg.icon;
+            const isActive = filter === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setFilter(key)}
+                className={cn(
+                  "flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all",
+                  isActive
+                    ? "border-primary bg-primary/5 shadow-sm"
+                    : "border-border hover:border-primary/40 hover:bg-muted/50"
+                )}
+              >
+                <div className={cn(
+                  "p-1.5 rounded-md",
+                  isActive ? "bg-primary/15" : "bg-muted"
+                )}>
+                  <Icon className={cn("h-3.5 w-3.5", isActive ? "text-primary" : cfg.color)} />
+                </div>
+                <span className={cn(
+                  "text-sm font-medium",
+                  isActive ? "text-primary" : "text-muted-foreground"
+                )}>
+                  {cfg.label}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
-        <Card>
-          <CardHeader className="pb-3 sm:pb-6">
-            <CardTitle className="text-base sm:text-lg">
-              {filter === 'active' ? 'Active' : filter === 'archived' ? 'Archived' : filter === 'deleted' ? 'Deleted' : 'All'} Guests
-            </CardTitle>
+        {/* Search */}
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name, phone, or email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 rounded-xl"
+          />
+        </div>
+
+        {/* Guest list */}
+        <Card className="border-border/60">
+          <CardHeader className="pb-3 sm:pb-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <FilterIcon className={cn("h-4 w-4", currentFilter.color)} />
+                {currentFilter.label} Guests
+              </CardTitle>
+              <Badge variant="secondary" className="text-xs">
+                {filteredGuests.length} result{filteredGuests.length !== 1 ? 's' : ''}
+              </Badge>
+            </div>
           </CardHeader>
           <CardContent className="px-3 sm:px-6">
             {loading ? (
-              <div className="flex items-center justify-center py-8">
+              <div className="flex items-center justify-center py-12">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
               </div>
             ) : filteredGuests.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No guests found.</p>
+              <div className="text-center py-12 text-muted-foreground">
+                <div className="mx-auto w-16 h-16 rounded-2xl bg-muted/60 flex items-center justify-center mb-4">
+                  <User className="h-8 w-8 opacity-40" />
+                </div>
+                <p className="font-medium">No guests found</p>
+                <p className="text-sm mt-1">Try adjusting your search or filter</p>
               </div>
             ) : isMobile ? (
               <div className="space-y-3">
                 {filteredGuests.map((guest) => (
-                  <Card key={guest.id} className="border-border/50">
+                  <Card key={guest.id} className="border-border/50 overflow-hidden">
                     <CardContent className="p-4">
                       <div className="space-y-3">
                         <div className="flex items-start justify-between gap-2">
@@ -271,7 +320,7 @@ export function GuestsSettings() {
                 </TableHeader>
                 <TableBody>
                   {filteredGuests.map((guest) => (
-                    <TableRow key={guest.id}>
+                    <TableRow key={guest.id} className="group">
                       <TableCell className="font-medium">{guest.name}</TableCell>
                       <TableCell>
                         <div>
@@ -279,10 +328,14 @@ export function GuestsSettings() {
                           <p className="text-sm text-muted-foreground">{guest.email || 'No email'}</p>
                         </div>
                       </TableCell>
-                      <TableCell>{guest.bookings?.length || 0}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="text-xs">
+                          {guest.bookings?.length || 0}
+                        </Badge>
+                      </TableCell>
                       <TableCell>{getGuestStatusBadge(guest)}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
                           <Button variant="ghost" size="icon" onClick={() => navigate(`/guests/${guest.id}`)}>
                             <Eye className="h-4 w-4" />
                           </Button>
