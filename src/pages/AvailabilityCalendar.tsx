@@ -31,6 +31,8 @@ interface Room {
   room_type: string;
   status: string;
   property_id: string;
+  housekeeping_status: string;
+  cleaning_until: string | null;
 }
 
 interface Booking {
