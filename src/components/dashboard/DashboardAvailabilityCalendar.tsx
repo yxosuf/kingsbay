@@ -218,7 +218,7 @@ export function DashboardAvailabilityCalendar() {
 
                   return (
                     <div key={room.id} className="flex border-b hover:bg-muted/20 transition-colors relative" style={{ height: 36 }}>
-                      <div className="w-[90px] shrink-0 p-1.5 sticky left-0 bg-card z-10 flex items-center">
+                      <div style={{ width: labelWidth }} className="shrink-0 p-1.5 sticky left-0 bg-card z-10 flex items-center">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="font-medium text-xs truncate">{room.room_number}</span>
