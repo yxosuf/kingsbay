@@ -11,6 +11,9 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
@@ -47,7 +50,7 @@ export default function Properties() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [saving, setSaving] = useState(false);
-
+  const [deletePropertyId, setDeletePropertyId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [propertyType, setPropertyType] = useState<Property['property_type']>('hotel');
   const [location, setLocation] = useState('');
@@ -94,12 +97,12 @@ export default function Properties() {
   };
 
   const handleDelete = async (propertyId: string) => {
-    if (!confirm('Are you sure you want to delete this property? This will affect all associated rooms and bookings.')) return;
     try {
       const { error } = await supabase.from('properties').delete().eq('id', propertyId);
       if (error) throw error;
       toast.success('Property deleted'); fetchProperties(); refetchProperties();
     } catch (error: any) { logError('Error deleting property', error); toast.error(getSafeErrorMessage(error)); }
+    setDeletePropertyId(null);
   };
 
   const toggleStatus = async (property: Property) => {
@@ -238,7 +241,7 @@ export default function Properties() {
                           <Power className="h-4 w-4 mr-2" />{property.is_active ? 'Deactivate' : 'Activate'}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(property.id)}>
+                        <DropdownMenuItem className="text-destructive" onClick={() => setDeletePropertyId(property.id)}>
                           <Trash2 className="h-4 w-4 mr-2" />Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -292,6 +295,26 @@ export default function Properties() {
             })}
           </div>
         )}
+
+        <AlertDialog open={!!deletePropertyId} onOpenChange={(open) => { if (!open) setDeletePropertyId(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Property</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this property? This will affect all associated rooms and bookings. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => deletePropertyId && handleDelete(deletePropertyId)}
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );
