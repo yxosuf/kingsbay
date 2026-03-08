@@ -62,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setRole(null);
           setProfile(null);
+          setGuestId(null);
           setLoading(false);
         }
       }
