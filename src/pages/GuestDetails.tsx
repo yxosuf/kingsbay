@@ -66,6 +66,9 @@ export default function GuestDetails() {
   const [allServices, setAllServices] = useState<GuestService[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const { feedback: guestFeedback, averageRating, loading: feedbackLoading } = useGuestFeedback({
+    guestId: id,
+  });
 
   useEffect(() => {
     if (id) {
