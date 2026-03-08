@@ -62,6 +62,8 @@ interface Guest {
 
 export default function NewBooking() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isWalkIn = searchParams.get('walkin') === 'true';
   const { user } = useAuth();
   const { selectedProperty } = useProperty();
   const [loading, setLoading] = useState(false);
@@ -71,14 +73,23 @@ export default function NewBooking() {
   const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
   const [showGuestSearch, setShowGuestSearch] = useState(false);
 
+  // Walk-in: check-in immediately toggle
+  const [checkInImmediately, setCheckInImmediately] = useState(isWalkIn);
+
   // Form state
   const [guestName, setGuestName] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
   const [guestIdPassport, setGuestIdPassport] = useState('');
   const [roomId, setRoomId] = useState('');
-  const [checkIn, setCheckIn] = useState<Date>();
-  const [checkOut, setCheckOut] = useState<Date>();
+
+  // Walk-in defaults: today check-in, tomorrow check-out
+  const today = startOfDay(new Date());
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const [checkIn, setCheckIn] = useState<Date | undefined>(isWalkIn ? today : undefined);
+  const [checkOut, setCheckOut] = useState<Date | undefined>(isWalkIn ? tomorrow : undefined);
   const [numAdults, setNumAdults] = useState(1);
   const [numChildren, setNumChildren] = useState(0);
   const numGuests = numAdults + numChildren;
