@@ -275,10 +275,16 @@ export function HotelSettings() {
             {isAdmin && (
               <>
                 <Separator />
-                <Button onClick={handleSaveFx} disabled={savingFx} size="sm">
-                  <Save className="h-4 w-4 mr-2" />
-                  {savingFx ? 'Saving...' : 'Update Rate'}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button onClick={handleSaveFx} disabled={savingFx} size="sm">
+                    <Save className="h-4 w-4 mr-2" />
+                    {savingFx ? 'Saving...' : 'Save Manual Rate'}
+                  </Button>
+                  <Button onClick={handleFetchLiveRate} disabled={fetchingLive} size="sm" variant="outline">
+                    <RefreshCw className={cn("h-4 w-4 mr-2", fetchingLive && "animate-spin")} />
+                    {fetchingLive ? 'Fetching...' : 'Fetch Live Rate'}
+                  </Button>
+                </div>
               </>
             )}
           </div>
