@@ -270,6 +270,8 @@ export default function BookingDetails() {
 
       setInvoiceNumber(invoice.invoice_number);
       toast.success('Guest checked out successfully. Invoice created.');
+      // Send checkout summary email (fire-and-forget)
+      sendGuestEmail(booking.id, 'checkout_summary').catch(() => {});
       setShowCheckoutDialog(false);
       setShowPrintPreview(true);
     } catch (error: any) {
