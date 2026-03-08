@@ -32,7 +32,7 @@ import {
 import { 
   Plus, UserPlus, Trash2, Shield, Hotel, Users, Clock, UtensilsCrossed, 
   Link2, FileText, AlertTriangle, ShieldCheck, Building2, User, 
-  Megaphone, Lock, ChevronRight, HeartPulse, ArrowLeft, BellRing, SlidersHorizontal
+  Megaphone, Lock, ChevronRight, HeartPulse, ArrowLeft, BellRing, SlidersHorizontal, DollarSign
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
