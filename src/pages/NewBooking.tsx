@@ -111,6 +111,34 @@ export default function NewBooking() {
     fetchExistingGuests();
   }, [checkIn, checkOut, selectedProperty]);
 
+  // Fetch booked dates for calendar indicators
+  useEffect(() => {
+    const fetchBookedDates = async () => {
+      if (!selectedProperty?.id) return;
+      const rangeStart = format(new Date(), 'yyyy-MM-dd');
+      const rangeEnd = format(addMonths(new Date(), 6), 'yyyy-MM-dd');
+
+      const { data } = await supabase
+        .from('bookings')
+        .select('check_in, check_out')
+        .eq('property_id', selectedProperty.id)
+        .in('status', ['confirmed', 'checked_in', 'pending', 'needs_review'])
+        .lt('check_in', rangeEnd)
+        .gt('check_out', rangeStart);
+
+      const dates = new Set<string>();
+      (data || []).forEach(b => {
+        const start = parseLocalDate(b.check_in);
+        const end = parseLocalDate(b.check_out);
+        // Block [check_in, check_out) 
+        const days = eachDayOfInterval({ start, end: new Date(end.getTime() - 86400000) });
+        days.forEach(d => dates.add(toDateString(d)));
+      });
+      setBookedDateSet(dates);
+    };
+    fetchBookedDates();
+  }, [selectedProperty?.id]);
+
   const fetchAvailableRooms = async () => {
     try {
       let query = supabase.from('rooms').select('id, room_number, room_type, price, status, max_guests').neq('status', 'maintenance');
