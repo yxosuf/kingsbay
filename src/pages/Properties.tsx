@@ -318,12 +318,30 @@ export default function Properties() {
           </div>
         )}
 
-        <AlertDialog open={!!deletePropertyId} onOpenChange={(open) => { if (!open) setDeletePropertyId(null); }}>
+        <AlertDialog open={!!deletePropertyId} onOpenChange={(open) => { if (!open) { setDeletePropertyId(null); setDeleteCounts(null); } }}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Delete Property</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete this property? This will affect all associated rooms and bookings. This action cannot be undone.
+              <AlertDialogDescription asChild>
+                <div className="space-y-3">
+                  <p>Are you sure you want to delete this property? This action cannot be undone.</p>
+                  {loadingCounts ? (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      Checking associated data...
+                    </div>
+                  ) : deleteCounts && (deleteCounts.rooms > 0 || deleteCounts.bookings > 0 || deleteCounts.guests > 0) ? (
+                    <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-1.5">
+                      <p className="text-xs font-medium text-destructive">⚠ This property has associated data:</p>
+                      <ul className="text-xs text-muted-foreground space-y-0.5 ml-4 list-disc">
+                        {deleteCounts.rooms > 0 && <li>{deleteCounts.rooms} room{deleteCounts.rooms > 1 ? 's' : ''}</li>}
+                        {deleteCounts.bookings > 0 && <li>{deleteCounts.bookings} booking{deleteCounts.bookings > 1 ? 's' : ''}</li>}
+                        {deleteCounts.guests > 0 && <li>{deleteCounts.guests} guest{deleteCounts.guests > 1 ? 's' : ''}</li>}
+                      </ul>
+                      <p className="text-xs text-destructive">Deleting may fail if there are dependent records. Consider using the Danger Zone in Settings to clear data first.</p>
+                    </div>
+                  ) : null}
+                </div>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -332,7 +350,7 @@ export default function Properties() {
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 onClick={() => deletePropertyId && handleDelete(deletePropertyId)}
               >
-                Delete
+                Delete Property
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
