@@ -291,6 +291,32 @@ export function DashboardAvailabilityCalendar() {
                             </Tooltip>
                           );
                         })}
+
+                        {/* Cleaning indicator on today */}
+                        {(room.housekeeping_status === 'cleaning' || room.housekeeping_status === 'dirty') && (() => {
+                          const todayStr = toDateString(new Date());
+                          const todayIdx = dateRange.findIndex(d => toDateString(d) === todayStr);
+                          if (todayIdx < 0) return null;
+                          // Don't show if an active booking covers today
+                          const hasBookingToday = roomBookings.some(b => isDateInBookingRange(todayStr, b.check_in, b.check_out));
+                          if (hasBookingToday) return null;
+                          return (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className="gantt-bar gantt-bar-cleaning"
+                                  style={{ left: todayIdx * colWidth + 2, width: colWidth - 4, top: 3, bottom: 3 }}
+                                />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{room.housekeeping_status === 'cleaning' ? 'Cleaning in progress' : 'Needs cleaning'}</p>
+                                {room.cleaning_until && (
+                                  <p className="text-xs text-muted-foreground">Until {new Date(room.cleaning_until).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                )}
+                              </TooltipContent>
+                            </Tooltip>
+                          );
+                        })()}
                       </div>
                     </div>
                   );
