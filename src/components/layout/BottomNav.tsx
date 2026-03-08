@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, CalendarDays, BookOpen, Plus, MoreHorizontal, BedDouble, MonitorSmartphone, Building2, Settings, LogOut, Wifi } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, BookOpen, Plus, MoreHorizontal, BedDouble, MonitorSmartphone, Building2, Settings, LogOut, Wifi, Bell } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
