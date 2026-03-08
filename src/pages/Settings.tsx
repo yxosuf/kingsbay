@@ -308,6 +308,8 @@ export default function Settings() {
         return renderAccessRoles();
       case 'property':
         return <HotelSettings />;
+      case 'rates':
+        return isAdmin ? <RateManagementSettings /> : null;
       case 'notifications':
         return <NotificationSettings />;
       case 'guests':
