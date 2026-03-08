@@ -761,7 +761,58 @@ export default function NewBooking() {
                   </Select>
                 </div>
 
-                {/* Adults */}
+                {/* Rate Plan Selector */}
+                {ratePlans.length > 0 && roomId && (
+                  <div className="space-y-2">
+                    <Label>Rate Plan</Label>
+                    <Select value={selectedRatePlanId} onValueChange={setSelectedRatePlanId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Default pricing" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Default (room price)</SelectItem>
+                        {ratePlans.map((plan) => (
+                          <SelectItem key={plan.id} value={plan.id}>
+                            {plan.name} — Rs. {plan.base_price.toLocaleString()}/night
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Rate Breakdown */}
+                {stayBreakdown && stayBreakdown.nights.length > 0 && checkIn && checkOut && (
+                  <div className="col-span-full p-3 bg-muted/50 rounded-lg border text-sm space-y-2">
+                    <p className="font-medium text-xs text-muted-foreground uppercase tracking-wider">
+                      Nightly Rate Breakdown
+                      {stayBreakdown.ratePlanName && <span className="ml-2 normal-case">({stayBreakdown.ratePlanName})</span>}
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5">
+                      {stayBreakdown.nights.map((n) => (
+                        <div
+                          key={n.date}
+                          className={cn(
+                            'px-2 py-1 rounded text-xs flex justify-between items-center',
+                            n.closed ? 'bg-destructive/10 text-destructive' :
+                            n.override ? 'bg-blue-500/10' :
+                            n.seasonal ? 'bg-orange-500/10' :
+                            n.dayOfWeek ? 'bg-purple-500/10' :
+                            'bg-background'
+                          )}
+                        >
+                          <span>{n.date.slice(5)}</span>
+                          <span className="font-medium">Rs. {n.finalPrice.toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex justify-between pt-2 border-t text-sm font-medium">
+                      <span>Room Total ({stayBreakdown.nights.length} night{stayBreakdown.nights.length > 1 ? 's' : ''})</span>
+                      <span>Rs. {stayBreakdown.subtotal.toLocaleString()}</span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label>Adults *</Label>
                   <Select
