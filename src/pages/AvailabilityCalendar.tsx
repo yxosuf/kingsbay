@@ -384,7 +384,7 @@ export default function AvailabilityCalendar() {
                               <div
                                 key={`${room.id}-${dateStr}`}
                                 className={cn(
-                                  "border-r border-b h-11 transition-colors hover:brightness-95",
+                                  "border-r border-b h-8 sm:h-11 transition-colors hover:brightness-95",
                                   isWeekend(date) && status.type === 'available' && "weekend-col",
                                   isToday(date) && status.type === 'available' && "today-line",
                                   statusCls,
