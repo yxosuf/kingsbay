@@ -208,10 +208,10 @@ export default function FrontDesk() {
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <StatCard icon={Plane} label="Today Arrivals" count={arrivals.length} color="text-emerald-500" />
-          <StatCard icon={Hotel} label="In-House" count={inHouse.length} color="text-blue-500" />
-          <StatCard icon={LogOut} label="Departures" count={departures.length} color="text-amber-500" />
-          <StatCard icon={CreditCard} label="Pending Pay" count={pendingPayments.length} color="text-rose-500" />
+          <StatCard icon={Plane} label="Today Arrivals" count={arrivals.length} color="text-success" />
+          <StatCard icon={Hotel} label="In-House" count={inHouse.length} color="text-info" />
+          <StatCard icon={LogOut} label="Departures" count={departures.length} color="text-warning" />
+          <StatCard icon={CreditCard} label="Pending Pay" count={pendingPayments.length} color="text-destructive" />
         </div>
 
         {/* Sections Grid */}
