@@ -41,6 +41,7 @@ const mainNavItems = [
   { title: 'Room Status', url: '/rooms', icon: BedDouble },
   { title: 'Housekeeping', url: '/housekeeping', icon: SprayCan },
   { title: 'Availability', url: '/availability', icon: CalendarPlus },
+  { title: 'Rate Calendar', url: '/rate-calendar', icon: DollarSign },
 ];
 
 const systemNavItems = [
