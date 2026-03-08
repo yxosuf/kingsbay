@@ -262,6 +262,27 @@ export default function BookingDetails() {
         .update({ checked_out_at: new Date().toISOString() })
         .eq('id', booking.id);
 
+      // Post ledger entries for revenue recognition
+      if (booking.property_id) {
+        await postBookingConfirmed(
+          booking.id,
+          roomCharges,
+          serviceCharges,
+          taxAmount,
+          booking.property_id,
+          user?.id
+        );
+        // Post commission if OTA booking
+        if (booking.commission_amount && Number(booking.commission_amount) > 0) {
+          await postCommission(
+            booking.id,
+            Number(booking.commission_amount),
+            booking.property_id,
+            user?.id
+          );
+        }
+      }
+
       setInvoiceNumber(invoice.invoice_number);
       toast.success('Guest checked out successfully. Invoice created.');
       setShowCheckoutDialog(false);
