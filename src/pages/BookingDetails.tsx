@@ -16,6 +16,10 @@ import {
 import { User, BedDouble, Calendar, CreditCard, ArrowLeft, Printer, Globe, Plus, CalendarPlus, Link as LinkIcon, Mail, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useFxRate } from '@/hooks/useFxRate';
+import { CurrencyDisplay } from '@/components/ui/CurrencyDisplay';
+import { TransactionsTab } from '@/components/booking/TransactionsTab';
+import { postBookingConfirmed, postCommission } from '@/lib/ledgerUtils';
 import { toast } from 'sonner';
 import { format, differenceInDays } from 'date-fns';
 import { ExtendStayDialog } from '@/components/booking/ExtendStayDialog';
