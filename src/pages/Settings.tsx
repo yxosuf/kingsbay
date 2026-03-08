@@ -47,7 +47,6 @@ import { SystemHealthSettings } from '@/components/settings/SystemHealthSettings
 import { HotelSettings } from '@/components/settings/HotelSettings';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface StaffMember {
   user_id: string;
