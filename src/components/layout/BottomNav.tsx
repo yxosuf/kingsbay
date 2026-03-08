@@ -1,11 +1,13 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, CalendarDays, BookOpen, Plus, MoreHorizontal, BedDouble, MonitorSmartphone, Building2, Settings, LogOut, Wifi } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, BookOpen, Plus, MoreHorizontal, BedDouble, MonitorSmartphone, Building2, Settings, LogOut, Wifi, Bell } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { useProperty } from '@/hooks/useProperty';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const primaryTabs = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
@@ -15,6 +17,7 @@ const primaryTabs = [
 ];
 
 const moreMenuItems = [
+  { title: 'Notifications', url: '/notifications', icon: Bell, showBadge: true },
   { title: 'Rooms', url: '/rooms', icon: BedDouble },
   { title: 'Front Desk', url: '/front-desk', icon: MonitorSmartphone },
   { title: 'Channel Manager', url: '/channels', icon: Wifi },
@@ -26,7 +29,21 @@ export function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, isAdmin } = useAuth();
+  const { selectedProperty, showAllProperties } = useProperty();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const fetchUnread = async () => {
+      let query = supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('is_read', false);
+      if (selectedProperty && !showAllProperties) query = query.eq('property_id', selectedProperty.id);
+      const { count } = await query;
+      setUnreadCount(count || 0);
+    };
+    fetchUnread();
+    const channel = supabase.channel('bottomnav-notif').on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => fetchUnread()).subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [selectedProperty, showAllProperties]);
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
@@ -90,10 +107,17 @@ export function BottomNav() {
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
           <SheetTrigger asChild>
             <button className="flex flex-col items-center justify-center gap-0.5 min-w-[56px] h-full px-2 relative">
-              <MoreHorizontal className={cn(
-                "h-5 w-5 transition-colors",
-                sheetOpen ? "text-primary" : "text-muted-foreground"
-              )} />
+              <div className="relative">
+                <MoreHorizontal className={cn(
+                  "h-5 w-5 transition-colors",
+                  sheetOpen ? "text-primary" : "text-muted-foreground"
+                )} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-destructive text-[8px] font-medium text-destructive-foreground">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </div>
               <span className={cn(
                 "text-[10px] font-medium transition-colors",
                 sheetOpen ? "text-primary" : "text-muted-foreground"
@@ -109,15 +133,21 @@ export function BottomNav() {
             <div className="space-y-1">
               {filteredMoreItems.map((item) => {
                 const active = isActive(item.url);
+                const showBadge = 'showBadge' in item && item.showBadge && unreadCount > 0;
                 return (
                   <Button
                     key={item.title}
                     variant={active ? "secondary" : "ghost"}
-                    className="w-full justify-start h-12 text-base gap-3"
+                    className="w-full justify-start h-12 text-base gap-3 relative"
                     onClick={() => handleNav(item.url)}
                   >
                     <item.icon className={cn("h-5 w-5", active && "text-primary")} />
                     {item.title}
+                    {showBadge && (
+                      <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground px-1">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
                   </Button>
                 );
               })}
