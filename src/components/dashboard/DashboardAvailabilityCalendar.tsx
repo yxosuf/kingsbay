@@ -218,7 +218,7 @@ export function DashboardAvailabilityCalendar() {
                           <div
                             key={`${room.id}-${dateStr}`}
                             className={cn(
-                              "border-b border-r h-9 transition-colors",
+                              "border-b border-r h-7 sm:h-9 transition-colors",
                               isWeekend(date) && "weekend-col",
                               isToday(date) && "today-line",
                               statusCls,
