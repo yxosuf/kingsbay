@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Hotel, Clock, Save, DollarSign } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Hotel, Clock, Save, DollarSign, MapPin, Receipt, Globe } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { useAuth } from '@/hooks/useAuth';
@@ -106,75 +107,97 @@ export function HotelSettings() {
 
   return (
     <div className="space-y-6">
+      {/* Property Info Grid */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Hotel className="h-5 w-5" />
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Hotel className="h-4 w-4 text-primary" />
+            </div>
             Hotel Information
           </CardTitle>
           <CardDescription>
-            Configure your hotel details and settings
+            Property details and configuration
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Hotel Name</Label>
-              <Input value={selectedProperty?.name || "King's Bay Villa"} disabled />
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Property Name</Label>
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/50 border">
+                <Hotel className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">{selectedProperty?.name || "King's Bay Villa"}</span>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Location</Label>
-              <Input value={selectedProperty?.location || 'Colombo, Sri Lanka'} disabled />
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Location</Label>
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/50 border">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">{selectedProperty?.location || 'Colombo, Sri Lanka'}</span>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Tax Rate (%)</Label>
-              <Input value="10" disabled />
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Tax Rate</Label>
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/50 border">
+                <Receipt className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">10%</span>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Currency</Label>
-              <Input value="LKR (Rs.)" disabled />
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Currency</Label>
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/50 border">
+                <Globe className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">LKR (Rs.)</span>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
+      {/* Check-in / Check-out Times */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <div className="p-2 rounded-lg bg-info/10">
+              <Clock className="h-4 w-4 text-info" />
+            </div>
             Check-in / Check-out Times
           </CardTitle>
           <CardDescription>
             Set default check-in and check-out times for this property
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-4">
+            <div className="flex items-center justify-center py-6">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
           ) : (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label>Check-out Time</Label>
+                  <Label htmlFor="checkout" className="text-sm font-medium">Check-out Time</Label>
                   <Input
+                    id="checkout"
                     type="time"
                     value={checkoutTime}
                     onChange={(e) => setCheckoutTime(e.target.value)}
                     disabled={!isAdmin}
+                    className="font-mono"
                   />
                   <p className="text-xs text-muted-foreground">
                     Guests are expected to vacate by this time
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <Label>Check-in Time</Label>
+                  <Label htmlFor="checkin" className="text-sm font-medium">Check-in Time</Label>
                   <Input
+                    id="checkin"
                     type="time"
                     value={checkinTime}
                     onChange={(e) => setCheckinTime(e.target.value)}
                     disabled={!isAdmin}
+                    className="font-mono"
                   />
                   <p className="text-xs text-muted-foreground">
                     Earliest time guests can check in
@@ -182,37 +205,45 @@ export function HotelSettings() {
                 </div>
               </div>
               {isAdmin && (
-                <Button onClick={handleSave} disabled={saving}>
-                  <Save className="h-4 w-4 mr-2" />
-                  {saving ? 'Saving...' : 'Save Times'}
-                </Button>
+                <>
+                  <Separator />
+                  <Button onClick={handleSave} disabled={saving} size="sm">
+                    <Save className="h-4 w-4 mr-2" />
+                    {saving ? 'Saving...' : 'Save Times'}
+                  </Button>
+                </>
               )}
-            </>
+            </div>
           )}
         </CardContent>
       </Card>
 
+      {/* Exchange Rate */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <div className="p-2 rounded-lg bg-warning/10">
+              <DollarSign className="h-4 w-4 text-warning-foreground" />
+            </div>
             Exchange Rate (USD → LKR)
           </CardTitle>
           <CardDescription>
             Set the current USD to LKR exchange rate for dual currency display
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>1 USD = LKR</Label>
+        <CardContent>
+          <div className="space-y-5">
+            <div className="max-w-sm space-y-2">
+              <Label htmlFor="fxRate" className="text-sm font-medium">1 USD = LKR</Label>
               <Input
+                id="fxRate"
                 type="number"
                 step="0.01"
                 value={fxRate}
                 onChange={(e) => setFxRate(e.target.value)}
                 disabled={!isAdmin}
                 placeholder="310.00"
+                className="font-mono"
               />
               {fxUpdatedAt && (
                 <p className="text-xs text-muted-foreground">
@@ -220,13 +251,16 @@ export function HotelSettings() {
                 </p>
               )}
             </div>
+            {isAdmin && (
+              <>
+                <Separator />
+                <Button onClick={handleSaveFx} disabled={savingFx} size="sm">
+                  <Save className="h-4 w-4 mr-2" />
+                  {savingFx ? 'Saving...' : 'Update Rate'}
+                </Button>
+              </>
+            )}
           </div>
-          {isAdmin && (
-            <Button onClick={handleSaveFx} disabled={savingFx}>
-              <Save className="h-4 w-4 mr-2" />
-              {savingFx ? 'Saving...' : 'Update Rate'}
-            </Button>
-          )}
         </CardContent>
       </Card>
     </div>
