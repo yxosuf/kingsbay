@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.cleaning-timer-release]
 verify_jwt = false
+
+[functions.guest-retention]
+verify_jwt = false

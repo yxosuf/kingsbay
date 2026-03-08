@@ -28,6 +28,7 @@ import { AdminStatusOverride } from '@/components/booking/AdminStatusOverride';
 
 interface BookingDetails {
   id: string;
+  property_id: string | null;
   check_in: string;
   check_out: string;
   status: string;
@@ -88,6 +89,7 @@ export default function BookingDetails() {
   const [linkedBookings, setLinkedBookings] = useState<{id: string; check_in: string; check_out: string; rooms: {room_number: string} | null}[]>([]);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState<string | null>(null);
+  const [fxRate, setFxRate] = useState<number | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = useReactToPrint({
@@ -105,6 +107,21 @@ export default function BookingDetails() {
       fetchLinkedBookings();
     }
   }, [id]);
+
+  // Fetch FX rate for USD display
+  useEffect(() => {
+    if (booking?.property_id) {
+      supabase
+        .from('property_inventory_settings')
+        .select('fx_usd_lkr_rate')
+        .eq('property_id', booking.property_id)
+        .maybeSingle()
+        .then(({ data }) => {
+          const rate = (data as any)?.fx_usd_lkr_rate;
+          if (rate) setFxRate(Number(rate));
+        });
+    }
+  }, [booking?.property_id]);
 
   const fetchBookingDetails = async () => {
     try {
@@ -610,6 +627,11 @@ export default function BookingDetails() {
                   <span>Total</span>
                   <span>Rs. {grandTotal.toLocaleString()}</span>
                 </div>
+                {fxRate && (
+                  <p className="text-xs text-muted-foreground text-right">
+                    ~ ${Math.round(grandTotal / fxRate).toLocaleString()} USD
+                  </p>
+                )}
 
                 {/* OTA Net Revenue Summary */}
                 {booking.booking_source && booking.booking_source !== 'direct' && booking.ota_price !== null && (
