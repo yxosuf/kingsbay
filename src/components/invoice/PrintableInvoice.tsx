@@ -34,6 +34,7 @@ interface InvoiceData {
   serviceCharges: number;
   taxRate: number;
   taxAmount: number;
+  bankFeeAmount?: number;
   totalAmount: number;
   property?: {
     name: string;
