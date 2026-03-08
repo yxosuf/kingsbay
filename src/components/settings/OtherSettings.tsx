@@ -27,6 +27,7 @@ const LANDING_PAGE_OPTIONS = [
   { value: '/bookings', label: 'Bookings' },
   { value: '/availability', label: 'Availability Calendar' },
   { value: '/rooms', label: 'Room Status' },
+  { value: '/rate-calendar', label: 'Rate Calendar' },
 ];
 
 export function OtherSettings() {
