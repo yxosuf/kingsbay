@@ -83,24 +83,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserData = async (userId: string) => {
     try {
-      // Fetch role
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .single();
+      // Fetch role + profile in parallel
+      const [{ data: roleData }, { data: profileData }] = await Promise.all([
+        supabase.from('user_roles').select('role').eq('user_id', userId).single(),
+        supabase.from('profiles').select('full_name, email').eq('id', userId).single(),
+      ]);
 
       if (roleData) {
         setRole(roleData.role as StaffRole);
       }
-
-      // Fetch profile
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('full_name, email')
-        .eq('id', userId)
-        .single();
-
       if (profileData) {
         setProfile(profileData);
       }

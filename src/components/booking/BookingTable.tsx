@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -62,7 +63,7 @@ interface BookingTableProps {
   onActionComplete: () => void;
 }
 
-export function BookingTable({ bookings, loading, onActionComplete }: BookingTableProps) {
+export const BookingTable = memo(function BookingTable({ bookings, loading, onActionComplete }: BookingTableProps) {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
 
@@ -185,4 +186,4 @@ export function BookingTable({ bookings, loading, onActionComplete }: BookingTab
       </TableBody>
     </Table>
   );
-}
+});

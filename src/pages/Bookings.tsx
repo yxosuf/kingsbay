@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,6 @@ import { Plus, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'sonner';
 import { PropertyBadge } from '@/components/layout/PropertyBadge';
 import { BookingTable, type BookingRow } from '@/components/booking/BookingTable';
 import { toDateString } from '@/lib/dateUtils';
@@ -27,83 +27,92 @@ const TAB_LABELS: Record<TabKey, string> = {
   all: 'All',
 };
 
+async function fetchBookingsData(
+  activeTab: TabKey,
+  propertyId: string | null,
+  showAll: boolean,
+) {
+  const today = toDateString(new Date());
+  let query = supabase
+    .from('bookings')
+    .select(`
+      id, check_in, check_out, status, num_guests, total_amount,
+      room_id, property_id, booking_source, needs_review, review_reason,
+      hold_expires_at,
+      guests (name, phone),
+      rooms (room_number, room_type)
+    `)
+    .order('created_at', { ascending: false });
+
+  if (!showAll && propertyId) {
+    query = query.eq('property_id', propertyId);
+  }
+
+  switch (activeTab) {
+    case 'today':
+      query = query.or(`and(check_in.eq.${today},status.in.(confirmed,pending)),and(check_out.eq.${today},status.eq.checked_in)`);
+      break;
+    case 'upcoming':
+      query = query.gt('check_in', today).eq('status', 'confirmed');
+      break;
+    case 'inhouse':
+      query = query.eq('status', 'checked_in');
+      break;
+    case 'past':
+      query = query.eq('status', 'checked_out');
+      break;
+    case 'cancelled':
+      query = query.in('status', ['cancelled', 'no_show']);
+      break;
+    case 'needs_review':
+      query = query.eq('status', 'needs_review');
+      break;
+    case 'all':
+      break;
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data as BookingRow[]) || [];
+}
+
 export default function Bookings() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { selectedProperty, showAllProperties } = useProperty();
   const { isAdmin, canWrite } = useAuth();
-  const [bookings, setBookings] = useState<BookingRow[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeTab, setActiveTab] = useState<TabKey>(() => {
     const filter = searchParams.get('filter');
     if (filter && Object.keys(TAB_LABELS).includes(filter)) return filter as TabKey;
     return 'today';
   });
 
-  const today = toDateString(new Date());
+  // Debounced search
+  const debounceRef = useState<ReturnType<typeof setTimeout> | null>(null);
+  const handleSearch = useCallback((value: string) => {
+    setSearchTerm(value);
+    if (debounceRef[0]) clearTimeout(debounceRef[0]);
+    debounceRef[0] = setTimeout(() => setDebouncedSearch(value), 300);
+  }, [debounceRef]);
 
-  const fetchBookings = useCallback(async () => {
-    setLoading(true);
-    try {
-      let query = supabase
-        .from('bookings')
-        .select(`
-          id, check_in, check_out, status, num_guests, total_amount,
-          room_id, property_id, booking_source, needs_review, review_reason,
-          hold_expires_at,
-          guests (name, phone),
-          rooms (room_number, room_type)
-        `)
-        .order('created_at', { ascending: false });
+  const propertyId = selectedProperty?.id ?? null;
 
-      if (!showAllProperties && selectedProperty?.id) {
-        query = query.eq('property_id', selectedProperty.id);
-      }
+  const { data: bookings = [], isLoading: loading, refetch } = useQuery({
+    queryKey: ['bookings', propertyId, showAllProperties, activeTab],
+    queryFn: () => fetchBookingsData(activeTab, propertyId, showAllProperties),
+  });
 
-      switch (activeTab) {
-        case 'today':
-          query = query.or(`and(check_in.eq.${today},status.in.(confirmed,pending)),and(check_out.eq.${today},status.eq.checked_in)`);
-          break;
-        case 'upcoming':
-          query = query.gt('check_in', today).eq('status', 'confirmed');
-          break;
-        case 'inhouse':
-          query = query.eq('status', 'checked_in');
-          break;
-        case 'past':
-          query = query.eq('status', 'checked_out');
-          break;
-        case 'cancelled':
-          query = query.in('status', ['cancelled', 'no_show']);
-          break;
-        case 'needs_review':
-          query = query.eq('status', 'needs_review');
-          break;
-        case 'all':
-          break;
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      setBookings((data as BookingRow[]) || []);
-    } catch (error) {
-      console.error('Error fetching bookings:', error);
-      toast.error('Failed to load bookings');
-    } finally {
-      setLoading(false);
-    }
-  }, [activeTab, selectedProperty, showAllProperties, today]);
-
-  useEffect(() => {
-    fetchBookings();
-  }, [fetchBookings]);
-
-  const filteredBookings = bookings.filter(
-    (b) =>
-      b.guests?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      b.rooms?.room_number?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredBookings = useMemo(() => {
+    if (!debouncedSearch) return bookings;
+    const term = debouncedSearch.toLowerCase();
+    return bookings.filter(
+      (b) =>
+        b.guests?.name?.toLowerCase().includes(term) ||
+        b.rooms?.room_number?.toLowerCase().includes(term)
+    );
+  }, [bookings, debouncedSearch]);
 
   const tabs: TabKey[] = ['today', 'upcoming', 'inhouse', 'past', 'cancelled', 'needs_review'];
   if (isAdmin) tabs.push('all');
@@ -124,7 +133,7 @@ export default function Bookings() {
             <Input
               placeholder="Search guest or room..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearch(e.target.value)}
               className="pl-10 rounded-xl shadow-sm focus:shadow-md transition-shadow"
             />
           </div>
@@ -158,7 +167,7 @@ export default function Bookings() {
                   <BookingTable
                     bookings={filteredBookings}
                     loading={loading}
-                    onActionComplete={fetchBookings}
+                    onActionComplete={() => refetch()}
                   />
                 </CardContent>
               </Card>

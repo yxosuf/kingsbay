@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,15 +27,11 @@ import { cn } from '@/lib/utils';
 export default function RateCalendar() {
   const { selectedProperty } = useProperty();
   const { isAdmin } = useAuth();
+  const queryClient = useQueryClient();
   const propertyId = selectedProperty?.id;
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [roomTypes, setRoomTypes] = useState<string[]>([]);
   const [selectedRoomType, setSelectedRoomType] = useState<string>('');
-  const [rateData, setRateData] = useState<any>(null);
-  const [overrides, setOverrides] = useState<Map<string, any>>(new Map());
-  const [roomBasePrice, setRoomBasePrice] = useState(0);
-  const [loading, setLoading] = useState(true);
 
   // Override dialog
   const [showOverride, setShowOverride] = useState(false);
@@ -51,52 +48,49 @@ export default function RateCalendar() {
   const [bulkValue, setBulkValue] = useState('');
   const [bulkSaving, setBulkSaving] = useState(false);
 
+  const monthKey = format(currentMonth, 'yyyy-MM');
+
   // Fetch room types
-  useEffect(() => {
-    if (!propertyId) return;
-    const fetch = async () => {
+  const { data: roomData } = useQuery({
+    queryKey: ['rateCalendar-rooms', propertyId],
+    queryFn: async () => {
+      if (!propertyId) return { types: [] as string[], prices: new Map<string, number>() };
       const { data } = await supabase
         .from('rooms')
         .select('room_type, price')
         .eq('property_id', propertyId);
-      const types = [...new Set((data || []).map(r => r.room_type))];
-      setRoomTypes(types);
-      if (types.length > 0 && !selectedRoomType) {
-        setSelectedRoomType(types[0]);
-        const avgPrice = (data || []).filter(r => r.room_type === types[0]).reduce((s, r) => s + r.price, 0) / (data || []).filter(r => r.room_type === types[0]).length;
-        setRoomBasePrice(avgPrice || 0);
+      const rows = data || [];
+      const types = [...new Set(rows.map(r => r.room_type))];
+      const prices = new Map<string, number>();
+      for (const t of types) {
+        const matching = rows.filter(r => r.room_type === t);
+        prices.set(t, matching.reduce((s, r) => s + r.price, 0) / matching.length);
       }
-    };
-    fetch();
-  }, [propertyId]);
+      return { types, prices };
+    },
+    enabled: !!propertyId,
+  });
 
-  // Update base price when room type changes
-  useEffect(() => {
-    if (!propertyId || !selectedRoomType) return;
-    const fetch = async () => {
-      const { data } = await supabase.from('rooms').select('price').eq('property_id', propertyId).eq('room_type', selectedRoomType);
-      const avg = (data || []).reduce((s, r) => s + r.price, 0) / Math.max((data || []).length, 1);
-      setRoomBasePrice(avg);
-    };
-    fetch();
-  }, [selectedRoomType, propertyId]);
+  const roomTypes = roomData?.types ?? [];
+  const effectiveRoomType = selectedRoomType || roomTypes[0] || '';
+  const roomBasePrice = roomData?.prices?.get(effectiveRoomType) ?? 0;
 
   // Fetch rate data
-  useEffect(() => {
-    if (!propertyId) return;
-    setLoading(true);
-    const load = async () => {
-      const rd = await fetchRateData(propertyId);
-      setRateData(rd);
+  const { data: rateData } = useQuery({
+    queryKey: ['rateCalendar-rateData', propertyId],
+    queryFn: () => fetchRateData(propertyId!),
+    enabled: !!propertyId,
+  });
 
-      const monthStart = toDateString(startOfMonth(currentMonth));
-      const monthEnd = toDateString(endOfMonth(currentMonth));
-      const ov = await fetchOverrides(propertyId, selectedRoomType, monthStart, monthEnd);
-      setOverrides(ov);
-      setLoading(false);
-    };
-    load();
-  }, [propertyId, currentMonth, selectedRoomType]);
+  // Fetch overrides
+  const monthStart = toDateString(startOfMonth(currentMonth));
+  const monthEnd = toDateString(endOfMonth(currentMonth));
+
+  const { data: overrides = new Map(), isLoading: loading } = useQuery({
+    queryKey: ['rateCalendar-overrides', propertyId, effectiveRoomType, monthKey],
+    queryFn: () => fetchOverrides(propertyId!, effectiveRoomType, monthStart, monthEnd),
+    enabled: !!propertyId && !!effectiveRoomType,
+  });
 
   // Generate dates for the month
   const dates = useMemo(() => {
@@ -111,19 +105,15 @@ export default function RateCalendar() {
     return dates.map(d => {
       const dateStr = toDateString(d);
       return calculateNightRate(
-        dateStr, roomBasePrice, selectedRoomType,
+        dateStr, roomBasePrice, effectiveRoomType,
         null, rateData.roomTypeOverrides, rateData.seasonalRules, rateData.dayOfWeekRules,
         overrides, 2
       );
     });
-  }, [dates, rateData, roomBasePrice, selectedRoomType, overrides]);
+  }, [dates, rateData, roomBasePrice, effectiveRoomType, overrides]);
 
-  const refreshOverrides = async () => {
-    if (!propertyId) return;
-    const monthStart = toDateString(startOfMonth(currentMonth));
-    const monthEnd = toDateString(endOfMonth(currentMonth));
-    const ov = await fetchOverrides(propertyId, selectedRoomType, monthStart, monthEnd);
-    setOverrides(ov);
+  const invalidateOverrides = () => {
+    queryClient.invalidateQueries({ queryKey: ['rateCalendar-overrides', propertyId, effectiveRoomType, monthKey] });
   };
 
   const openOverrideDialog = (dateStr: string, currentPrice: number) => {
@@ -138,7 +128,7 @@ export default function RateCalendar() {
     if (!propertyId || !overridePrice) return;
     const { error } = await supabase.from('rate_overrides').upsert({
       property_id: propertyId,
-      room_type: selectedRoomType,
+      room_type: effectiveRoomType,
       date: overrideDate,
       price: parseFloat(overridePrice),
       closed: overrideClosed,
@@ -147,18 +137,18 @@ export default function RateCalendar() {
     if (error) { toast.error(error.message); return; }
     toast.success('Override saved');
     setShowOverride(false);
-    refreshOverrides();
+    invalidateOverrides();
   };
 
   const handleRemoveOverride = async () => {
     if (!propertyId) return;
     await supabase.from('rate_overrides').delete()
       .eq('property_id', propertyId)
-      .eq('room_type', selectedRoomType)
+      .eq('room_type', effectiveRoomType)
       .eq('date', overrideDate);
     toast.success('Override removed');
     setShowOverride(false);
-    refreshOverrides();
+    invalidateOverrides();
   };
 
   // Bulk edit handlers
@@ -167,7 +157,6 @@ export default function RateCalendar() {
       setBulkStartDate(dateStr);
       setBulkEndDate(null);
     } else if (!bulkEndDate) {
-      // Ensure start <= end
       if (dateStr >= bulkStartDate) {
         setBulkEndDate(dateStr);
       } else {
@@ -175,7 +164,6 @@ export default function RateCalendar() {
         setBulkStartDate(dateStr);
       }
     } else {
-      // Reset selection
       setBulkStartDate(dateStr);
       setBulkEndDate(null);
     }
@@ -226,7 +214,7 @@ export default function RateCalendar() {
 
         return {
           property_id: propertyId,
-          room_type: selectedRoomType,
+          room_type: effectiveRoomType,
           date: dateStr,
           price: Math.round(newPrice * 100) / 100,
           closed,
@@ -243,7 +231,7 @@ export default function RateCalendar() {
       setBulkStartDate(null);
       setBulkEndDate(null);
       setBulkMode(false);
-      refreshOverrides();
+      invalidateOverrides();
     } catch (err: any) {
       toast.error(err.message || 'Bulk update failed');
     } finally {
@@ -310,7 +298,7 @@ export default function RateCalendar() {
             <div className="flex flex-wrap items-center gap-4">
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Room Type</Label>
-                <Select value={selectedRoomType} onValueChange={setSelectedRoomType}>
+                <Select value={effectiveRoomType} onValueChange={setSelectedRoomType}>
                   <SelectTrigger className="w-[180px]"><SelectValue placeholder="Select type" /></SelectTrigger>
                   <SelectContent>
                     {roomTypes.map(t => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}
@@ -428,7 +416,7 @@ export default function RateCalendar() {
             <DialogTitle>Bulk Rate Edit</DialogTitle>
           </DialogHeader>
           <div className="text-sm text-muted-foreground mb-2">
-            Applying to: <strong>{bulkStartDate}</strong> → <strong>{bulkEndDate}</strong> ({selectedRoomType})
+            Applying to: <strong>{bulkStartDate}</strong> → <strong>{bulkEndDate}</strong> ({effectiveRoomType})
           </div>
           <div className="space-y-4 py-2">
             <div className="space-y-2">

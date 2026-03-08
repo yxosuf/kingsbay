@@ -1,63 +1,51 @@
+# Kings Bay PMS — Implementation Complete ✅
 
+All plan items have been implemented and verified.
 
-# Performance Optimization Plan
+## Phase 1 — Critical Fixes ✅
+| # | Item |
+|---|------|
+| 1 | Viewer Role RLS — `is_write_staff()`, write-restricted policies |
+| 2 | Availability Calendar — `[check_in, check_out)` string comparison |
+| 3 | Hybrid Hold System — `hold_expires_at`, edge function, countdown UI |
+| 4 | Cleaning Timer — `cleaning_until`, edge function, auto-release |
+| 5 | Rooms Derived Status — Occupied/Due Out/Arriving/Cleaning/Dirty/Inspected/Clean |
+| 6 | Guests in Settings — Tab, `/guests` redirect, guest details with services |
+| 7 | Guest Retention — `archived_at`/`deleted_at`, edge function, filters |
+| 8 | Nationality + Phone Code — Country selector, `countryData.ts` |
+| 9 | FX Rate System — `CurrencyDisplay`, `useFxRate`, edge function |
+| 10 | Danger Zone — Admin-only, password confirm, per-property, audit |
 
-## Key Bottlenecks Identified
+## Phase 2 — Operational ✅
+| # | Item |
+|---|------|
+| 11 | Front Desk Speed Mode — Quick actions, arrivals/departures |
+| 12 | Channel Manager — iCal, email inbound, needs_review flow |
+| 13 | Housekeeping Board — Drag-drop (Dirty→Cleaning→Clean→Inspected), staff assignment |
+| 14 | Notifications — Bell, preferences, edge functions |
+| 15 | Data Quality — Duplicate detection (phone/email/passport/NIC), admin merge tool |
 
-1. **No code splitting** — All 20+ pages are bundled together and loaded upfront via static imports in `App.tsx`. Every route loads even if the user only visits the dashboard.
+## Phase 3 — Finance ✅
+| # | Item |
+|---|------|
+| 16 | Booking Transactions Ledger — `booking_transactions`, TransactionsTab |
+| 17 | Accounting Layer — `ledger_accounts/entries/lines`, auto-posting |
 
-2. **No React Query usage for data fetching** — Pages like Dashboard, Bookings, Availability Calendar, and Rate Calendar all use raw `useState`/`useEffect` with manual `supabase` calls. This means zero caching, no background refetching, and full re-fetches on every navigation.
+## Phase 4 ✅
+| # | Item |
+|---|------|
+| 18 | System Health Monitor — `/settings?tab=system-health`, admin checks |
 
-3. **QueryClient has no staleTime** — The existing `QueryClient` instance has default config (staleTime: 0), so even the few places using React Query refetch constantly.
+## Additional Features ✅
+- Guest Email System (Resend) — booking_confirmation, pre_arrival, checkout_summary
+- Guest Feedback System — dialog, display, reports, dashboard widget
+- Printable Invoice — react-to-print
+- PWA Support — service worker, manifest
+- Extend Stay / Move Room dialogs
+- Add Service Dialog with category filtering
+- Reports (Occupancy, Revenue, Financial, Feedback)
+- Mobile Responsive — bottom nav, responsive tables/tabs
+- Passport Photo Upload — secure storage in guest-documents bucket
+- Guest Details — services purchased with totals, VIP/blacklist badges
 
-4. **Auth fetches role + profile sequentially** — `fetchUserData` in `useAuth.tsx` calls `user_roles` then `profiles` one after the other instead of `Promise.all`.
-
-5. **Search inputs lack debounce** — Bookings page search triggers filter on every keystroke.
-
-6. **Dashboard fires 7 parallel queries on every property switch** — No caching, so switching properties or navigating away and back always re-fetches everything.
-
-## Implementation Plan
-
-### 1. Add Route-Level Code Splitting (`App.tsx`)
-- Replace all static page imports with `React.lazy()` + `Suspense`
-- Group a shared loading spinner fallback
-- This reduces initial bundle size significantly since most users land on Dashboard
-
-### 2. Configure QueryClient with Global Defaults (`App.tsx`)
-- Set `staleTime: 5 * 60 * 1000` (5 min) and `gcTime: 10 * 60 * 1000`
-- This means navigating between pages reuses cached data instantly
-
-### 3. Parallelize Auth Data Fetching (`useAuth.tsx`)
-- Change `fetchUserData` to use `Promise.all([roleQuery, profileQuery])` instead of sequential awaits
-
-### 4. Convert Dashboard to React Query (`Index.tsx`)
-- Replace the manual `fetchDashboardData` with `useQuery` keyed on `['dashboard', propertyId]`
-- Data stays cached when navigating away and back
-- Background refetch keeps it fresh
-
-### 5. Convert Bookings to React Query (`Bookings.tsx`)
-- Replace manual fetch with `useQuery` keyed on `['bookings', propertyId, activeTab]`
-- Add 300ms debounce to search input
-
-### 6. Convert Rate Calendar to React Query (`RateCalendar.tsx`)
-- Cache rate data, overrides, and room types with `useQuery`
-- Keyed on `['rateCalendar', propertyId, selectedRoomType, monthKey]`
-
-### 7. Memoize Heavy Child Components
-- Wrap `BookingTable`, `HealthCategorySection`, and calendar grid renders with `React.memo`
-- Add `useMemo` for filtered/computed lists that re-derive on every render
-
-## Files Modified
-
-| File | Change |
-|------|--------|
-| `src/App.tsx` | Lazy imports + Suspense + QueryClient config |
-| `src/hooks/useAuth.tsx` | Parallelize role + profile fetch |
-| `src/pages/Index.tsx` | Convert to useQuery |
-| `src/pages/Bookings.tsx` | Convert to useQuery + debounced search |
-| `src/pages/RateCalendar.tsx` | Convert to useQuery |
-| `src/components/booking/BookingTable.tsx` | React.memo wrapper |
-| `src/components/settings/health/HealthCategorySection.tsx` | React.memo wrapper |
-
-No database changes needed.
-
+## All items verified and complete. No remaining work.
