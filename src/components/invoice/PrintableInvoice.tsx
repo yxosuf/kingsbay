@@ -227,6 +227,12 @@ export const PrintableInvoice = forwardRef<HTMLDivElement, PrintableInvoiceProps
                 <span>Rs. {data.serviceCharges.toLocaleString()}</span>
               </div>
             )}
+            {data.bankFeeAmount != null && data.bankFeeAmount > 0 && (
+              <div className="flex justify-between py-2">
+                <span className="text-gray-600">Card Bank Fee (3%)</span>
+                <span>Rs. {data.bankFeeAmount.toLocaleString()}</span>
+              </div>
+            )}
             <div className="flex justify-between py-2">
               <span className="text-gray-600">Tax ({Math.round(data.taxRate * 100)}%)</span>
               <span>Rs. {data.taxAmount.toLocaleString()}</span>
