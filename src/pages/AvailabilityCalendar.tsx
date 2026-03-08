@@ -407,7 +407,7 @@ export default function AvailabilityCalendar() {
                               const startIdx = Math.max(0, getDateIndex(booking.check_in));
                               // check_out is exclusive: bar ends at check_out column start
                               const endDateStr = booking.check_out;
-                              const endIdx = Math.min(dateRange.length, getDateIndex(endDateStr));
+                              const endIdx = Math.min(dateRange.length, getDateIndex(endDateStr) + 1);
                               if (endIdx <= startIdx) return null;
 
                               const barType = booking.status === 'checked_in' ? 'occupied' 
