@@ -187,6 +187,16 @@ export function TransactionsTab({ bookingId, propertyId, totalAmount, fxRate }: 
           </div>
         )}
       </CardContent>
+
+      <RefundDialog
+        open={showRefundDialog}
+        onOpenChange={setShowRefundDialog}
+        bookingId={bookingId}
+        propertyId={propertyId}
+        maxRefundable={totalPayments - totalRefunds}
+        fxRate={fxRate}
+        onSuccess={fetchTransactions}
+      />
     </Card>
   );
 }
