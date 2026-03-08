@@ -29,7 +29,7 @@ interface Props {
   defaultOpen?: boolean;
 }
 
-export function HealthCategorySection({ category, defaultOpen = false }: Props) {
+export const HealthCategorySection = memo(function HealthCategorySection({ category, defaultOpen = false }: Props) {
   const [open, setOpen] = useState(defaultOpen);
   const passCount = category.checks.filter(c => c.status === 'pass').length;
   const warnCount = category.checks.filter(c => c.status === 'warn').length;

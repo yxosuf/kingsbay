@@ -1,5 +1,6 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toDateString } from '@/lib/dateUtils';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useUserSettings } from '@/hooks/useUserSettings';
@@ -22,10 +23,8 @@ import {
   Eye, 
   LogIn, 
   LogOut,
-  Cloud,
   TrendingUp,
   TrendingDown,
-  Minus,
   CalendarCheck,
   Sun,
   AlertTriangle,
@@ -55,12 +54,6 @@ interface ActivityItem {
   time: string;
 }
 
-interface WeatherData {
-  temperature: number;
-  location: string;
-  condition: string;
-}
-
 interface ExchangeRate {
   usdToLkr: number;
   updatedAt: string | null;
@@ -68,12 +61,103 @@ interface ExchangeRate {
   isStale: boolean;
 }
 
+async function fetchDashboardData(propertyId: string | null, showAll: boolean) {
+  const propertyFilter = !showAll && propertyId;
+  const today = toDateString(new Date());
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  let activeGuestsQ = supabase.from('bookings').select('*', { count: 'exact', head: true }).eq('status', 'checked_in');
+  let arrivalsQ = supabase.from('bookings').select('*', { count: 'exact', head: true }).eq('check_in', today).in('status', ['pending', 'confirmed']);
+  let totalRoomsQ = supabase.from('rooms').select('id').neq('status', 'maintenance');
+  let blockedQ = supabase.from('bookings').select('room_id').in('status', ['confirmed', 'checked_in', 'pending', 'needs_review']).lte('check_in', today).gt('check_out', today);
+  let invoicesQ = supabase.from('invoices').select('total_amount, property_id').gte('created_at', startOfMonth.toISOString());
+  let checkInsQ = supabase.from('bookings').select('id, status, check_in, property_id, guests (name), rooms (room_number)').eq('check_in', today).in('status', ['pending', 'confirmed', 'checked_in']);
+  let checkOutsQ = supabase.from('bookings').select('id, status, check_out, property_id, guests (name), rooms (room_number)').eq('check_out', today).in('status', ['checked_in', 'checked_out']);
+
+  if (propertyFilter) {
+    activeGuestsQ = activeGuestsQ.eq('property_id', propertyId);
+    arrivalsQ = arrivalsQ.eq('property_id', propertyId);
+    totalRoomsQ = totalRoomsQ.eq('property_id', propertyId);
+    blockedQ = blockedQ.eq('property_id', propertyId);
+    invoicesQ = invoicesQ.eq('property_id', propertyId);
+    checkInsQ = checkInsQ.eq('property_id', propertyId);
+    checkOutsQ = checkOutsQ.eq('property_id', propertyId);
+  }
+
+  const [
+    { count: activeGuests },
+    { count: arrivalsToday },
+    { data: allRooms },
+    { data: blockedBookings },
+    { data: invoices },
+    { data: checkIns },
+    { data: checkOuts },
+  ] = await Promise.all([activeGuestsQ, arrivalsQ, totalRoomsQ, blockedQ, invoicesQ, checkInsQ, checkOutsQ]);
+
+  const totalRoomCount = allRooms?.length || 0;
+  const blockedRoomIds = new Set(blockedBookings?.map(b => b.room_id) || []);
+  const availableRooms = totalRoomCount - blockedRoomIds.size;
+  const totalRevenue = invoices?.reduce((sum, i) => sum + Number(i.total_amount), 0) || 0;
+
+  const stats: DashboardStats = {
+    activeGuests: activeGuests || 0,
+    totalRevenue,
+    arrivalsToday: arrivalsToday || 0,
+    availableRooms,
+  };
+
+  const activity: ActivityItem[] = [
+    ...(checkIns?.map((b: any) => ({
+      id: b.id,
+      guest_name: b.guests?.name || 'Unknown',
+      room_number: b.rooms?.room_number || 'N/A',
+      type: 'check_in' as const,
+      status: b.status,
+      time: b.check_in,
+    })) || []),
+    ...(checkOuts?.map((b: any) => ({
+      id: b.id,
+      guest_name: b.guests?.name || 'Unknown',
+      room_number: b.rooms?.room_number || 'N/A',
+      type: 'check_out' as const,
+      status: b.status,
+      time: b.check_out,
+    })) || []),
+  ];
+
+  return { stats, activity };
+}
+
+async function fetchExchangeRateData(propertyId: string | null): Promise<ExchangeRate> {
+  if (propertyId) {
+    const { data } = await supabase
+      .from('property_inventory_settings')
+      .select('fx_usd_lkr_rate, fx_updated_at')
+      .eq('property_id', propertyId)
+      .maybeSingle();
+    const rate = (data as any)?.fx_usd_lkr_rate;
+    const updatedAt = (data as any)?.fx_updated_at;
+    if (rate) {
+      const currentRate = Number(rate);
+      const isStale = updatedAt 
+        ? (Date.now() - new Date(updatedAt).getTime()) > 2 * 60 * 60 * 1000 
+        : true;
+      return { usdToLkr: currentRate, updatedAt: updatedAt || null, previousRate: null, isStale };
+    }
+  }
+  return { usdToLkr: 309.06, updatedAt: null, previousRate: null, isStale: false };
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { selectedProperty, showAllProperties, properties } = useProperty();
+  const queryClient = useQueryClient();
+  const { selectedProperty, showAllProperties } = useProperty();
   const { canWrite } = useAuth();
   const { settings, loading: settingsLoading } = useUserSettings();
   const redirectChecked = useRef(false);
+  const propertyId = selectedProperty?.id ?? null;
 
   useEffect(() => {
     if (!settingsLoading && !redirectChecked.current) {
@@ -84,160 +168,43 @@ export default function Dashboard() {
       }
     }
   }, [settingsLoading, settings.default_landing_page, navigate]);
-  const [stats, setStats] = useState<DashboardStats>({
-    activeGuests: 0,
-    totalRevenue: 0,
-    arrivalsToday: 0,
-    availableRooms: 0,
+
+  const { data: dashboardData, isLoading: loading } = useQuery({
+    queryKey: ['dashboard', propertyId, showAllProperties],
+    queryFn: () => fetchDashboardData(propertyId, showAllProperties),
   });
-  const [todayActivity, setTodayActivity] = useState<ActivityItem[]>([]);
-  const [weather, setWeather] = useState<WeatherData | null>(null);
-  const [exchangeRate, setExchangeRate] = useState<ExchangeRate | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchDashboardData();
-    fetchWeather();
-    fetchExchangeRate();
-  }, [selectedProperty, showAllProperties]);
+  const { data: exchangeRate } = useQuery({
+    queryKey: ['exchangeRate', propertyId],
+    queryFn: () => fetchExchangeRateData(propertyId),
+  });
 
-  const fetchDashboardData = async () => {
-    try {
-      const propertyFilter = !showAllProperties && selectedProperty?.id;
-      
-      const today = toDateString(new Date());
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      startOfMonth.setHours(0, 0, 0, 0);
+  const stats = dashboardData?.stats ?? { activeGuests: 0, totalRevenue: 0, arrivalsToday: 0, availableRooms: 0 };
+  const todayActivity = dashboardData?.activity ?? [];
 
-      // Build all queries
-      let activeGuestsQ = supabase.from('bookings').select('*', { count: 'exact', head: true }).eq('status', 'checked_in');
-      let arrivalsQ = supabase.from('bookings').select('*', { count: 'exact', head: true }).eq('check_in', today).in('status', ['pending', 'confirmed']);
-      let totalRoomsQ = supabase.from('rooms').select('id').neq('status', 'maintenance');
-      let blockedQ = supabase.from('bookings').select('room_id').in('status', ['confirmed', 'checked_in', 'pending', 'needs_review']).lte('check_in', today).gt('check_out', today);
-      let invoicesQ = supabase.from('invoices').select('total_amount, property_id').gte('created_at', startOfMonth.toISOString());
-      let checkInsQ = supabase.from('bookings').select('id, status, check_in, property_id, guests (name), rooms (room_number)').eq('check_in', today).in('status', ['pending', 'confirmed', 'checked_in']);
-      let checkOutsQ = supabase.from('bookings').select('id, status, check_out, property_id, guests (name), rooms (room_number)').eq('check_out', today).in('status', ['checked_in', 'checked_out']);
+  const weather = useMemo(() => ({
+    temperature: 29.1,
+    location: 'Colombo, Sri Lanka',
+    condition: 'Partly Cloudy',
+  }), []);
 
-      if (propertyFilter) {
-        activeGuestsQ = activeGuestsQ.eq('property_id', selectedProperty.id);
-        arrivalsQ = arrivalsQ.eq('property_id', selectedProperty.id);
-        totalRoomsQ = totalRoomsQ.eq('property_id', selectedProperty.id);
-        blockedQ = blockedQ.eq('property_id', selectedProperty.id);
-        invoicesQ = invoicesQ.eq('property_id', selectedProperty.id);
-        checkInsQ = checkInsQ.eq('property_id', selectedProperty.id);
-        checkOutsQ = checkOutsQ.eq('property_id', selectedProperty.id);
-      }
-
-      // Execute ALL queries in parallel
-      const [
-        { count: activeGuests },
-        { count: arrivalsToday },
-        { data: allRooms },
-        { data: blockedBookings },
-        { data: invoices },
-        { data: checkIns },
-        { data: checkOuts },
-      ] = await Promise.all([activeGuestsQ, arrivalsQ, totalRoomsQ, blockedQ, invoicesQ, checkInsQ, checkOutsQ]);
-
-      const totalRoomCount = allRooms?.length || 0;
-      const blockedRoomIds = new Set(blockedBookings?.map(b => b.room_id) || []);
-      const availableRooms = totalRoomCount - blockedRoomIds.size;
-      const totalRevenue = invoices?.reduce((sum, i) => sum + Number(i.total_amount), 0) || 0;
-
-      setStats({
-        activeGuests: activeGuests || 0,
-        totalRevenue,
-        arrivalsToday: arrivalsToday || 0,
-        availableRooms: availableRooms || 0,
-      });
-
-      const activityItems: ActivityItem[] = [
-        ...(checkIns?.map((b: any) => ({
-          id: b.id,
-          guest_name: b.guests?.name || 'Unknown',
-          room_number: b.rooms?.room_number || 'N/A',
-          type: 'check_in' as const,
-          status: b.status,
-          time: b.check_in,
-        })) || []),
-        ...(checkOuts?.map((b: any) => ({
-          id: b.id,
-          guest_name: b.guests?.name || 'Unknown',
-          room_number: b.rooms?.room_number || 'N/A',
-          type: 'check_out' as const,
-          status: b.status,
-          time: b.check_out,
-        })) || []),
-      ];
-
-      setTodayActivity(activityItems);
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchWeather = async () => {
-    setWeather({
-      temperature: 29.1,
-      location: 'Colombo, Sri Lanka',
-      condition: 'Partly Cloudy',
-    });
-  };
-
-  const fetchExchangeRate = async () => {
-    try {
-      const propertyId = selectedProperty?.id;
-      if (propertyId) {
-        const { data } = await supabase
-          .from('property_inventory_settings')
-          .select('fx_usd_lkr_rate, fx_updated_at')
-          .eq('property_id', propertyId)
-          .maybeSingle();
-        const rate = (data as any)?.fx_usd_lkr_rate;
-        const updatedAt = (data as any)?.fx_updated_at;
-        if (rate) {
-          const currentRate = Number(rate);
-          const prevRate = exchangeRate?.usdToLkr ?? null;
-          const isStale = updatedAt 
-            ? (Date.now() - new Date(updatedAt).getTime()) > 2 * 60 * 60 * 1000 
-            : true;
-          setExchangeRate({ 
-            usdToLkr: currentRate, 
-            updatedAt: updatedAt || null,
-            previousRate: prevRate !== currentRate ? prevRate : exchangeRate?.previousRate ?? null,
-            isStale,
-          });
-          return;
-        }
-      }
-      setExchangeRate({ usdToLkr: 309.06, updatedAt: null, previousRate: null, isStale: false });
-    } catch {
-      setExchangeRate({ usdToLkr: 309.06, updatedAt: null, previousRate: null, isStale: false });
-    }
-  };
-
-  const handleCheckIn = async (bookingId: string) => {
+  const handleCheckIn = useCallback(async (bookingId: string) => {
     try {
       const { error } = await supabase
         .from('bookings')
         .update({ status: 'checked_in', checked_in_at: new Date().toISOString() })
         .eq('id', bookingId);
-
       if (error) throw error;
-      
       toast.success('Guest checked in successfully');
-      fetchDashboardData();
-    } catch (error) {
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    } catch {
       toast.error('Failed to check in guest');
     }
-  };
+  }, [queryClient]);
 
-  const handleCheckOut = async (bookingId: string) => {
+  const handleCheckOut = useCallback((bookingId: string) => {
     navigate(`/bookings/${bookingId}/checkout`);
-  };
+  }, [navigate]);
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' | 'info'; className?: string }> = {
@@ -247,17 +214,11 @@ export default function Dashboard() {
       checked_out: { variant: 'secondary' },
       cancelled: { variant: 'destructive' },
     };
-    
     const config = variants[status] || variants.pending;
-    
-    return (
-      <Badge variant={config.variant} className={config.className}>
-        {status.replace('_', ' ')}
-      </Badge>
-    );
+    return <Badge variant={config.variant} className={config.className}>{status.replace('_', ' ')}</Badge>;
   };
 
-  const statCards = [
+  const statCards = useMemo(() => [
     {
       title: 'Active Guests',
       value: stats.activeGuests.toString(),
@@ -295,7 +256,7 @@ export default function Dashboard() {
       bgColor: 'bg-info/10',
       borderColor: 'border-l-info',
     },
-  ];
+  ], [stats, exchangeRate, navigate]);
 
   const greeting = (() => {
     const h = new Date().getHours();
