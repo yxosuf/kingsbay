@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -65,6 +66,7 @@ type ViewMode = 'week' | 'month';
 export default function AvailabilityCalendar() {
   const navigate = useNavigate();
   const { selectedProperty } = useProperty();
+  const isMobile = useIsMobile();
   const [loading, setLoading] = useState(true);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -233,27 +235,27 @@ export default function AvailabilityCalendar() {
       <div className="space-y-5">
         {/* Header Controls */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => navigatePeriod('prev')}>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Button variant="outline" size="icon" className="h-8 w-8 sm:h-10 sm:w-10" onClick={() => navigatePeriod('prev')}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="icon" onClick={() => navigatePeriod('next')}>
+            <Button variant="outline" size="icon" className="h-8 w-8 sm:h-10 sm:w-10" onClick={() => navigatePeriod('next')}>
               <ChevronRight className="h-4 w-4" />
             </Button>
-            <h2 className="text-lg font-semibold">
+            <h2 className="text-sm sm:text-lg font-semibold">
               {viewMode === 'week' 
                 ? `${format(dateRange[0], 'MMM d')} – ${format(dateRange[dateRange.length - 1], 'MMM d, yyyy')}`
                 : format(currentDate, 'MMMM yyyy')
               }
             </h2>
-            <Button variant="ghost" size="sm" onClick={() => setCurrentDate(new Date())}>
+            <Button variant="ghost" size="sm" className="h-7 text-xs sm:text-sm" onClick={() => setCurrentDate(new Date())}>
               Today
             </Button>
           </div>
 
           <div className="flex items-center gap-2">
             <Select value={selectedRoomType} onValueChange={setSelectedRoomType}>
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-[120px] sm:w-[150px] h-8 sm:h-10 text-xs sm:text-sm">
                 <SelectValue placeholder="All room types" />
               </SelectTrigger>
               <SelectContent>
@@ -265,7 +267,7 @@ export default function AvailabilityCalendar() {
             </Select>
 
             <Select value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
-              <SelectTrigger className="w-[120px]">
+              <SelectTrigger className="w-[90px] sm:w-[120px] h-8 sm:h-10 text-xs sm:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -277,7 +279,7 @@ export default function AvailabilityCalendar() {
         </div>
 
         {/* Inventory Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
           {[
             { label: 'Sellable Today', value: todaySummary.sellable, icon: ShieldCheck, color: 'text-success', bg: 'bg-success/10' },
             { label: 'Total Rooms', value: rooms.length, icon: BedDouble, color: 'text-foreground', bg: 'bg-muted' },
@@ -285,15 +287,15 @@ export default function AvailabilityCalendar() {
             { label: 'Safety Buffer', value: inventorySettings?.safety_buffer || 0, icon: Lock, color: 'text-muted-foreground', bg: 'bg-muted' },
           ].map((item, i) => (
             <Card key={item.label}>
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className={cn("p-2 rounded-xl", item.bg)}>
-                  <item.icon className={cn("h-5 w-5", item.color)} />
+              <CardContent className="p-2.5 sm:p-4 flex items-center gap-2 sm:gap-3">
+                <div className={cn("p-1.5 sm:p-2 rounded-lg sm:rounded-xl", item.bg)}>
+                  <item.icon className={cn("h-4 w-4 sm:h-5 sm:w-5", item.color)} />
                 </div>
                 <div>
-                  <p className={cn("text-2xl font-bold animate-fade-in-up", item.color)} style={{ animationDelay: `${i * 60}ms` }}>
+                  <p className={cn("text-lg sm:text-2xl font-bold animate-fade-in-up", item.color)} style={{ animationDelay: `${i * 60}ms` }}>
                     {item.value}
                   </p>
-                  <p className="text-xs text-muted-foreground">{item.label}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">{item.label}</p>
                 </div>
               </CardContent>
             </Card>
@@ -323,11 +325,11 @@ export default function AvailabilityCalendar() {
                   <div
                     className="grid"
                     style={{
-                      gridTemplateColumns: `120px repeat(${dateRange.length}, minmax(${viewMode === 'month' ? '36px' : '80px'}, 1fr))`,
+                      gridTemplateColumns: `${isMobile ? '70px' : '120px'} repeat(${dateRange.length}, minmax(${viewMode === 'month' ? (isMobile ? '28px' : '36px') : (isMobile ? '44px' : '80px')}, 1fr))`,
                     }}
                   >
                     {/* Header row */}
-                    <div className="p-2 text-xs font-medium text-muted-foreground sticky left-0 bg-card z-30 border-r border-b">
+                    <div className="p-1.5 sm:p-2 text-[10px] sm:text-xs font-medium text-muted-foreground sticky left-0 bg-card z-30 border-r border-b">
                       Room
                     </div>
                     {dateRange.map(date => (
@@ -357,11 +359,11 @@ export default function AvailabilityCalendar() {
                       return (
                         <>
                           {/* Room label */}
-                          <div key={`label-${room.id}`} className="p-2 sticky left-0 bg-card z-10 border-r border-b flex items-center group">
+                          <div key={`label-${room.id}`} className="p-1 sm:p-2 sticky left-0 bg-card z-10 border-r border-b flex items-center group">
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <div className="truncate">
-                                  <span className="font-medium text-sm">{room.room_number}</span>
+                                  <span className="font-medium text-xs sm:text-sm">{room.room_number}</span>
                                   <span className="text-[10px] text-muted-foreground ml-1.5 hidden sm:inline">{room.room_type}</span>
                                 </div>
                               </TooltipTrigger>
@@ -382,7 +384,7 @@ export default function AvailabilityCalendar() {
                               <div
                                 key={`${room.id}-${dateStr}`}
                                 className={cn(
-                                  "border-r border-b h-11 transition-colors hover:brightness-95",
+                                  "border-r border-b h-8 sm:h-11 transition-colors hover:brightness-95",
                                   isWeekend(date) && status.type === 'available' && "weekend-col",
                                   isToday(date) && status.type === 'available' && "today-line",
                                   statusCls,
@@ -408,7 +410,7 @@ export default function AvailabilityCalendar() {
                 </div>
 
                 {/* Legend */}
-                <div className="flex flex-wrap gap-4 mt-4 pt-3 border-t px-3">
+                <div className="flex flex-wrap gap-2 sm:gap-4 mt-3 sm:mt-4 pt-2 sm:pt-3 border-t px-2 sm:px-3">
                   {[
                     { cls: 'cell-reserved', label: 'Reserved' },
                     { cls: 'cell-occupied', label: 'Occupied' },
@@ -416,14 +418,14 @@ export default function AvailabilityCalendar() {
                     { cls: 'cell-blocked', label: 'Blocked' },
                     { cls: 'cell-cleaning', label: 'Cleaning' },
                   ].map(item => (
-                    <div key={item.label} className="flex items-center gap-1.5">
-                      <div className={cn("w-8 h-4 rounded", item.cls)} />
-                      <span className="text-xs text-muted-foreground">{item.label}</span>
+                    <div key={item.label} className="flex items-center gap-1 sm:gap-1.5">
+                      <div className={cn("w-5 sm:w-8 h-3 sm:h-4 rounded", item.cls)} />
+                      <span className="text-[10px] sm:text-xs text-muted-foreground">{item.label}</span>
                     </div>
                   ))}
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-0.5 h-4 bg-primary/30 rounded" />
-                    <span className="text-xs text-muted-foreground">Today</span>
+                  <div className="flex items-center gap-1 sm:gap-1.5">
+                    <div className="w-0.5 h-3 sm:h-4 bg-primary/30 rounded" />
+                    <span className="text-[10px] sm:text-xs text-muted-foreground">Today</span>
                   </div>
                 </div>
               </TooltipProvider>

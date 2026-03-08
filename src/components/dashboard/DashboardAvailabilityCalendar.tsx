@@ -47,6 +47,7 @@ interface RoomAvailability {
 export function DashboardAvailabilityCalendar() {
   const navigate = useNavigate();
   const { selectedProperty } = useProperty();
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
   const [loading, setLoading] = useState(true);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -168,8 +169,8 @@ export function DashboardAvailabilityCalendar() {
           <TooltipProvider>
             <div className="overflow-x-auto scrollbar-thin -mx-2 sm:mx-0">
               {/* Header */}
-              <div className="grid" style={{ gridTemplateColumns: `90px repeat(${dateRange.length}, 1fr)` }}>
-                <div className="p-1.5 text-xs font-medium text-muted-foreground sticky left-0 bg-card z-10 border-b">
+              <div className="grid" style={{ gridTemplateColumns: `${isMobile ? '60px' : '90px'} repeat(${dateRange.length}, 1fr)` }}>
+                <div className="p-1 sm:p-1.5 text-[10px] sm:text-xs font-medium text-muted-foreground sticky left-0 bg-card z-10 border-b">
                   Room
                 </div>
                 {dateRange.map(date => (
@@ -180,9 +181,9 @@ export function DashboardAvailabilityCalendar() {
                       isToday(date) && "bg-primary/5"
                     )}
                   >
-                    <div className="text-[10px] text-muted-foreground">{format(date, 'EEE')}</div>
+                    <div className="text-[9px] sm:text-[10px] text-muted-foreground">{format(date, 'EEE')}</div>
                     <div className={cn(
-                      "text-sm",
+                      "text-xs sm:text-sm",
                       isToday(date) && "text-primary font-bold"
                     )}>
                       {format(date, 'd')}
@@ -197,7 +198,7 @@ export function DashboardAvailabilityCalendar() {
 
                   return (
                     <>
-                      <div key={`label-${room.id}`} className="p-1.5 sticky left-0 bg-card z-10 flex items-center border-b">
+                      <div key={`label-${room.id}`} className="p-1 sm:p-1.5 sticky left-0 bg-card z-10 flex items-center border-b">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="font-medium text-xs truncate">{room.room_number}</span>
@@ -217,7 +218,7 @@ export function DashboardAvailabilityCalendar() {
                           <div
                             key={`${room.id}-${dateStr}`}
                             className={cn(
-                              "border-b border-r h-9 transition-colors",
+                              "border-b border-r h-7 sm:h-9 transition-colors",
                               isWeekend(date) && "weekend-col",
                               isToday(date) && "today-line",
                               statusCls,
@@ -249,7 +250,7 @@ export function DashboardAvailabilityCalendar() {
             </div>
 
             {/* Legend */}
-            <div className="flex flex-wrap gap-3 mt-3 pt-2 border-t">
+            <div className="flex flex-wrap gap-2 sm:gap-3 mt-2 sm:mt-3 pt-2 border-t">
               {[
                 { cls: 'cell-reserved', label: 'Reserved' },
                 { cls: 'cell-occupied', label: 'Occupied' },
@@ -257,9 +258,9 @@ export function DashboardAvailabilityCalendar() {
                 { cls: 'cell-blocked', label: 'Blocked' },
                 { cls: 'cell-cleaning', label: 'Cleaning' },
               ].map(item => (
-                <div key={item.label} className="flex items-center gap-1.5">
-                  <div className={cn("w-6 h-3 rounded-sm", item.cls)} />
-                  <span className="text-[11px] text-muted-foreground">{item.label}</span>
+                <div key={item.label} className="flex items-center gap-1">
+                  <div className={cn("w-4 sm:w-6 h-2.5 sm:h-3 rounded-sm", item.cls)} />
+                  <span className="text-[10px] sm:text-[11px] text-muted-foreground">{item.label}</span>
                 </div>
               ))}
             </div>
