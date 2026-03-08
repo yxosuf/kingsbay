@@ -300,14 +300,13 @@
   }
 }
 
-  /* Safe area for mobile bottom nav */
-  .safe-area-bottom {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
+/* Safe area for mobile bottom nav */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
 
-  .pb-safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom, 16px);
-  }
+.pb-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
 }
 
 /* Print styles */
