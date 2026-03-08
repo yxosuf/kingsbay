@@ -75,7 +75,9 @@ export default function NewBooking() {
   const [roomId, setRoomId] = useState('');
   const [checkIn, setCheckIn] = useState<Date>();
   const [checkOut, setCheckOut] = useState<Date>();
-  const [numGuests, setNumGuests] = useState(1);
+  const [numAdults, setNumAdults] = useState(1);
+  const [numChildren, setNumChildren] = useState(0);
+  const numGuests = numAdults + numChildren;
   const [specialRequests, setSpecialRequests] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [guestNationality, setGuestNationality] = useState('Sri Lanka');
