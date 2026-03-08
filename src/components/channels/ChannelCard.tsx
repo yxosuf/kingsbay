@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -93,13 +94,13 @@ export function ChannelCard({ channel, channelInfo, onUpdate, onDelete }: Channe
 
   return (
     <Card className={channel.is_enabled ? 'border-primary/50' : ''}>
-      <CardHeader className="pb-2">
+      <CardHeader className="p-3 sm:p-6 pb-1 sm:pb-2">
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <ChannelIcon type={channel.channel_type} size="md" />
+          <div className="flex items-center gap-2 sm:gap-3">
+            <ChannelIcon type={channel.channel_type} size="sm" />
             <div>
-              <CardTitle className="text-base">{channelInfo.name}</CardTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <CardTitle className="text-sm sm:text-base">{channelInfo.name}</CardTitle>
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
                 {channel.commission_rate ? `${channel.commission_rate}% commission` : 'No commission set'}
               </p>
             </div>
@@ -110,53 +111,49 @@ export function ChannelCard({ channel, channelInfo, onUpdate, onDelete }: Channe
           />
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="p-3 sm:p-6 pt-1 sm:pt-0 space-y-2 sm:space-y-3">
         {/* Status Badge */}
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className={getStatusColor(channel.sync_status)}>
+            <Badge variant="outline" className={cn("text-[10px] sm:text-xs", getStatusColor(channel.sync_status))}>
               {channel.sync_status === 'active' ? 'Active' : 
                channel.sync_status === 'error' ? 'Error' : 'Disabled'}
             </Badge>
             {channel.last_sync_at && (
-              <span className="text-xs text-muted-foreground">
+              <span className="text-[10px] sm:text-xs text-muted-foreground">
                 Last sync: {format(new Date(channel.last_sync_at), 'MMM d, HH:mm')}
               </span>
             )}
           </div>
           {channel.sync_status === 'error' && channel.last_error_message && (
-            <p className="text-xs text-destructive truncate" title={channel.last_error_message}>
+            <p className="text-[10px] sm:text-xs text-destructive truncate" title={channel.last_error_message}>
               {channel.last_error_message}
             </p>
           )}
         </div>
 
         {/* iCal URLs Preview */}
-        {channel.is_enabled && (
-          <div className="space-y-2 text-sm">
-            {channel.ical_export_url && (
-              <div className="flex items-center gap-2 p-2 bg-muted rounded text-xs">
-                <span className="text-muted-foreground">Export URL:</span>
-                <span className="truncate flex-1 font-mono">{channel.ical_export_url}</span>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-6 w-6"
-                  onClick={() => copyToClipboard(channel.ical_export_url!)}
-                >
-                  <Copy className="h-3 w-3" />
-                </Button>
-              </div>
-            )}
+        {channel.is_enabled && channel.ical_export_url && (
+          <div className="flex items-center gap-2 p-1.5 sm:p-2 bg-muted rounded text-[10px] sm:text-xs">
+            <span className="text-muted-foreground shrink-0">Export:</span>
+            <span className="truncate flex-1 font-mono">{channel.ical_export_url}</span>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-5 w-5 sm:h-6 sm:w-6 shrink-0"
+              onClick={() => copyToClipboard(channel.ical_export_url!)}
+            >
+              <Copy className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+            </Button>
           </div>
         )}
 
         {/* Actions */}
-        <div className="flex gap-2 pt-2">
+        <div className="flex gap-2 pt-1 sm:pt-2">
           <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="flex-1">
-                <Settings className="h-4 w-4 mr-2" />
+              <Button variant="outline" size="sm" className="flex-1 h-8 text-xs sm:text-sm">
+                <Settings className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                 Settings
               </Button>
             </DialogTrigger>
@@ -239,8 +236,8 @@ export function ChannelCard({ channel, channelInfo, onUpdate, onDelete }: Channe
 
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
-                <Trash2 className="h-4 w-4" />
+              <Button variant="outline" size="sm" className="text-destructive hover:text-destructive h-8">
+                <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>

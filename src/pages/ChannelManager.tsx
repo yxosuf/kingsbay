@@ -280,62 +280,62 @@ export default function ChannelManager() {
     <DashboardLayout title="Channel Manager">
       <div className="space-y-6">
         {/* Header Stats */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Channels</CardTitle>
-              <Link2 className="h-4 w-4 text-muted-foreground" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <Card className="p-3 sm:p-0">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 sm:p-6 pb-0 sm:pb-2">
+              <CardTitle className="text-[11px] sm:text-sm font-medium">Active Channels</CardTitle>
+              <Link2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{enabledChannels.length}</div>
-              <p className="text-xs text-muted-foreground">
+            <CardContent className="p-0 sm:p-6 pt-1 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold">{enabledChannels.length}</div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
                 {channels.length} total configured
               </p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Safety Buffer</CardTitle>
-              <Settings2 className="h-4 w-4 text-muted-foreground" />
+          <Card className="p-3 sm:p-0">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 sm:p-6 pb-0 sm:pb-2">
+              <CardTitle className="text-[11px] sm:text-sm font-medium">Safety Buffer</CardTitle>
+              <Settings2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
+            <CardContent className="p-0 sm:p-6 pt-1 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold">
                 {inventorySettings?.safety_buffer ?? 1} rooms
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
                 Held back from OTAs
               </p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Sync Frequency</CardTitle>
-              <RefreshCw className="h-4 w-4 text-muted-foreground" />
+          <Card className="p-3 sm:p-0">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 sm:p-6 pb-0 sm:pb-2">
+              <CardTitle className="text-[11px] sm:text-sm font-medium">Sync Frequency</CardTitle>
+              <RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold capitalize">
+            <CardContent className="p-0 sm:p-6 pt-1 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold capitalize">
                 {inventorySettings?.sync_frequency?.replace('min', ' min') || 'Hourly'}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
                 Calendar sync interval
               </p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Last Sync</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
+          <Card className="p-3 sm:p-0">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 sm:p-6 pb-0 sm:pb-2">
+              <CardTitle className="text-[11px] sm:text-sm font-medium">Last Sync</CardTitle>
+              <Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
+            <CardContent className="p-0 sm:p-6 pt-1 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold">
                 {syncLogs[0]?.created_at 
                   ? format(new Date(syncLogs[0].created_at), 'HH:mm')
                   : 'Never'}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
                 {syncLogs[0]?.status === 'success' ? 'Successful' : 
                  syncLogs[0]?.status === 'failed' ? 'Failed' : 'No syncs yet'}
               </p>
@@ -346,6 +346,7 @@ export default function ChannelManager() {
         {/* Manual Sync Button */}
         <div className="flex justify-end">
           <Button 
+            size="sm"
             onClick={handleManualSync} 
             disabled={syncing || enabledChannels.length === 0}
           >
@@ -357,17 +358,17 @@ export default function ChannelManager() {
         {/* Main Tabs */}
         <Tabs defaultValue="channels" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="channels" className="flex items-center gap-2">
-              <LinkIcon className="h-4 w-4" />
-              Channels
+            <TabsTrigger value="channels" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+              <LinkIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span>Channels</span>
             </TabsTrigger>
-            <TabsTrigger value="inventory" className="flex items-center gap-2">
-              <Settings2 className="h-4 w-4" />
-              Inventory Settings
+            <TabsTrigger value="inventory" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+              <Settings2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Inventory</span> Settings
             </TabsTrigger>
-            <TabsTrigger value="logs" className="flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              Sync Logs
+            <TabsTrigger value="logs" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+              <Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Sync</span> Logs
             </TabsTrigger>
           </TabsList>
 
@@ -411,22 +412,22 @@ export default function ChannelManager() {
             {/* Add New Channel */}
             {availableChannels.length > 0 && (
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Add Channel</h3>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <h3 className="text-base sm:text-lg font-semibold">Add Channel</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                   {availableChannels.map(option => (
                     <Card 
                       key={option.type} 
                       className="cursor-pointer hover:border-primary transition-colors"
                       onClick={() => handleCreateChannel(option.type)}
                     >
-                      <CardContent className="flex items-center gap-4 p-4">
-                        <ChannelIcon type={option.type} size="md" />
-                        <div className="flex-1">
-                          <h4 className="font-medium">{option.name}</h4>
-                          <p className="text-sm text-muted-foreground">{option.description}</p>
+                      <CardContent className="flex items-center gap-2 sm:gap-4 p-3 sm:p-4">
+                        <ChannelIcon type={option.type} size="sm" />
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-sm sm:text-base truncate">{option.name}</h4>
+                          <p className="text-xs sm:text-sm text-muted-foreground truncate">{option.description}</p>
                         </div>
-                        <Button variant="ghost" size="icon">
-                          <ExternalLink className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10 shrink-0">
+                          <ExternalLink className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         </Button>
                       </CardContent>
                     </Card>

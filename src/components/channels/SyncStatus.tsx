@@ -122,44 +122,44 @@ export function SyncStatus({ logs, channels, getChannelInfo }: SyncStatusProps) 
   return (
     <div className="space-y-6">
       {/* Summary Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-              Successful Syncs
+      <div className="grid grid-cols-3 gap-3 sm:gap-4">
+        <Card className="p-3 sm:p-0">
+          <CardHeader className="p-0 sm:p-6 pb-0 sm:pb-2">
+            <CardTitle className="text-[11px] sm:text-sm font-medium flex items-center gap-1.5 sm:gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500" />
+              <span className="hidden sm:inline">Successful</span> Syncs
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="p-0 sm:p-6 pt-1 sm:pt-0">
+            <div className="text-lg sm:text-2xl font-bold">
               {logs.filter(l => l.status === 'success').length}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <XCircle className="h-4 w-4 text-red-500" />
-              Failed Syncs
+        <Card className="p-3 sm:p-0">
+          <CardHeader className="p-0 sm:p-6 pb-0 sm:pb-2">
+            <CardTitle className="text-[11px] sm:text-sm font-medium flex items-center gap-1.5 sm:gap-2">
+              <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500" />
+              Failed
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="p-0 sm:p-6 pt-1 sm:pt-0">
+            <div className="text-lg sm:text-2xl font-bold">
               {logs.filter(l => l.status === 'failed').length}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Activity className="h-4 w-4 text-blue-500" />
-              Total Records Synced
+        <Card className="p-3 sm:p-0">
+          <CardHeader className="p-0 sm:p-6 pb-0 sm:pb-2">
+            <CardTitle className="text-[11px] sm:text-sm font-medium flex items-center gap-1.5 sm:gap-2">
+              <Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500" />
+              Records
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="p-0 sm:p-6 pt-1 sm:pt-0">
+            <div className="text-lg sm:text-2xl font-bold">
               {logs.reduce((sum, l) => sum + l.records_synced, 0)}
             </div>
           </CardContent>
