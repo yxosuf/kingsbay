@@ -246,7 +246,7 @@ export function DashboardAvailabilityCalendar() {
                         {/* Booking bars */}
                         {roomBookings.map(booking => {
                           const startIdx = Math.max(0, getDateIndex(booking.check_in));
-                          const endIdx = Math.min(dateRange.length, getDateIndex(booking.check_out));
+                          const endIdx = Math.min(dateRange.length, getDateIndex(booking.check_out) + 1);
                           if (endIdx <= startIdx) return null;
 
                           const barType = booking.status === 'checked_in' ? 'occupied' 
