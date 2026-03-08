@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { AppHeader } from './AppHeader';
+import { BottomNav } from './BottomNav';
 import { Button } from '@/components/ui/button';
 
 interface DashboardLayoutProps {
@@ -70,13 +71,14 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
         <AppSidebar />
         <SidebarInset className="flex-1 flex flex-col min-w-0">
           <AppHeader title={title} />
-          <main className="flex-1 p-3 sm:p-4 lg:p-6 bg-background overflow-x-hidden">
+          <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-20 md:pb-6 bg-background overflow-x-hidden">
             <div className="max-w-[1600px] mx-auto animate-page-in">
               {children}
             </div>
           </main>
         </SidebarInset>
       </div>
+      <BottomNav />
     </SidebarProvider>
   );
 }
