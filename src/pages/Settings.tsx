@@ -298,6 +298,8 @@ export default function Settings() {
         return renderAccessRoles();
       case 'property':
         return <HotelSettings />;
+      case 'notifications':
+        return <NotificationSettings />;
       case 'guests':
         return <GuestsSettings />;
       case 'services':
