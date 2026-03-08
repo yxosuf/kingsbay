@@ -209,6 +209,9 @@ export default function Rooms() {
     if (room.housekeeping_status === 'dirty') {
       return { status: 'dirty' };
     }
+    if (room.housekeeping_status === 'inspected') {
+      return { status: 'inspected' };
+    }
 
     return { status: 'available' };
   };
