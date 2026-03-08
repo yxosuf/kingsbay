@@ -280,62 +280,62 @@ export default function ChannelManager() {
     <DashboardLayout title="Channel Manager">
       <div className="space-y-6">
         {/* Header Stats */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Channels</CardTitle>
-              <Link2 className="h-4 w-4 text-muted-foreground" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <Card className="p-3 sm:p-0">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 sm:p-6 pb-0 sm:pb-2">
+              <CardTitle className="text-[11px] sm:text-sm font-medium">Active Channels</CardTitle>
+              <Link2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{enabledChannels.length}</div>
-              <p className="text-xs text-muted-foreground">
+            <CardContent className="p-0 sm:p-6 pt-1 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold">{enabledChannels.length}</div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
                 {channels.length} total configured
               </p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Safety Buffer</CardTitle>
-              <Settings2 className="h-4 w-4 text-muted-foreground" />
+          <Card className="p-3 sm:p-0">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 sm:p-6 pb-0 sm:pb-2">
+              <CardTitle className="text-[11px] sm:text-sm font-medium">Safety Buffer</CardTitle>
+              <Settings2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
+            <CardContent className="p-0 sm:p-6 pt-1 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold">
                 {inventorySettings?.safety_buffer ?? 1} rooms
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
                 Held back from OTAs
               </p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Sync Frequency</CardTitle>
-              <RefreshCw className="h-4 w-4 text-muted-foreground" />
+          <Card className="p-3 sm:p-0">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 sm:p-6 pb-0 sm:pb-2">
+              <CardTitle className="text-[11px] sm:text-sm font-medium">Sync Frequency</CardTitle>
+              <RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold capitalize">
+            <CardContent className="p-0 sm:p-6 pt-1 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold capitalize">
                 {inventorySettings?.sync_frequency?.replace('min', ' min') || 'Hourly'}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
                 Calendar sync interval
               </p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Last Sync</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
+          <Card className="p-3 sm:p-0">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 sm:p-6 pb-0 sm:pb-2">
+              <CardTitle className="text-[11px] sm:text-sm font-medium">Last Sync</CardTitle>
+              <Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
+            <CardContent className="p-0 sm:p-6 pt-1 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold">
                 {syncLogs[0]?.created_at 
                   ? format(new Date(syncLogs[0].created_at), 'HH:mm')
                   : 'Never'}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
                 {syncLogs[0]?.status === 'success' ? 'Successful' : 
                  syncLogs[0]?.status === 'failed' ? 'Failed' : 'No syncs yet'}
               </p>
