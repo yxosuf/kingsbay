@@ -189,8 +189,13 @@ export function HousekeepingBoard() {
     return s?.profiles?.full_name || 'Staff';
   };
 
-  const getRoomsByStatus = (status: HousekeepingStatus) =>
-    rooms.filter(r => r.housekeeping_status === status);
+  const roomsByStatus = useMemo(() => {
+    const map: Record<HousekeepingStatus, RoomHK[]> = { dirty: [], cleaning: [], clean: [], inspected: [] };
+    rooms.forEach(r => map[r.housekeeping_status]?.push(r));
+    return map;
+  }, [rooms]);
+
+  const getRoomsByStatus = (status: HousekeepingStatus) => roomsByStatus[status];
 
   if (loading) {
     return (
