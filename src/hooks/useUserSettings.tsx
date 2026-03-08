@@ -46,7 +46,7 @@ export function UserSettingsProvider({ children }: { children: ReactNode }) {
     const fetchSettings = async () => {
       const { data, error } = await supabase
         .from('user_settings')
-        .select('hidden_pages, default_landing_page, theme')
+        .select('hidden_pages, default_landing_page, theme, favorite_settings')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -55,6 +55,7 @@ export function UserSettingsProvider({ children }: { children: ReactNode }) {
           hidden_pages: Array.isArray(data.hidden_pages) ? (data.hidden_pages as string[]) : [],
           default_landing_page: data.default_landing_page || '/',
           theme: data.theme || 'system',
+          favorite_settings: Array.isArray(data.favorite_settings) ? (data.favorite_settings as string[]) : [],
         };
         setSettings(s);
         setTheme(s.theme);
