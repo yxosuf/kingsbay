@@ -532,12 +532,12 @@ export default function NewBooking() {
         });
       }
 
-      toast.success('Booking created successfully!');
+      toast.success(checkInImmediately ? 'Walk-in guest checked in!' : 'Booking created successfully!');
       // Send booking confirmation email (fire-and-forget)
       if (newBooking) {
         sendGuestEmail(newBooking.id, 'booking_confirmation').catch(() => {});
       }
-      navigate('/bookings');
+      navigate(isWalkIn ? '/front-desk' : '/bookings');
     } catch (error: any) {
       logError('Error creating booking', error);
       
