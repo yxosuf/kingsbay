@@ -31,7 +31,6 @@ export function TransactionsTab({ bookingId, propertyId, totalAmount, fxRate }: 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRefundDialog, setShowRefundDialog] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchTransactions();
