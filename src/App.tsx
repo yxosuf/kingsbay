@@ -84,6 +84,12 @@ const App = () => (
                     <Route path="/housekeeping" element={<Housekeeping />} />
                     <Route path="/notifications" element={<Notifications />} />
                     <Route path="/rate-calendar" element={<RateCalendar />} />
+                    <Route path="/guest/login" element={<GuestLogin />} />
+                    <Route path="/guest/register" element={<GuestRegister />} />
+                    <Route path="/guest/dashboard" element={<GuestDashboard />} />
+                    <Route path="/guest/book" element={<GuestBooking />} />
+                    <Route path="/guest/bookings/:id" element={<GuestBookingDetails />} />
+                    <Route path="/guest/reset-password" element={<GuestResetPassword />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </Suspense>
