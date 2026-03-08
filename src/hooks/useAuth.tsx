@@ -26,16 +26,15 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
-  /** @description UI-only flag - actual admin permissions enforced via RLS policies */
   isAdmin: boolean;
-  /** @description UI-only flag - actual manager permissions enforced via RLS policies */
   isManager: boolean;
-  /** @description UI-only flag - actual front desk permissions enforced via RLS policies */
   isFrontDesk: boolean;
-  /** @description UI-only flag - viewer is read-only, enforced via RLS policies */
   isViewer: boolean;
-  /** @description True if user can perform write operations (not a viewer) */
   canWrite: boolean;
+  /** True when the authenticated user is a guest (not staff) with a linked guest profile */
+  isGuest: boolean;
+  /** The guest record ID if this is a guest user */
+  guestId: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
