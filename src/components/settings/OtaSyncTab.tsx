@@ -126,12 +126,11 @@ export function OtaSyncTab() {
       if (!guests || guests.length === 0) {
         const { data: newGuest, error: createError } = await supabase
           .from('guests')
-          .insert({
+          .insert([{
             name: 'OTA Test Guest',
             email: 'test@ota-simulation.local',
             property_id: selectedProperty.id,
-            guest_type: 'foreign',
-          })
+          }])
           .select()
           .single();
 
