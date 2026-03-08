@@ -17,6 +17,8 @@ const TOGGLEABLE_PAGES = [
   { url: '/availability', label: 'Availability Calendar' },
   { url: '/channels', label: 'Channel Manager' },
   { url: '/rooms', label: 'Room Status' },
+  { url: '/housekeeping', label: 'Housekeeping' },
+  { url: '/rate-calendar', label: 'Rate Calendar' },
 ];
 
 const LANDING_PAGE_OPTIONS = [
@@ -25,6 +27,7 @@ const LANDING_PAGE_OPTIONS = [
   { value: '/bookings', label: 'Bookings' },
   { value: '/availability', label: 'Availability Calendar' },
   { value: '/rooms', label: 'Room Status' },
+  { value: '/rate-calendar', label: 'Rate Calendar' },
 ];
 
 export function OtherSettings() {
