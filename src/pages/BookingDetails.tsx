@@ -38,6 +38,8 @@ import { FeedbackDialog } from '@/components/feedback/FeedbackDialog';
 import { FeedbackCard } from '@/components/feedback/FeedbackDisplay';
 import { useGuestFeedback } from '@/hooks/useGuestFeedback';
 import { sendGuestEmail } from '@/lib/guestEmail';
+import { calculateStayTotal, type StayTotal } from '@/lib/rateEngine';
+import { Info } from 'lucide-react';
 
 interface BookingDetailsData {
   id: string;
