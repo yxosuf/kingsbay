@@ -97,12 +97,12 @@ export default function Properties() {
   };
 
   const handleDelete = async (propertyId: string) => {
-    if (!confirm('Are you sure you want to delete this property? This will affect all associated rooms and bookings.')) return;
     try {
       const { error } = await supabase.from('properties').delete().eq('id', propertyId);
       if (error) throw error;
       toast.success('Property deleted'); fetchProperties(); refetchProperties();
     } catch (error: any) { logError('Error deleting property', error); toast.error(getSafeErrorMessage(error)); }
+    setDeletePropertyId(null);
   };
 
   const toggleStatus = async (property: Property) => {
