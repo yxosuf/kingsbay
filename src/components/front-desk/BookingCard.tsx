@@ -54,6 +54,7 @@ export function BookingCard({ booking, onActionComplete, badge }: BookingCardPro
   const [cancelDialog, setCancelDialog] = useState(false);
   const [noShowDialog, setNoShowDialog] = useState(false);
   const [moveRoomOpen, setMoveRoomOpen] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [processing, setProcessing] = useState(false);
 
