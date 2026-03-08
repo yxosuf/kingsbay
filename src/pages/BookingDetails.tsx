@@ -438,6 +438,9 @@ export default function BookingDetails() {
                   <div>
                     <CardTitle className="text-lg">Room {booking.rooms?.room_number}</CardTitle>
                     <p className="text-sm text-muted-foreground capitalize">{booking.rooms?.room_type}</p>
+                    {ratePlanName && (
+                      <Badge variant="outline" className="text-xs mt-1 w-fit">{ratePlanName}</Badge>
+                    )}
                   </div>
                 </div>
               </CardHeader>
