@@ -230,6 +230,8 @@ export default function NewBooking() {
   };
 
   const calculateSystemTotal = () => {
+    // Use rate engine breakdown if available
+    if (stayBreakdown) return stayBreakdown.total;
     if (!checkIn || !checkOut || !roomId) return 0;
     const room = rooms.find((r) => r.id === roomId);
     if (!room) return 0;
