@@ -27,6 +27,12 @@ const FrontDesk = lazy(() => import("./pages/FrontDesk"));
 const Housekeeping = lazy(() => import("./pages/Housekeeping"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const RateCalendar = lazy(() => import("./pages/RateCalendar"));
+const GuestLogin = lazy(() => import("./pages/guest/GuestLogin"));
+const GuestRegister = lazy(() => import("./pages/guest/GuestRegister"));
+const GuestDashboard = lazy(() => import("./pages/guest/GuestDashboard"));
+const GuestBooking = lazy(() => import("./pages/guest/GuestBooking"));
+const GuestBookingDetails = lazy(() => import("./pages/guest/GuestBookingDetails"));
+const GuestResetPassword = lazy(() => import("./pages/guest/GuestResetPassword"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -78,6 +84,12 @@ const App = () => (
                     <Route path="/housekeeping" element={<Housekeeping />} />
                     <Route path="/notifications" element={<Notifications />} />
                     <Route path="/rate-calendar" element={<RateCalendar />} />
+                    <Route path="/guest/login" element={<GuestLogin />} />
+                    <Route path="/guest/register" element={<GuestRegister />} />
+                    <Route path="/guest/dashboard" element={<GuestDashboard />} />
+                    <Route path="/guest/book" element={<GuestBooking />} />
+                    <Route path="/guest/bookings/:id" element={<GuestBookingDetails />} />
+                    <Route path="/guest/reset-password" element={<GuestResetPassword />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </Suspense>

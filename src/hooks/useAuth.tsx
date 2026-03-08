@@ -26,16 +26,15 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
-  /** @description UI-only flag - actual admin permissions enforced via RLS policies */
   isAdmin: boolean;
-  /** @description UI-only flag - actual manager permissions enforced via RLS policies */
   isManager: boolean;
-  /** @description UI-only flag - actual front desk permissions enforced via RLS policies */
   isFrontDesk: boolean;
-  /** @description UI-only flag - viewer is read-only, enforced via RLS policies */
   isViewer: boolean;
-  /** @description True if user can perform write operations (not a viewer) */
   canWrite: boolean;
+  /** True when the authenticated user is a guest (not staff) with a linked guest profile */
+  isGuest: boolean;
+  /** The guest record ID if this is a guest user */
+  guestId: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -46,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<StaffRole | null>(null);
   const [profile, setProfile] = useState<{ full_name: string | null; email: string | null } | null>(null);
+  const [guestId, setGuestId] = useState<string | null>(null);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -62,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setRole(null);
           setProfile(null);
+          setGuestId(null);
           setLoading(false);
         }
       }
@@ -83,10 +84,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserData = async (userId: string) => {
     try {
-      // Fetch role + profile in parallel
-      const [{ data: roleData }, { data: profileData }] = await Promise.all([
+      // Fetch role + profile + guest link in parallel
+      const [{ data: roleData }, { data: profileData }, { data: guestData }] = await Promise.all([
         supabase.from('user_roles').select('role').eq('user_id', userId).single(),
         supabase.from('profiles').select('full_name, email').eq('id', userId).single(),
+        supabase.from('guests').select('id').eq('auth_user_id', userId).maybeSingle(),
       ]);
 
       if (roleData) {
@@ -95,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (profileData) {
         setProfile(profileData);
       }
+      setGuestId(guestData?.id ?? null);
     } catch (error) {
       console.error('Error fetching user data:', error);
     } finally {
@@ -127,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setRole(null);
     setProfile(null);
+    setGuestId(null);
   };
 
   const value = {
@@ -144,6 +148,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isFrontDesk: role === 'front_desk',
     isViewer: role === 'viewer',
     canWrite: role !== null && role !== 'viewer',
+    isGuest: role === null && guestId !== null,
+    guestId,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

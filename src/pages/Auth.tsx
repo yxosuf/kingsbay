@@ -223,6 +223,9 @@ export default function Auth() {
                 <p className="text-xs text-muted-foreground text-center">
                   Note: New accounts require admin approval to access the system.
                 </p>
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  <a href="/guest/login" className="text-primary underline">Guest portal →</a>
+                </p>
               </TabsContent>
             </CardContent>
           </Tabs>
