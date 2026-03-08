@@ -75,6 +75,7 @@ const SETTINGS_NAV: { id: SettingsSection; label: string; icon: typeof Shield; d
   { id: 'reports', label: 'Reports', icon: FileText, description: 'Reports and data exports' },
   { id: 'security', label: 'Security & Data', icon: Lock, description: 'Data management and danger zone', adminOnly: true },
   { id: 'system-health', label: 'System Health', icon: HeartPulse, description: 'Diagnostics and validation', adminOnly: true },
+  { id: 'other', label: 'Other Settings', icon: SlidersHorizontal, description: 'Pages, theme, preferences' },
 ];
 
 // Map old tab names to new section IDs for backward compatibility
