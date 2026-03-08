@@ -8,6 +8,7 @@ export interface UserSettings {
   hidden_pages: string[];
   default_landing_page: string;
   theme: string;
+  favorite_settings: string[];
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
