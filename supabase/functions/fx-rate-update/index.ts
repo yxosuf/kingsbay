@@ -12,9 +12,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Fetch live rate
+    // Fetch live rate from free API (no key required)
     const res = await fetch(
-      "https://api.exchangerate.host/latest?base=USD&symbols=LKR"
+      "https://open.er-api.com/v6/latest/USD"
     );
     if (!res.ok) {
       const text = await res.text();
