@@ -412,22 +412,22 @@ export default function ChannelManager() {
             {/* Add New Channel */}
             {availableChannels.length > 0 && (
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Add Channel</h3>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <h3 className="text-base sm:text-lg font-semibold">Add Channel</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                   {availableChannels.map(option => (
                     <Card 
                       key={option.type} 
                       className="cursor-pointer hover:border-primary transition-colors"
                       onClick={() => handleCreateChannel(option.type)}
                     >
-                      <CardContent className="flex items-center gap-4 p-4">
-                        <ChannelIcon type={option.type} size="md" />
-                        <div className="flex-1">
-                          <h4 className="font-medium">{option.name}</h4>
-                          <p className="text-sm text-muted-foreground">{option.description}</p>
+                      <CardContent className="flex items-center gap-2 sm:gap-4 p-3 sm:p-4">
+                        <ChannelIcon type={option.type} size="sm" />
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-sm sm:text-base truncate">{option.name}</h4>
+                          <p className="text-xs sm:text-sm text-muted-foreground truncate">{option.description}</p>
                         </div>
-                        <Button variant="ghost" size="icon">
-                          <ExternalLink className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10 shrink-0">
+                          <ExternalLink className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         </Button>
                       </CardContent>
                     </Card>
