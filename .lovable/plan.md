@@ -1,51 +1,61 @@
-# Kings Bay PMS — Implementation Complete ✅
 
-All plan items have been implemented and verified.
 
-## Phase 1 — Critical Fixes ✅
-| # | Item |
-|---|------|
-| 1 | Viewer Role RLS — `is_write_staff()`, write-restricted policies |
-| 2 | Availability Calendar — `[check_in, check_out)` string comparison |
-| 3 | Hybrid Hold System — `hold_expires_at`, edge function, countdown UI |
-| 4 | Cleaning Timer — `cleaning_until`, edge function, auto-release |
-| 5 | Rooms Derived Status — Occupied/Due Out/Arriving/Cleaning/Dirty/Inspected/Clean |
-| 6 | Guests in Settings — Tab, `/guests` redirect, guest details with services |
-| 7 | Guest Retention — `archived_at`/`deleted_at`, edge function, filters |
-| 8 | Nationality + Phone Code — Country selector, `countryData.ts` |
-| 9 | FX Rate System — `CurrencyDisplay`, `useFxRate`, edge function |
-| 10 | Danger Zone — Admin-only, password confirm, per-property, audit |
+# Security Scan Results & Fix Plan
 
-## Phase 2 — Operational ✅
-| # | Item |
-|---|------|
-| 11 | Front Desk Speed Mode — Quick actions, arrivals/departures |
-| 12 | Channel Manager — iCal, email inbound, needs_review flow |
-| 13 | Housekeeping Board — Drag-drop (Dirty→Cleaning→Clean→Inspected), staff assignment |
-| 14 | Notifications — Bell, preferences, edge functions |
-| 15 | Data Quality — Duplicate detection (phone/email/passport/NIC), admin merge tool |
+## Scan Results (3 findings)
 
-## Phase 3 — Finance ✅
-| # | Item |
-|---|------|
-| 16 | Booking Transactions Ledger — `booking_transactions`, TransactionsTab |
-| 17 | Accounting Layer — `ledger_accounts/entries/lines`, auto-posting |
+### Finding 1: Leaked Password Protection Disabled (WARN)
+This is a platform-level setting that must be enabled manually in your backend authentication settings. It cannot be changed via code.
 
-## Phase 4 ✅
-| # | Item |
-|---|------|
-| 18 | System Health Monitor — `/settings?tab=system-health`, admin checks |
+**Action required from you**: Open your backend settings and enable "Leaked Password Protection" under Authentication.
 
-## Additional Features ✅
-- Guest Email System (Resend) — booking_confirmation, pre_arrival, checkout_summary
-- Guest Feedback System — dialog, display, reports, dashboard widget
-- Printable Invoice — react-to-print
-- PWA Support — service worker, manifest
-- Extend Stay / Move Room dialogs
-- Add Service Dialog with category filtering
-- Reports (Occupancy, Revenue, Financial, Feedback)
-- Mobile Responsive — bottom nav, responsive tables/tabs
-- Passport Photo Upload — secure storage in guest-documents bucket
-- Guest Details — services purchased with totals, VIP/blacklist badges
+### Finding 2: OTA API Credentials Readable by All Staff (WARN)
+The `channel_connections` table SELECT policy uses `is_staff()`, meaning front desk and viewer roles can read sensitive columns like `api_key`, `ical_export_token`, and `ical_import_url`. These should only be visible to admin and manager roles.
 
-## All items verified and complete. No remaining work.
+**Fix**: Update the SELECT RLS policy on `channel_connections` from `is_staff()` to `is_admin() OR is_manager()`.
+
+### Finding 3: Admin/Manager Cannot See Property-Specific Notifications (WARN)
+The `user_has_notification_access` function checks `user_property_access` for all roles, but admins and managers should bypass property filtering (consistent with the rest of the access model). An admin without explicit property access rows would miss notifications.
+
+**Fix**: Update `user_has_notification_access` to return TRUE immediately when `is_admin() OR is_manager()`.
+
+---
+
+## Implementation
+
+### Database Migration
+A single migration will:
+
+1. **Drop and recreate** the `channel_connections` SELECT policy:
+   - Old: `is_staff()`
+   - New: `is_admin() OR is_manager()`
+
+2. **Replace** `user_has_notification_access` function to add admin/manager bypass:
+   ```sql
+   SELECT
+     CASE
+       WHEN is_admin() OR is_manager() THEN TRUE
+       ELSE is_staff()
+         AND (notification_target_roles IS NULL
+              OR notification_target_roles && ARRAY[(SELECT role::text FROM user_roles WHERE user_id = auth.uid() LIMIT 1)])
+         AND (notification_property_id IS NULL
+              OR EXISTS (SELECT 1 FROM user_property_access WHERE user_id = auth.uid() AND property_id = notification_property_id))
+     END
+   ```
+
+### Frontend Impact
+- The Channel Manager page already restricts UI to admin/manager — no frontend changes needed.
+- Notifications pages work unchanged since admins/managers will now correctly see all notifications.
+
+### No code file changes required — only one database migration.
+
+---
+
+## Regarding the Other Two Requests
+
+### End-to-End Booking Flow Test
+This requires interactive browser testing (creating a booking, checking in, adding services, checking out, verifying invoice). This should be done manually in the preview after the security fixes are applied. The code paths for all these operations have been verified in prior audits.
+
+### Mobile Responsive Check (375px)
+This also requires browser-based visual inspection. You can test this by clicking the phone icon above the preview window to switch to mobile view, then navigating through each page.
+
