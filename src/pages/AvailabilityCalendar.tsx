@@ -66,6 +66,7 @@ type ViewMode = 'week' | 'month';
 export default function AvailabilityCalendar() {
   const navigate = useNavigate();
   const { selectedProperty } = useProperty();
+  const isMobile = useIsMobile();
   const [loading, setLoading] = useState(true);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);

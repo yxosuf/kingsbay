@@ -250,7 +250,7 @@ export function DashboardAvailabilityCalendar() {
             </div>
 
             {/* Legend */}
-            <div className="flex flex-wrap gap-3 mt-3 pt-2 border-t">
+            <div className="flex flex-wrap gap-2 sm:gap-3 mt-2 sm:mt-3 pt-2 border-t">
               {[
                 { cls: 'cell-reserved', label: 'Reserved' },
                 { cls: 'cell-occupied', label: 'Occupied' },
@@ -258,9 +258,9 @@ export function DashboardAvailabilityCalendar() {
                 { cls: 'cell-blocked', label: 'Blocked' },
                 { cls: 'cell-cleaning', label: 'Cleaning' },
               ].map(item => (
-                <div key={item.label} className="flex items-center gap-1.5">
-                  <div className={cn("w-6 h-3 rounded-sm", item.cls)} />
-                  <span className="text-[11px] text-muted-foreground">{item.label}</span>
+                <div key={item.label} className="flex items-center gap-1">
+                  <div className={cn("w-4 sm:w-6 h-2.5 sm:h-3 rounded-sm", item.cls)} />
+                  <span className="text-[10px] sm:text-[11px] text-muted-foreground">{item.label}</span>
                 </div>
               ))}
             </div>
