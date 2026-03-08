@@ -658,6 +658,7 @@ export default function Dashboard() {
           <RecentFeedbackWidget />
           <DashboardAvailabilityCalendar />
         </div>
+      </div>
     </DashboardLayout>
   );
 }
