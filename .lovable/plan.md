@@ -1,146 +1,70 @@
-# Lovable Hotel Management – Master Implementation Plan
-
-## 1. Core Rate Engine & Pricing System
-
-### Current Capabilities
-
-- `rateEngine.ts` handles base rates, seasonal rules, day-of-week rules, and discount codes
-- NewBooking integrates `calculateStayTotal` and shows nightly breakdown
-- Rate plan selector and single-cell override editing in Rate Calendar
-
-### Missing / To Add
-
-1. **Bulk Rate Editing**
-  - Date range selection → increase/decrease by % or set absolute price
-  - Close/open dates
-  - Upsert to `rate_overrides`
-2. **Occupancy-Based Dynamic Pricing**
-  - New `occupancy_pricing_rules` table
-  - `calculateNightRate` considers occupancy thresholds
-3. **Audit Logging**
-  - Log all rate plan / discount / override changes in `rate_change_logs`
-  - New “Change Log” tab in Rate Management Settings
-
-**Files / Tables**
 
 
-| File                                                 | Action                                                                    |
-| ---------------------------------------------------- | ------------------------------------------------------------------------- |
-| `src/lib/rateEngine.ts`                              | Occupancy modifiers, discount handling                                    |
-| `src/pages/RateCalendar.tsx`                         | Bulk editing UI                                                           |
-| `src/components/settings/RateManagementSettings.tsx` | Tabs: Rate Plans, Seasonal, Day of Week, Discounts, Occupancy, Change Log |
-| DB                                                   | `rate_overrides`, `occupancy_pricing_rules`, `rate_change_logs`           |
+# OTA / Channel Integrations Tab — Implementation Plan
 
+## Overview
 
----
+Add an **"OTA Sync"** tab to the existing Rate Management settings. The `ota_integrations` table already exists in the database with RLS policies in place. This is purely a UI + stub integration task.
 
-## 2. Walk-In Booking (Front Desk)
+## What Already Exists
 
-### Key Features
+- **DB table**: `ota_integrations` with `property_id`, `ota_name`, `display_name`, `api_key`, `is_enabled`, `status`, timestamps — already created with RLS (admin manage, staff view)
+- **Rate Management tabs**: Rate Plans, Seasonal, Day of Week, Discounts, Occupancy, Change Log
+- **Channel Manager**: Separate settings page with connections, sync, email import — unrelated to this new tab
 
-- "Walk-in Guest" button in **Front Desk page**
-- `/bookings/new?walkin=true` pre-fills check-in date as today, sets status `checked_in`
-- Auto-set room `housekeeping_status = 'occupied'`
-- Optional toggle “Check-in Immediately”
+## Implementation
 
-**Files / Changes**
+### 1. New Component: `src/components/settings/OtaSyncTab.tsx`
 
+Three sub-tabs inside:
 
-| File                       | Action                                       |
-| -------------------------- | -------------------------------------------- |
-| `src/pages/NewBooking.tsx` | Walk-in detection, toggle, auto-set check-in |
-| `src/pages/FrontDesk.tsx`  | Add "Walk-in Guest" button                   |
+**Connected OTAs** — Grid of cards for Booking.com, Airbnb, Expedia, Agoda:
+- OTA name + icon
+- Status badge: "Coming Soon" / "Disabled" / "Active"
+- Greyed-out API key field (masked, non-editable for now)
+- Enable toggle with tooltip: "Will be active once API key is configured"
+- Auto-seeds default OTA rows into `ota_integrations` on first load if none exist
 
+**Settings** — Future API key entry area, currently showing "Coming Soon" message per OTA
 
----
+**Sync History** — Placeholder table for future rate/availability push logs, showing empty state for now
 
-## 3. Guest Self-Service Portal
+**Simulate OTA Bookings** (admin-only) — Toggle + "Generate Test Booking" button that:
+- Creates a booking with `booking_source` = random OTA, `needs_review = true`
+- Picks a random available room for near-future dates
+- Validates via rate engine and overlap prevention
+- Useful for testing without real API keys
 
-### Features
+### 2. Stub Integration Service: `src/lib/channelIntegration.ts`
 
-- Registration, login, password reset
-- Dashboard: upcoming bookings, booking history, profile edit
-- Booking flow: select property → date → room → rate plan → discount → confirm
+```typescript
+interface IChannelIntegration {
+  pushRates(propertyId: string, roomTypeId: string, ratePlanId: string): Promise<void>;
+  pushAvailability(propertyId: string, roomTypeId: string, date: string, status: string): Promise<void>;
+}
 
-### Database & Auth
+class StubChannelIntegration implements IChannelIntegration {
+  // Console.log only — swap for real implementation later
+}
+```
 
-1. `auth_user_id` in `guests` table
-2. RLS policies: guests access only their own bookings/guest info, public rooms/rates
-3. DB trigger: auto-create guest profile on registration
+Export singleton instance for use in rate change and booking confirmation flows.
 
-**Pages / Files**
+### 3. Modified: `src/components/settings/RateManagementSettings.tsx`
 
+- Add new tab trigger: `<TabsTrigger value="otasync">OTA Sync</TabsTrigger>`
+- Add `<TabsContent value="otasync"><OtaSyncTab /></TabsContent>`
+- Import `Plug` icon from lucide-react
 
-| Route                   | Component               | Purpose               |
-| ----------------------- | ----------------------- | --------------------- |
-| `/guest/register`       | GuestRegister.tsx       | Sign up               |
-| `/guest/login`          | GuestLogin.tsx          | Login                 |
-| `/guest/dashboard`      | GuestDashboard.tsx      | View bookings/profile |
-| `/guest/book`           | GuestBooking.tsx        | Booking flow          |
-| `/guest/bookings/:id`   | GuestBookingDetails.tsx | View single booking   |
-| `/guest/reset-password` | GuestResetPassword.tsx  | Password reset        |
-| `GuestLayout.tsx`       | Layout                  | Guest UI              |
+### 4. No Database Changes Needed
 
+The `ota_integrations` table and RLS policies already exist.
 
-**Auth Changes**
+## Files Summary
 
-- `isGuest` flag in `useAuth.tsx`
-- Separate guest vs staff login entry points
+| File | Action |
+|------|--------|
+| `src/components/settings/OtaSyncTab.tsx` | Create |
+| `src/lib/channelIntegration.ts` | Create |
+| `src/components/settings/RateManagementSettings.tsx` | Add OTA Sync tab |
 
----
-
-## 4. OTA / Channel Integrations (Stub / Future)
-
-### Features
-
-- New **OTA Sync** tab under Rate Management
-- DB Table: `ota_integrations` with `api_key`, `status`, `last_rate_push_at`
-- Stub implementation (`StubChannelIntegration`) logs actions, ready for real API integration
-- “Fake OTA Mode”: generate test bookings to validate rate engine & overbooking prevention
-
-**Files / Changes**
-
-
-| File                                                 | Action                        |
-| ---------------------------------------------------- | ----------------------------- |
-| `src/components/settings/RateManagementSettings.tsx` | Add OTA Sync tab              |
-| `src/components/settings/OtaSyncTab.tsx`             | Full tab UI                   |
-| `src/lib/channelIntegration.ts`                      | Stub integration service      |
-| DB                                                   | `ota_integrations` table, RLS |
-
-
----
-
-## 5. Booking & Discount Management
-
-- Discount codes applied in **rateEngine** & NewBooking
-- Closed dates block booking submissions
-- BookingDetails shows **nightly breakdown** and discount info
-
----
-
-## 6. Security & RLS Policies
-
-- Guests: read/write only their own data, read-only for public rooms/rates
-- Staff: normal operations, admin has full CRUD
-- OTA keys: masked display, optional future integration
-- Passwords: handled by auth provider
-
----
-
-## 7. Suggested Future Features
-
-- Channel rate sync to live OTAs ([Booking.com](http://Booking.com), Airbnb, Expedia)
-- Length-of-stay discounts / derived rate plans
-- Guest check-in/check-out via portal
-- Analytics & reporting dashboard
-- Mobile-friendly guest portal
-
----
-
-### ✅ Implementation Notes
-
-1. **Feature toggles** for OTA API integration (disabled by default)
-2. **Testing & simulation**: fake OTA bookings + walk-in bookings
-3. **Unified master layout**: maintain separation for staff vs guest
-4. **Audit logging** for all rate changes
