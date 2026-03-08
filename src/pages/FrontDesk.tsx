@@ -8,6 +8,7 @@ import { StatCard } from '@/components/front-desk/StatCard';
 import { SectionHeader } from '@/components/front-desk/SectionHeader';
 import { BookingCard, type FrontDeskBooking } from '@/components/front-desk/BookingCard';
 import { PaymentDialog } from '@/components/front-desk/PaymentDialog';
+import { PaymentStatusBadge } from '@/components/front-desk/PaymentStatusBadge';
 import { PropertyBadge } from '@/components/layout/PropertyBadge';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
