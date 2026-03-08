@@ -152,7 +152,7 @@ export function OtaSyncTab() {
 
       const { error: bookingError } = await supabase
         .from('bookings')
-        .insert({
+        .insert([{
           property_id: selectedProperty.id,
           room_id: rooms[0].id,
           guest_id: guestId,
@@ -160,14 +160,14 @@ export function OtaSyncTab() {
           check_out: checkOut.toISOString().split('T')[0],
           num_adults: 2,
           num_children: 0,
-          booking_source: randomSource,
+          booking_source: randomSource as any,
           needs_review: true,
           status: 'pending',
           total_amount: 15000,
           ota_price: 15000,
           commission_rate: 15,
           commission_amount: 2250,
-        });
+        }]);
 
       if (bookingError) throw bookingError;
 
