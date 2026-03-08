@@ -73,6 +73,8 @@ export default function GuestDetails() {
   const [allServices, setAllServices] = useState<GuestService[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [passportPhotoUrl, setPassportPhotoUrl] = useState<string | null>(null);
   const { feedback: guestFeedback, averageRating, loading: feedbackLoading } = useGuestFeedback({
     guestId: id,
   });
