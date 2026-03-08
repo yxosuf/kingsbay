@@ -63,7 +63,7 @@ interface PendingUser {
   created_at: string;
 }
 
-type SettingsSection = 'access' | 'property' | 'guests' | 'services' | 'channels' | 'reports' | 'security';
+type SettingsSection = 'access' | 'property' | 'guests' | 'services' | 'channels' | 'reports' | 'security' | 'system-health';
 
 const SETTINGS_NAV: { id: SettingsSection; label: string; icon: typeof Shield; description: string; adminOnly?: boolean }[] = [
   { id: 'access', label: 'Access & Roles', icon: ShieldCheck, description: 'Users, staff, and permissions' },
