@@ -392,7 +392,7 @@ export default function AvailabilityCalendar() {
                       return (
                         <div key={room.id} className="flex border-b hover:bg-muted/20 transition-colors relative group" style={{ height: 44 }}>
                           {/* Room label */}
-                          <div className="w-[120px] shrink-0 p-2 sticky left-0 bg-card z-10 border-r flex items-center">
+                          <div style={{ width: labelWidth }} className="shrink-0 p-2 sticky left-0 bg-card z-10 border-r flex items-center">
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <div className="truncate">
