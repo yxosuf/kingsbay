@@ -65,6 +65,12 @@ export function ChannelCard({ channel, channelInfo, onUpdate, onDelete }: Channe
   const [icalImportUrl, setIcalImportUrl] = useState(channel.ical_import_url || '');
   const [commissionRate, setCommissionRate] = useState(channel.commission_rate?.toString() || '');
 
+  // Generate token-based export URL
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  const exportUrl = channel.ical_export_token
+    ? `https://${projectId}.supabase.co/functions/v1/ical-export?property_id=${channel.property_id}&token=${channel.ical_export_token}`
+    : null;
+
   const handleToggle = (enabled: boolean) => {
     onUpdate(channel.id, { is_enabled: enabled });
   };
