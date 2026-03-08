@@ -83,4 +83,4 @@ export const HealthCategorySection = memo(function HealthCategorySection({ categ
       </CollapsibleContent>
     </Collapsible>
   );
-}
+});
