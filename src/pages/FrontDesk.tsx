@@ -25,6 +25,7 @@ import {
   Plus,
   Clock,
   Banknote,
+  UserPlus,
 } from 'lucide-react';
 
 interface PendingPaymentBooking {
