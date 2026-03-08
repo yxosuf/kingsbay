@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CurrencyDisplay } from '@/components/ui/CurrencyDisplay';
+import { RefundDialog } from '@/components/booking/RefundDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
-import { ArrowDownCircle, ArrowUpCircle, Receipt, Settings2 } from 'lucide-react';
+import { ArrowDownCircle, ArrowUpCircle, Receipt, Settings2, Undo2 } from 'lucide-react';
 
 interface Transaction {
   id: string;
