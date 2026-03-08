@@ -39,6 +39,7 @@ interface ChannelConnection {
   api_key: string | null;
   ical_import_url: string | null;
   ical_export_url: string | null;
+  ical_export_token: string | null;
   last_sync_at: string | null;
   sync_status: string;
   commission_rate: number | null;
