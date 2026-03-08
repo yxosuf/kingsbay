@@ -264,9 +264,12 @@ export default function FrontDesk() {
                     booking={b}
                     onActionComplete={fetchAll}
                     badge={
-                      <Badge variant="outline" className="text-xs flex items-center gap-1">
-                        <Clock className="h-3 w-3" /> Due Out
-                      </Badge>
+                      <>
+                        <Badge variant="outline" className="text-xs flex items-center gap-1">
+                          <Clock className="h-3 w-3" /> Due Out
+                        </Badge>
+                        <PaymentStatusBadge invoices={(b as any).invoices} />
+                      </>
                     }
                   />
                 ))
