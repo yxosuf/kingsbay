@@ -69,6 +69,7 @@ type SettingsSection = 'access' | 'property' | 'rates' | 'notifications' | 'gues
 const SETTINGS_NAV: { id: SettingsSection; label: string; icon: typeof Shield; description: string; adminOnly?: boolean }[] = [
   { id: 'access', label: 'Access & Roles', icon: ShieldCheck, description: 'Users, staff, and permissions' },
   { id: 'property', label: 'Property', icon: Building2, description: 'Name, times, currency, tax' },
+  { id: 'rates', label: 'Rate Management', icon: DollarSign, description: 'Plans, seasons, pricing', adminOnly: true },
   { id: 'notifications', label: 'Notifications', icon: BellRing, description: 'Alert preferences & delivery' },
   { id: 'guests', label: 'Guest Settings', icon: User, description: 'Guest list and management' },
   { id: 'services', label: 'Services', icon: UtensilsCrossed, description: 'Service catalog and pricing' },

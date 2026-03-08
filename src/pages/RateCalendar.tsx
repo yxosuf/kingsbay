@@ -240,7 +240,7 @@ export default function RateCalendar() {
                   {night.closed ? (
                     <Lock className="h-4 w-4" />
                   ) : (
-                    <CurrencyDisplay amount={night.finalPrice} compact />
+                    <CurrencyDisplay amount={night.finalPrice} size="sm" />
                   )}
                 </div>
                 {night.seasonal && (
