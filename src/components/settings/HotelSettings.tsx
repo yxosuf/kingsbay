@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 export function HotelSettings() {
   const { selectedProperty } = useProperty();

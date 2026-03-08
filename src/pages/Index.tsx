@@ -567,7 +567,20 @@ export default function Dashboard() {
                     <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
                       Rs. {exchangeRate?.usdToLkr?.toFixed(2) || '--'}
                     </p>
-                    <p className="text-xs text-muted-foreground/70 hidden sm:block mt-1">Real-time market rate</p>
+                    {exchangeRate?.updatedAt ? (
+                      <p className="text-[10px] sm:text-xs text-muted-foreground/70 mt-1">
+                        Updated {(() => {
+                          const mins = Math.round((Date.now() - new Date(exchangeRate.updatedAt).getTime()) / 60000);
+                          if (mins < 1) return 'just now';
+                          if (mins < 60) return `${mins} min ago`;
+                          const hrs = Math.round(mins / 60);
+                          if (hrs < 24) return `${hrs}h ago`;
+                          return `${Math.round(hrs / 24)}d ago`;
+                        })()}
+                      </p>
+                    ) : (
+                      <p className="text-[10px] sm:text-xs text-muted-foreground/70 hidden sm:block mt-1">Auto-updates hourly</p>
+                    )}
                   </div>
                   <div className="p-2.5 sm:p-3 rounded-xl bg-success/10 shrink-0">
                     <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-success" />
