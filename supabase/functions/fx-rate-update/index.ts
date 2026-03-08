@@ -12,20 +12,41 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Fetch live rate from free API (no key required)
-    const res = await fetch(
-      "https://open.er-api.com/v6/latest/USD"
-    );
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Exchange rate API error: ${res.status} - ${text}`);
+    let rate: number | null = null;
+
+    // Primary: open.er-api.com (free, no key)
+    try {
+      const res = await fetch("https://open.er-api.com/v6/latest/USD");
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.rates?.LKR && typeof data.rates.LKR === "number" && data.rates.LKR > 0) {
+          rate = data.rates.LKR;
+          console.log("Primary API (open.er-api.com) succeeded:", rate);
+        }
+      }
+    } catch (e) {
+      console.warn("Primary API failed:", e);
     }
 
-    const data = await res.json();
-    const rate = data?.rates?.LKR;
+    // Fallback: cdn.jsdelivr.net/npm/@fawazahmed0/currency-api (free, no key)
+    if (!rate) {
+      try {
+        const res = await fetch("https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json");
+        if (res.ok) {
+          const data = await res.json();
+          const lkr = data?.usd?.lkr;
+          if (lkr && typeof lkr === "number" && lkr > 0) {
+            rate = lkr;
+            console.log("Fallback API (fawazahmed0) succeeded:", rate);
+          }
+        }
+      } catch (e) {
+        console.warn("Fallback API failed:", e);
+      }
+    }
 
-    if (!rate || typeof rate !== "number" || rate <= 0) {
-      throw new Error(`Invalid rate received: ${JSON.stringify(data)}`);
+    if (!rate) {
+      throw new Error("All exchange rate APIs failed");
     }
 
     // Update all property settings using service role
