@@ -113,11 +113,17 @@ export function TransactionsTab({ bookingId, propertyId, totalAmount, fxRate }: 
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <Receipt className="h-5 w-5" />
           Transactions
         </CardTitle>
+        {totalPayments > 0 && (
+          <Button variant="outline" size="sm" onClick={() => setShowRefundDialog(true)}>
+            <Undo2 className="h-4 w-4 mr-1" />
+            Issue Refund
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Balance Summary */}
