@@ -728,6 +728,7 @@ export type Database = {
         Row: {
           address: string | null
           archived_at: string | null
+          auth_user_id: string | null
           blacklist_reason: string | null
           country: string | null
           created_at: string
@@ -754,6 +755,7 @@ export type Database = {
         Insert: {
           address?: string | null
           archived_at?: string | null
+          auth_user_id?: string | null
           blacklist_reason?: string | null
           country?: string | null
           created_at?: string
@@ -780,6 +782,7 @@ export type Database = {
         Update: {
           address?: string | null
           archived_at?: string | null
+          auth_user_id?: string | null
           blacklist_reason?: string | null
           country?: string | null
           created_at?: string
@@ -1963,6 +1966,7 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_front_desk: { Args: never; Returns: boolean }
+      is_guest: { Args: never; Returns: boolean }
       is_manager: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
       is_viewer: { Args: never; Returns: boolean }
