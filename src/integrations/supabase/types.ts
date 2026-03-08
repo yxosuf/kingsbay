@@ -787,14 +787,46 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          categories: Json
+          created_at: string
+          delivery_channels: Json
+          id: string
+          priority_threshold: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          categories?: Json
+          created_at?: string
+          delivery_channels?: Json
+          id?: string
+          priority_threshold?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          categories?: Json
+          created_at?: string
+          delivery_channels?: Json
+          id?: string
+          priority_threshold?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           action_entity_id: string | null
           action_type: string | null
+          actions: Json | null
           category: string
           created_at: string
           expires_at: string | null
           id: string
+          image_url: string | null
           is_read: boolean
           link: string | null
           message: string | null
@@ -808,10 +840,12 @@ export type Database = {
         Insert: {
           action_entity_id?: string | null
           action_type?: string | null
+          actions?: Json | null
           category?: string
           created_at?: string
           expires_at?: string | null
           id?: string
+          image_url?: string | null
           is_read?: boolean
           link?: string | null
           message?: string | null
@@ -825,10 +859,12 @@ export type Database = {
         Update: {
           action_entity_id?: string | null
           action_type?: string | null
+          actions?: Json | null
           category?: string
           created_at?: string
           expires_at?: string | null
           id?: string
+          image_url?: string | null
           is_read?: boolean
           link?: string | null
           message?: string | null
