@@ -137,6 +137,7 @@ export default function NewBooking() {
     if (!room) return;
 
     setCalculatingRate(true);
+    setDiscountError('');
     calculateStayTotal(
       selectedProperty.id,
       room.room_type,
@@ -145,11 +146,15 @@ export default function NewBooking() {
       format(checkOut, 'yyyy-MM-dd'),
       selectedRatePlanId || null,
       numGuests,
+      discountCode.trim() || null,
     ).then(breakdown => {
       setStayBreakdown(breakdown);
+      if (discountCode.trim() && !breakdown.discountCode) {
+        setDiscountError('Invalid or expired discount code');
+      }
       setCalculatingRate(false);
     }).catch(() => setCalculatingRate(false));
-  }, [selectedProperty?.id, checkIn, checkOut, roomId, selectedRatePlanId, numGuests, rooms]);
+  }, [selectedProperty?.id, checkIn, checkOut, roomId, selectedRatePlanId, numGuests, rooms, discountCode]);
 
   // Fetch booked dates for calendar indicators
   useEffect(() => {

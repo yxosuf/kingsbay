@@ -9,7 +9,8 @@
  * 3. Manual override from rate_overrides (replaces everything)
  * 4. Seasonal modifier (percent or fixed)
  * 5. Day-of-week modifier (percent or fixed)
- * 6. Extra guest fee if guests > included_guests
+ * 6. Occupancy modifier (percent or fixed)
+ * 7. Extra guest fee if guests > included_guests
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -54,6 +55,13 @@ export interface RateOverride {
   min_stay: number | null;
 }
 
+export interface OccupancyRule {
+  id: string;
+  occupancy_threshold: number;
+  modifier_type: 'percent' | 'fixed';
+  modifier_value: number;
+}
+
 export interface NightBreakdown {
   date: string;
   basePrice: number;
@@ -61,6 +69,7 @@ export interface NightBreakdown {
   override: boolean;
   seasonal: string | null;
   dayOfWeek: boolean;
+  occupancy: boolean;
   closed: boolean;
 }
 
@@ -69,6 +78,7 @@ export interface StayTotal {
   subtotal: number;
   discount: number;
   discountCode: string | null;
+  discountCodeId: string | null;
   total: number;
   ratePlanName: string | null;
   extraGuestFee: number;
@@ -93,6 +103,7 @@ export async function fetchRateData(propertyId: string) {
     { data: roomTypeOverrides },
     { data: seasonalRules },
     { data: dayOfWeekRules },
+    { data: occupancyRules },
   ] = await Promise.all([
     supabase
       .from('rate_plans')
@@ -113,6 +124,12 @@ export async function fetchRateData(propertyId: string) {
       .select('*')
       .eq('property_id', propertyId)
       .eq('is_active', true),
+    supabase
+      .from('occupancy_pricing_rules')
+      .select('*')
+      .eq('property_id', propertyId)
+      .eq('is_active', true)
+      .order('occupancy_threshold', { ascending: true }),
   ]);
 
   return {
@@ -120,6 +137,7 @@ export async function fetchRateData(propertyId: string) {
     roomTypeOverrides: (roomTypeOverrides || []) as any[],
     seasonalRules: (seasonalRules || []) as SeasonalRule[],
     dayOfWeekRules: (dayOfWeekRules || []) as DayOfWeekRule[],
+    occupancyRules: (occupancyRules || []) as OccupancyRule[],
   };
 }
 
@@ -141,6 +159,59 @@ export async function fetchOverrides(propertyId: string, roomType: string, start
 }
 
 /**
+ * Fetch occupancy percentages for a date range (batch query).
+ */
+export async function fetchOccupancyForRange(
+  propertyId: string,
+  startDate: string,
+  endDate: string,
+): Promise<Map<string, number>> {
+  // Get total rooms for property
+  const { count: totalRooms } = await supabase
+    .from('rooms')
+    .select('*', { count: 'exact', head: true })
+    .eq('property_id', propertyId)
+    .neq('status', 'maintenance');
+
+  if (!totalRooms || totalRooms === 0) return new Map();
+
+  // Get bookings overlapping the range
+  const { data: bookings } = await supabase
+    .from('bookings')
+    .select('check_in, check_out')
+    .eq('property_id', propertyId)
+    .in('status', ['confirmed', 'checked_in', 'pending', 'needs_review'])
+    .lt('check_in', endDate)
+    .gt('check_out', startDate);
+
+  const occupancyMap = new Map<string, number>();
+  const startD = parseLocalDate(startDate);
+  const endD = parseLocalDate(endDate);
+  const dates = eachDayOfInterval({ start: startD, end: new Date(endD.getTime() - 86400000) });
+
+  // Count bookings per date
+  const countMap = new Map<string, number>();
+  dates.forEach(d => countMap.set(toDateString(d), 0));
+
+  (bookings || []).forEach(b => {
+    const bStart = parseLocalDate(b.check_in);
+    const bEnd = parseLocalDate(b.check_out);
+    dates.forEach(d => {
+      const ds = toDateString(d);
+      if (d >= bStart && d < bEnd) {
+        countMap.set(ds, (countMap.get(ds) || 0) + 1);
+      }
+    });
+  });
+
+  countMap.forEach((count, date) => {
+    occupancyMap.set(date, Math.round((count / totalRooms) * 100));
+  });
+
+  return occupancyMap;
+}
+
+/**
  * Calculate the nightly rate for a single date.
  */
 export function calculateNightRate(
@@ -153,6 +224,8 @@ export function calculateNightRate(
   dayOfWeekRules: DayOfWeekRule[],
   overrides: Map<string, RateOverride>,
   guestCount: number = 2,
+  occupancyRules: OccupancyRule[] = [],
+  occupancyPercent: number = 0,
 ): NightBreakdown {
   // 1. Start with base price
   let price = ratePlan ? ratePlan.base_price : basePrice;
@@ -177,6 +250,7 @@ export function calculateNightRate(
       override: true,
       seasonal: null,
       dayOfWeek: false,
+      occupancy: false,
       closed: override.closed,
     };
   }
@@ -208,7 +282,23 @@ export function calculateNightRate(
     dayOfWeekApplied = true;
   }
 
-  // 6. Extra guest fee
+  // 6. Apply occupancy-based pricing
+  let occupancyApplied = false;
+  if (occupancyRules.length > 0 && occupancyPercent > 0) {
+    // Find the highest threshold that is met
+    let matchingRule: OccupancyRule | null = null;
+    for (const rule of occupancyRules) {
+      if (occupancyPercent >= rule.occupancy_threshold) {
+        matchingRule = rule;
+      }
+    }
+    if (matchingRule) {
+      price = applyModifier(price, matchingRule.modifier_type as 'percent' | 'fixed', matchingRule.modifier_value);
+      occupancyApplied = true;
+    }
+  }
+
+  // 7. Extra guest fee
   if (ratePlan && guestCount > ratePlan.included_guests) {
     const extraGuests = guestCount - ratePlan.included_guests;
     price += extraGuests * ratePlan.extra_guest_fee;
@@ -221,6 +311,7 @@ export function calculateNightRate(
     override: false,
     seasonal: seasonalName,
     dayOfWeek: dayOfWeekApplied,
+    occupancy: occupancyApplied,
     closed: false,
   };
 }
@@ -245,6 +336,11 @@ export async function calculateStayTotal(
     ? rateData.ratePlans.find((rp: any) => rp.id === ratePlanId) || null
     : null;
 
+  // Fetch occupancy data for the date range
+  const occupancyMap = rateData.occupancyRules.length > 0
+    ? await fetchOccupancyForRange(propertyId, checkIn, checkOut)
+    : new Map<string, number>();
+
   // Generate date range [checkIn, checkOut)
   const startDate = parseLocalDate(checkIn);
   const endDate = parseLocalDate(checkOut);
@@ -265,6 +361,8 @@ export async function calculateStayTotal(
       rateData.dayOfWeekRules,
       overrides,
       guestCount,
+      rateData.occupancyRules,
+      occupancyMap.get(dateStr) || 0,
     );
   });
 
@@ -276,6 +374,7 @@ export async function calculateStayTotal(
   // Discount code validation
   let discount = 0;
   let appliedCode: string | null = null;
+  let appliedCodeId: string | null = null;
 
   if (discountCode) {
     const { data: dc } = await supabase
@@ -303,12 +402,14 @@ export async function calculateStayTotal(
             // Code exhausted — don't apply
           } else {
             appliedCode = dc.code;
+            appliedCodeId = dc.id;
             discount = dc.discount_type === 'percent'
               ? (subtotal * dc.discount_value) / 100
               : dc.discount_value;
           }
         } else {
           appliedCode = dc.code;
+          appliedCodeId = dc.id;
           discount = dc.discount_type === 'percent'
             ? (subtotal * dc.discount_value) / 100
             : dc.discount_value;
@@ -322,6 +423,7 @@ export async function calculateStayTotal(
     subtotal: Math.round(subtotal * 100) / 100,
     discount: Math.round(discount * 100) / 100,
     discountCode: appliedCode,
+    discountCodeId: appliedCodeId,
     total: Math.round((subtotal - discount) * 100) / 100,
     ratePlanName: ratePlan?.name || null,
     extraGuestFee: Math.round(extraGuestFee * 100) / 100,
