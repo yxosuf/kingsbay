@@ -14,14 +14,18 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children, title }: DashboardLayoutProps) {
-  const { user, loading, role, signOut } = useAuth();
+  const { user, loading, role, signOut, isGuest } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!loading && !user) {
       navigate('/auth');
     }
-  }, [user, loading, navigate]);
+    // Guest users should not access staff pages
+    if (!loading && user && isGuest) {
+      navigate('/guest/dashboard');
+    }
+  }, [user, loading, isGuest, navigate]);
 
   if (loading) {
     return (
