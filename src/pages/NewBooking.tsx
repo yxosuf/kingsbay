@@ -402,6 +402,7 @@ export default function NewBooking() {
       } : null;
 
       // Create booking
+      const bookingStatus = checkInImmediately ? 'checked_in' : 'confirmed';
       const { data: newBooking, error: bookingError } = await supabase.from('bookings').insert({
         guest_id: guestId,
         room_id: roomId,
@@ -410,7 +411,8 @@ export default function NewBooking() {
         num_guests: numGuests,
         num_adults: numAdults,
         num_children: numChildren,
-        status: 'confirmed' as const,
+        status: bookingStatus as any,
+        checked_in_at: checkInImmediately ? new Date().toISOString() : null,
         special_requests: specialRequests.trim() || null,
         total_amount: effectiveTotal,
         created_by: user?.id,
