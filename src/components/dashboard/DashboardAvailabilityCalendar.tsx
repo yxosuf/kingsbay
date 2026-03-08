@@ -233,11 +233,11 @@ export function DashboardAvailabilityCalendar() {
                           <div
                             key={date.toISOString()}
                             className={cn(
-                              "border-r flex-shrink-0",
+                              "border-r flex-1 min-w-0",
                               isWeekend(date) && "weekend-col",
                               isToday(date) && "today-line"
                             )}
-                            style={{ width: colWidth, height: '100%' }}
+                            style={{ height: '100%' }}
                           />
                         ))}
 
