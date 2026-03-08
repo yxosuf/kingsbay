@@ -344,6 +344,15 @@ export default function GuestDetails() {
           <TabsList>
             <TabsTrigger value="bookings">Booking History</TabsTrigger>
             <TabsTrigger value="services">Services Purchased</TabsTrigger>
+            <TabsTrigger value="feedback" className="flex items-center gap-1.5">
+              <Star className="h-3.5 w-3.5" />
+              Feedback
+              {guestFeedback.length > 0 && (
+                <span className="text-xs bg-warning/20 text-warning px-1.5 py-0.5 rounded-full">
+                  {guestFeedback.length}
+                </span>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="bookings" className="mt-6">
