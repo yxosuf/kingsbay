@@ -130,7 +130,7 @@ export function DashboardAvailabilityCalendar() {
   }, []);
 
   const labelWidth = 90;
-  const colWidth = containerWidth > 0 ? Math.floor((containerWidth - labelWidth) / dateRange.length) : 50;
+  const colWidth = containerWidth > 0 ? (containerWidth - labelWidth) / dateRange.length : 50;
 
   const getRoomBookings = (room: Room) => {
     const startStr = toDateString(dateRange[0]);
@@ -195,10 +195,9 @@ export function DashboardAvailabilityCalendar() {
                     <div
                       key={date.toISOString()}
                       className={cn(
-                        "text-center flex-shrink-0",
+                        "text-center flex-1 min-w-0",
                         isToday(date) && "bg-primary/5"
                       )}
-                      style={{ width: colWidth }}
                     >
                       <div className="text-[10px] text-muted-foreground">{format(date, 'EEE')}</div>
                       <div className={cn(
@@ -234,11 +233,11 @@ export function DashboardAvailabilityCalendar() {
                           <div
                             key={date.toISOString()}
                             className={cn(
-                              "border-r flex-shrink-0",
+                              "border-r flex-1 min-w-0",
                               isWeekend(date) && "weekend-col",
                               isToday(date) && "today-line"
                             )}
-                            style={{ width: colWidth, height: '100%' }}
+                            style={{ height: '100%' }}
                           />
                         ))}
 
