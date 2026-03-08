@@ -496,10 +496,23 @@ export default function NewBooking() {
             </CardContent>
           </Card>
 
-          {/* Booking Details */}
-          <Card>
+          {/* Step 2: Booking Details */}
+          <Card className="step-connector">
             <CardHeader>
-              <CardTitle>Booking Details</CardTitle>
+              <CardTitle className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">2</div>
+                <div>
+                  <span className="text-lg">Stay Details</span>
+                  <p className="text-sm text-muted-foreground font-normal mt-0.5">
+                    Dates, room, and pricing
+                    {checkIn && checkOut && (
+                      <span className="ml-2 text-primary font-medium">
+                        · {differenceInDays(checkOut, checkIn)} night{differenceInDays(checkOut, checkIn) !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
