@@ -77,7 +77,7 @@ export function DashboardAvailabilityCalendar() {
 
       const { data: roomData, error: roomError } = await supabase
         .from('rooms')
-        .select('id, room_number, room_type, status')
+        .select('id, room_number, room_type, status, housekeeping_status, cleaning_until')
         .eq('property_id', selectedProperty.id)
         .order('room_number');
 
