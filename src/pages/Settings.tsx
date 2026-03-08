@@ -84,8 +84,9 @@ const TAB_ALIAS: Record<string, SettingsSection> = {
 };
 
 export default function Settings() {
-  const { isAdmin, user, canWrite } = useAuth();
+  const { isAdmin, user, canWrite, loading: authLoading, role } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
 
   const rawTab = searchParams.get('tab') || 'access';
