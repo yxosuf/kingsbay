@@ -353,6 +353,134 @@ export type Database = {
           },
         ]
       }
+      day_of_week_rules: {
+        Row: {
+          day_of_week: number
+          id: string
+          is_active: boolean
+          modifier_type: string
+          modifier_value: number
+          property_id: string
+          rate_plan_id: string | null
+        }
+        Insert: {
+          day_of_week: number
+          id?: string
+          is_active?: boolean
+          modifier_type?: string
+          modifier_value?: number
+          property_id: string
+          rate_plan_id?: string | null
+        }
+        Update: {
+          day_of_week?: number
+          id?: string
+          is_active?: boolean
+          modifier_type?: string
+          modifier_value?: number
+          property_id?: string
+          rate_plan_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "day_of_week_rules_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "day_of_week_rules_rate_plan_id_fkey"
+            columns: ["rate_plan_id"]
+            isOneToOne: false
+            referencedRelation: "rate_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discount_code_usages: {
+        Row: {
+          booking_id: string
+          discount_code_id: string
+          id: string
+          used_at: string
+        }
+        Insert: {
+          booking_id: string
+          discount_code_id: string
+          id?: string
+          used_at?: string
+        }
+        Update: {
+          booking_id?: string
+          discount_code_id?: string
+          id?: string
+          used_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discount_code_usages_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discount_code_usages_discount_code_id_fkey"
+            columns: ["discount_code_id"]
+            isOneToOne: false
+            referencedRelation: "discount_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discount_codes: {
+        Row: {
+          code: string
+          created_at: string
+          discount_type: string
+          discount_value: number
+          end_date: string | null
+          id: string
+          is_active: boolean
+          max_usage: number | null
+          property_id: string
+          start_date: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          max_usage?: number | null
+          property_id: string
+          start_date?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          max_usage?: number | null
+          property_id?: string
+          start_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discount_codes_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_ingest_logs: {
         Row: {
           created_at: string
@@ -1128,6 +1256,148 @@ export type Database = {
           },
         ]
       }
+      rate_overrides: {
+        Row: {
+          closed: boolean
+          created_at: string
+          created_by: string | null
+          date: string
+          id: string
+          min_stay: number | null
+          price: number
+          property_id: string
+          rate_plan_id: string | null
+          room_type: string
+        }
+        Insert: {
+          closed?: boolean
+          created_at?: string
+          created_by?: string | null
+          date: string
+          id?: string
+          min_stay?: number | null
+          price: number
+          property_id: string
+          rate_plan_id?: string | null
+          room_type: string
+        }
+        Update: {
+          closed?: boolean
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          id?: string
+          min_stay?: number | null
+          price?: number
+          property_id?: string
+          rate_plan_id?: string | null
+          room_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rate_overrides_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_overrides_rate_plan_id_fkey"
+            columns: ["rate_plan_id"]
+            isOneToOne: false
+            referencedRelation: "rate_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rate_plan_room_types: {
+        Row: {
+          id: string
+          price_override: number | null
+          rate_plan_id: string
+          room_type: string
+        }
+        Insert: {
+          id?: string
+          price_override?: number | null
+          rate_plan_id: string
+          room_type: string
+        }
+        Update: {
+          id?: string
+          price_override?: number | null
+          rate_plan_id?: string
+          room_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rate_plan_room_types_rate_plan_id_fkey"
+            columns: ["rate_plan_id"]
+            isOneToOne: false
+            referencedRelation: "rate_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rate_plans: {
+        Row: {
+          base_price: number
+          created_at: string
+          currency: string
+          description: string | null
+          extra_guest_fee: number
+          id: string
+          included_guests: number
+          is_active: boolean
+          is_refundable: boolean
+          max_stay: number | null
+          min_stay: number
+          name: string
+          property_id: string
+          updated_at: string
+        }
+        Insert: {
+          base_price?: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          extra_guest_fee?: number
+          id?: string
+          included_guests?: number
+          is_active?: boolean
+          is_refundable?: boolean
+          max_stay?: number | null
+          min_stay?: number
+          name: string
+          property_id: string
+          updated_at?: string
+        }
+        Update: {
+          base_price?: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          extra_guest_fee?: number
+          id?: string
+          included_guests?: number
+          is_active?: boolean
+          is_refundable?: boolean
+          max_stay?: number | null
+          min_stay?: number
+          name?: string
+          property_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rate_plans_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_availability: {
         Row: {
           blocked_reason: string | null
@@ -1252,6 +1522,66 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seasonal_rules: {
+        Row: {
+          created_at: string
+          end_date: string
+          id: string
+          is_active: boolean
+          modifier_type: string
+          modifier_value: number
+          name: string
+          priority: number
+          property_id: string
+          rate_plan_id: string | null
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_date: string
+          id?: string
+          is_active?: boolean
+          modifier_type?: string
+          modifier_value?: number
+          name: string
+          priority?: number
+          property_id: string
+          rate_plan_id?: string | null
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string
+          id?: string
+          is_active?: boolean
+          modifier_type?: string
+          modifier_value?: number
+          name?: string
+          priority?: number
+          property_id?: string
+          rate_plan_id?: string | null
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seasonal_rules_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seasonal_rules_rate_plan_id_fkey"
+            columns: ["rate_plan_id"]
+            isOneToOne: false
+            referencedRelation: "rate_plans"
             referencedColumns: ["id"]
           },
         ]

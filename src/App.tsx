@@ -23,6 +23,7 @@ import AvailabilityCalendar from "./pages/AvailabilityCalendar";
 import FrontDesk from "./pages/FrontDesk";
 import Housekeeping from "./pages/Housekeeping";
 import Notifications from "./pages/Notifications";
+import RateCalendar from "./pages/RateCalendar";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,6 +56,7 @@ const App = () => (
               <Route path="/front-desk" element={<FrontDesk />} />
               <Route path="/housekeeping" element={<Housekeeping />} />
               <Route path="/notifications" element={<Notifications />} />
+              <Route path="/rate-calendar" element={<RateCalendar />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
               </BrowserRouter>

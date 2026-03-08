@@ -32,7 +32,7 @@ import {
 import { 
   Plus, UserPlus, Trash2, Shield, Hotel, Users, Clock, UtensilsCrossed, 
   Link2, FileText, AlertTriangle, ShieldCheck, Building2, User, 
-  Megaphone, Lock, ChevronRight, HeartPulse, ArrowLeft, BellRing, SlidersHorizontal
+  Megaphone, Lock, ChevronRight, HeartPulse, ArrowLeft, BellRing, SlidersHorizontal, DollarSign
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -47,6 +47,7 @@ import { NotificationSettings } from '@/components/settings/NotificationSettings
 import { SystemHealthSettings } from '@/components/settings/SystemHealthSettings';
 import { HotelSettings } from '@/components/settings/HotelSettings';
 import { OtherSettings } from '@/components/settings/OtherSettings';
+import { RateManagementSettings } from '@/components/settings/RateManagementSettings';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -63,11 +64,12 @@ interface PendingUser {
   created_at: string;
 }
 
-type SettingsSection = 'access' | 'property' | 'notifications' | 'guests' | 'services' | 'channels' | 'reports' | 'security' | 'system-health' | 'other';
+type SettingsSection = 'access' | 'property' | 'rates' | 'notifications' | 'guests' | 'services' | 'channels' | 'reports' | 'security' | 'system-health' | 'other';
 
 const SETTINGS_NAV: { id: SettingsSection; label: string; icon: typeof Shield; description: string; adminOnly?: boolean }[] = [
   { id: 'access', label: 'Access & Roles', icon: ShieldCheck, description: 'Users, staff, and permissions' },
   { id: 'property', label: 'Property', icon: Building2, description: 'Name, times, currency, tax' },
+  { id: 'rates', label: 'Rate Management', icon: DollarSign, description: 'Plans, seasons, pricing', adminOnly: true },
   { id: 'notifications', label: 'Notifications', icon: BellRing, description: 'Alert preferences & delivery' },
   { id: 'guests', label: 'Guest Settings', icon: User, description: 'Guest list and management' },
   { id: 'services', label: 'Services', icon: UtensilsCrossed, description: 'Service catalog and pricing' },
@@ -306,6 +308,8 @@ export default function Settings() {
         return renderAccessRoles();
       case 'property':
         return <HotelSettings />;
+      case 'rates':
+        return isAdmin ? <RateManagementSettings /> : null;
       case 'notifications':
         return <NotificationSettings />;
       case 'guests':
