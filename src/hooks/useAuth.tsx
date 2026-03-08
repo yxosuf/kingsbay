@@ -45,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<StaffRole | null>(null);
   const [profile, setProfile] = useState<{ full_name: string | null; email: string | null } | null>(null);
+  const [guestId, setGuestId] = useState<string | null>(null);
 
   useEffect(() => {
     // Set up auth state listener FIRST
