@@ -295,11 +295,19 @@ export default function GuestDetails() {
                 Guest since {format(new Date(guest.created_at), 'MMMM yyyy')}
               </p>
             </div>
-            {activeBooking && (
-              <Badge className="bg-success/20 text-success border-success">
-                Currently Checked In
-              </Badge>
-            )}
+            <div className="flex items-center gap-2">
+              {guest.is_vip && (
+                <Badge className="bg-warning/20 text-warning border-warning">⭐ VIP</Badge>
+              )}
+              {guest.is_blacklisted && (
+                <Badge variant="destructive">🚫 Blacklisted</Badge>
+              )}
+              {activeBooking && (
+                <Badge className="bg-success/20 text-success border-success">
+                  Currently Checked In
+                </Badge>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
