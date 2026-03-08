@@ -168,32 +168,25 @@ export default function GuestBooking() {
     setLoadingPrice(true);
 
     try {
-      const rateData = await fetchRateEngineData(selectedPropertyId, selectedRatePlanId);
-      const nights = differenceInDays(parseLocalDate(checkOut), parseLocalDate(checkIn));
       const totalGuests = numAdults + numChildren;
       
-      const result = calculateStayTotal({
+      const result = await calculateStayTotal(
+        selectedPropertyId,
+        selectedRoom.room_type,
+        selectedRoom.price,
         checkIn,
         checkOut,
-        roomType: selectedRoom.room_type,
+        selectedRatePlanId,
         totalGuests,
-        propertyId: selectedPropertyId,
-        ratePlan: rateData.ratePlan,
-        roomTypeOverrides: rateData.roomTypeOverrides,
-        overrides: rateData.overrides,
-        seasonalRules: rateData.seasonalRules,
-        dayOfWeekRules: rateData.dayOfWeekRules,
-        occupancyRules: rateData.occupancyRules,
-        totalPropertyRooms: rateData.totalPropertyRooms,
-        currentBookedRooms: rateData.currentBookedRooms,
-      });
+        discountApplied ? undefined : undefined, // discount handled separately
+      );
 
-      let finalTotal = result.totalAmount;
+      let finalTotal = result.total;
       if (discountApplied) {
         if (discountApplied.type === 'percent') {
-          finalTotal = finalTotal * (1 - discountApplied.value / 100);
+          finalTotal = result.subtotal * (1 - discountApplied.value / 100);
         } else {
-          finalTotal = Math.max(0, finalTotal - discountApplied.value);
+          finalTotal = Math.max(0, result.subtotal - discountApplied.value);
         }
       }
 
