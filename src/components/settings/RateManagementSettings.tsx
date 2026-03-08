@@ -16,7 +16,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { Plus, Pencil, Trash2, DollarSign, Calendar, Sun, Tag, TrendingUp, History } from 'lucide-react';
+import { Plus, Pencil, Trash2, DollarSign, Calendar, Sun, Tag, TrendingUp, History, Plug } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { useAuth } from '@/hooks/useAuth';
@@ -27,6 +27,7 @@ import { Calendar as CalendarUI } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CurrencyDisplay } from '@/components/ui/CurrencyDisplay';
+import { OtaSyncTab } from './OtaSyncTab';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -49,6 +50,7 @@ export function RateManagementSettings() {
           <TabsTrigger value="dayofweek"><Calendar className="h-4 w-4 mr-1" />Day of Week</TabsTrigger>
           <TabsTrigger value="discounts"><Tag className="h-4 w-4 mr-1" />Discounts</TabsTrigger>
           <TabsTrigger value="occupancy"><TrendingUp className="h-4 w-4 mr-1" />Occupancy</TabsTrigger>
+          <TabsTrigger value="otasync"><Plug className="h-4 w-4 mr-1" />OTA Sync</TabsTrigger>
           {isAdmin && <TabsTrigger value="changelog"><History className="h-4 w-4 mr-1" />Change Log</TabsTrigger>}
         </TabsList>
 
@@ -66,6 +68,9 @@ export function RateManagementSettings() {
         </TabsContent>
         <TabsContent value="occupancy">
           <OccupancyPricingTab propertyId={propertyId} isAdmin={isAdmin} />
+        </TabsContent>
+        <TabsContent value="otasync">
+          <OtaSyncTab />
         </TabsContent>
         {isAdmin && (
           <TabsContent value="changelog">

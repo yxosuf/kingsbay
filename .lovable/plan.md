@@ -1,70 +1,51 @@
+# Kings Bay PMS — Implementation Complete ✅
 
+All plan items have been implemented and verified.
 
-# OTA / Channel Integrations Tab — Implementation Plan
+## Phase 1 — Critical Fixes ✅
+| # | Item |
+|---|------|
+| 1 | Viewer Role RLS — `is_write_staff()`, write-restricted policies |
+| 2 | Availability Calendar — `[check_in, check_out)` string comparison |
+| 3 | Hybrid Hold System — `hold_expires_at`, edge function, countdown UI |
+| 4 | Cleaning Timer — `cleaning_until`, edge function, auto-release |
+| 5 | Rooms Derived Status — Occupied/Due Out/Arriving/Cleaning/Dirty/Inspected/Clean |
+| 6 | Guests in Settings — Tab, `/guests` redirect, guest details with services |
+| 7 | Guest Retention — `archived_at`/`deleted_at`, edge function, filters |
+| 8 | Nationality + Phone Code — Country selector, `countryData.ts` |
+| 9 | FX Rate System — `CurrencyDisplay`, `useFxRate`, edge function |
+| 10 | Danger Zone — Admin-only, password confirm, per-property, audit |
 
-## Overview
+## Phase 2 — Operational ✅
+| # | Item |
+|---|------|
+| 11 | Front Desk Speed Mode — Quick actions, arrivals/departures |
+| 12 | Channel Manager — iCal, email inbound, needs_review flow |
+| 13 | Housekeeping Board — Drag-drop (Dirty→Cleaning→Clean→Inspected), staff assignment |
+| 14 | Notifications — Bell, preferences, edge functions |
+| 15 | Data Quality — Duplicate detection (phone/email/passport/NIC), admin merge tool |
 
-Add an **"OTA Sync"** tab to the existing Rate Management settings. The `ota_integrations` table already exists in the database with RLS policies in place. This is purely a UI + stub integration task.
+## Phase 3 — Finance ✅
+| # | Item |
+|---|------|
+| 16 | Booking Transactions Ledger — `booking_transactions`, TransactionsTab |
+| 17 | Accounting Layer — `ledger_accounts/entries/lines`, auto-posting |
 
-## What Already Exists
+## Phase 4 ✅
+| # | Item |
+|---|------|
+| 18 | System Health Monitor — `/settings?tab=system-health`, admin checks |
 
-- **DB table**: `ota_integrations` with `property_id`, `ota_name`, `display_name`, `api_key`, `is_enabled`, `status`, timestamps — already created with RLS (admin manage, staff view)
-- **Rate Management tabs**: Rate Plans, Seasonal, Day of Week, Discounts, Occupancy, Change Log
-- **Channel Manager**: Separate settings page with connections, sync, email import — unrelated to this new tab
+## Additional Features ✅
+- Guest Email System (Resend) — booking_confirmation, pre_arrival, checkout_summary
+- Guest Feedback System — dialog, display, reports, dashboard widget
+- Printable Invoice — react-to-print
+- PWA Support — service worker, manifest
+- Extend Stay / Move Room dialogs
+- Add Service Dialog with category filtering
+- Reports (Occupancy, Revenue, Financial, Feedback)
+- Mobile Responsive — bottom nav, responsive tables/tabs
+- Passport Photo Upload — secure storage in guest-documents bucket
+- Guest Details — services purchased with totals, VIP/blacklist badges
 
-## Implementation
-
-### 1. New Component: `src/components/settings/OtaSyncTab.tsx`
-
-Three sub-tabs inside:
-
-**Connected OTAs** — Grid of cards for Booking.com, Airbnb, Expedia, Agoda:
-- OTA name + icon
-- Status badge: "Coming Soon" / "Disabled" / "Active"
-- Greyed-out API key field (masked, non-editable for now)
-- Enable toggle with tooltip: "Will be active once API key is configured"
-- Auto-seeds default OTA rows into `ota_integrations` on first load if none exist
-
-**Settings** — Future API key entry area, currently showing "Coming Soon" message per OTA
-
-**Sync History** — Placeholder table for future rate/availability push logs, showing empty state for now
-
-**Simulate OTA Bookings** (admin-only) — Toggle + "Generate Test Booking" button that:
-- Creates a booking with `booking_source` = random OTA, `needs_review = true`
-- Picks a random available room for near-future dates
-- Validates via rate engine and overlap prevention
-- Useful for testing without real API keys
-
-### 2. Stub Integration Service: `src/lib/channelIntegration.ts`
-
-```typescript
-interface IChannelIntegration {
-  pushRates(propertyId: string, roomTypeId: string, ratePlanId: string): Promise<void>;
-  pushAvailability(propertyId: string, roomTypeId: string, date: string, status: string): Promise<void>;
-}
-
-class StubChannelIntegration implements IChannelIntegration {
-  // Console.log only — swap for real implementation later
-}
-```
-
-Export singleton instance for use in rate change and booking confirmation flows.
-
-### 3. Modified: `src/components/settings/RateManagementSettings.tsx`
-
-- Add new tab trigger: `<TabsTrigger value="otasync">OTA Sync</TabsTrigger>`
-- Add `<TabsContent value="otasync"><OtaSyncTab /></TabsContent>`
-- Import `Plug` icon from lucide-react
-
-### 4. No Database Changes Needed
-
-The `ota_integrations` table and RLS policies already exist.
-
-## Files Summary
-
-| File | Action |
-|------|--------|
-| `src/components/settings/OtaSyncTab.tsx` | Create |
-| `src/lib/channelIntegration.ts` | Create |
-| `src/components/settings/RateManagementSettings.tsx` | Add OTA Sync tab |
-
+## All items verified and complete. No remaining work.
