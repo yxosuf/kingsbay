@@ -31,6 +31,7 @@ export function BottomNav() {
   const navigate = useNavigate();
   const { signOut, isAdmin } = useAuth();
   const { selectedProperty, showAllProperties } = useProperty();
+  const { settings: userSettings } = useUserSettings();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
