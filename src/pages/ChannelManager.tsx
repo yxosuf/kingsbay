@@ -346,6 +346,7 @@ export default function ChannelManager() {
         {/* Manual Sync Button */}
         <div className="flex justify-end">
           <Button 
+            size="sm"
             onClick={handleManualSync} 
             disabled={syncing || enabledChannels.length === 0}
           >
