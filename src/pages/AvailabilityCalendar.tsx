@@ -325,7 +325,9 @@ export default function AvailabilityCalendar() {
                   <div
                     className="grid"
                     style={{
-                      gridTemplateColumns: `120px repeat(${dateRange.length}, minmax(${viewMode === 'month' ? '36px' : '80px'}, 1fr))`,
+                      gridTemplateColumns: `${isMobile ? '70px' : '120px'} repeat(${dateRange.length}, minmax(${viewMode === 'month' ? (isMobile ? '28px' : '36px') : (isMobile ? '44px' : '80px')}, 1fr))`,
+                    }}
+                  >
                     }}
                   >
                     {/* Header row */}
