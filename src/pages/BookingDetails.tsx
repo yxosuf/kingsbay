@@ -115,9 +115,13 @@ export default function BookingDetails() {
   const [showAddServiceDialog, setShowAddServiceDialog] = useState(false);
   const [linkedBookings, setLinkedBookings] = useState<{id: string; check_in: string; check_out: string; rooms: {room_number: string} | null}[]>([]);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
+  const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState<string | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
   const { fxRate } = useFxRate(booking?.property_id);
+  const { feedback: bookingFeedback, refetch: refetchFeedback } = useGuestFeedback({
+    bookingId: id,
+  });
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
