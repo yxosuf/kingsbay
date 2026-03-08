@@ -663,12 +663,12 @@ export default function NewBooking() {
                   </Select>
                 </div>
 
-                {/* Number of Guests */}
+                {/* Adults */}
                 <div className="space-y-2">
-                  <Label>Number of Guests</Label>
+                  <Label>Adults *</Label>
                   <Select
-                    value={numGuests.toString()}
-                    onValueChange={(v) => setNumGuests(parseInt(v))}
+                    value={numAdults.toString()}
+                    onValueChange={(v) => setNumAdults(parseInt(v))}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -676,7 +676,27 @@ export default function NewBooking() {
                     <SelectContent>
                       {[1, 2, 3, 4, 5, 6].map((n) => (
                         <SelectItem key={n} value={n.toString()}>
-                          {n} {n === 1 ? 'guest' : 'guests'}
+                          {n} {n === 1 ? 'adult' : 'adults'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Children */}
+                <div className="space-y-2">
+                  <Label>Children</Label>
+                  <Select
+                    value={numChildren.toString()}
+                    onValueChange={(v) => setNumChildren(parseInt(v))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[0, 1, 2, 3, 4].map((n) => (
+                        <SelectItem key={n} value={n.toString()}>
+                          {n} {n === 1 ? 'child' : 'children'}
                         </SelectItem>
                       ))}
                     </SelectContent>
