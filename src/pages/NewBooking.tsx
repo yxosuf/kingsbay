@@ -1118,12 +1118,26 @@ export default function NewBooking() {
                     )}
                   </div>
                 </div>
+                {/* Check-in Immediately Toggle */}
+                <div className="flex items-center gap-3 py-2 px-1">
+                  <Switch
+                    id="check-in-immediately"
+                    checked={checkInImmediately}
+                    onCheckedChange={setCheckInImmediately}
+                  />
+                  <Label htmlFor="check-in-immediately" className="text-sm cursor-pointer">
+                    Check-in immediately
+                  </Label>
+                  {checkInImmediately && (
+                    <span className="text-xs text-success font-medium">Guest will be checked in now</span>
+                  )}
+                </div>
                 <div className="flex gap-3 w-full sm:w-auto">
-                  <Button type="button" variant="outline" onClick={() => navigate('/bookings')} className="flex-1 sm:flex-none">
+                  <Button type="button" variant="outline" onClick={() => navigate(isWalkIn ? '/front-desk' : '/bookings')} className="flex-1 sm:flex-none">
                     Cancel
                   </Button>
                   <Button type="submit" disabled={loading} className="flex-1 sm:flex-none">
-                    {loading ? 'Creating...' : 'Create Booking'}
+                    {loading ? 'Creating...' : checkInImmediately ? 'Check In Now' : 'Create Booking'}
                   </Button>
                 </div>
               </div>

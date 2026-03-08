@@ -200,7 +200,13 @@ export default function FrontDesk() {
               Refresh
             </Button>
             {canWrite && (
-              <Button size="sm" onClick={() => navigate('/bookings/new')}>
+              <Button size="sm" variant="default" onClick={() => navigate('/bookings/new?walkin=true')}>
+                <UserPlus className="h-4 w-4 mr-1" />
+                Walk-in Guest
+              </Button>
+            )}
+            {canWrite && (
+              <Button size="sm" variant="outline" onClick={() => navigate('/bookings/new')}>
                 <Plus className="h-4 w-4 mr-1" />
                 New Booking
               </Button>
