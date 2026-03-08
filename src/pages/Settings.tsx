@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,7 +32,7 @@ import {
 import { 
   Plus, UserPlus, Trash2, Shield, Hotel, Users, Clock, UtensilsCrossed, 
   Link2, FileText, AlertTriangle, ShieldCheck, Building2, User, 
-  Megaphone, Lock, ChevronRight, HeartPulse
+  Megaphone, Lock, ChevronRight, HeartPulse, ArrowLeft
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
