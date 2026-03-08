@@ -113,7 +113,7 @@ export default function NewBooking() {
   const [bookedDateSet, setBookedDateSet] = useState<Set<string>>(new Set());
 
   // OTA pricing state
-  const [bookingSource, setBookingSource] = useState<string>('direct');
+  const [bookingSource, setBookingSource] = useState<string>(isWalkIn ? 'direct' : 'direct');
   const [otaPrice, setOtaPrice] = useState<string>('');
   const [commissionRate, setCommissionRate] = useState<string>('');
   const [otaReference, setOtaReference] = useState('');
