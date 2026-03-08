@@ -195,10 +195,9 @@ export function DashboardAvailabilityCalendar() {
                     <div
                       key={date.toISOString()}
                       className={cn(
-                        "text-center flex-shrink-0",
+                        "text-center flex-1 min-w-0",
                         isToday(date) && "bg-primary/5"
                       )}
-                      style={{ width: colWidth }}
                     >
                       <div className="text-[10px] text-muted-foreground">{format(date, 'EEE')}</div>
                       <div className={cn(
