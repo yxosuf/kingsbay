@@ -33,6 +33,7 @@ interface GuestDetails {
   nationality: string | null;
   notes: string | null;
   created_at: string;
+  property_id: string | null;
   passport_photo_path: string | null;
   passport_photo_uploaded_at: string | null;
   is_vip: boolean;
