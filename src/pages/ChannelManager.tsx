@@ -358,17 +358,17 @@ export default function ChannelManager() {
         {/* Main Tabs */}
         <Tabs defaultValue="channels" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="channels" className="flex items-center gap-2">
-              <LinkIcon className="h-4 w-4" />
-              Channels
+            <TabsTrigger value="channels" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+              <LinkIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span>Channels</span>
             </TabsTrigger>
-            <TabsTrigger value="inventory" className="flex items-center gap-2">
-              <Settings2 className="h-4 w-4" />
-              Inventory Settings
+            <TabsTrigger value="inventory" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+              <Settings2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Inventory</span> Settings
             </TabsTrigger>
-            <TabsTrigger value="logs" className="flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              Sync Logs
+            <TabsTrigger value="logs" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+              <Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Sync</span> Logs
             </TabsTrigger>
           </TabsList>
 
