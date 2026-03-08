@@ -20,6 +20,8 @@ import { format } from 'date-fns';
 import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
 import { EditGuestDialog } from '@/components/guest/EditGuestDialog';
 import { useAuth } from '@/hooks/useAuth';
+import { useGuestFeedback } from '@/hooks/useGuestFeedback';
+import { FeedbackSummary, FeedbackCard } from '@/components/feedback/FeedbackDisplay';
 
 interface GuestDetails {
   id: string;
