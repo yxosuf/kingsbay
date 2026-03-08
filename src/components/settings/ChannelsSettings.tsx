@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
 import { 
   RefreshCw, 
   Settings2, 
@@ -17,6 +18,8 @@ import {
   ClipboardList,
   Package,
   ScrollText,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
@@ -284,152 +287,151 @@ export function ChannelsSettings() {
     };
   };
 
-  // Determine last sync freshness
   const getLastSyncStatus = () => {
-    if (!syncLogs[0]?.created_at) return { label: 'Never', color: 'text-destructive' };
+    if (!syncLogs[0]?.created_at) return { label: 'Never', color: 'text-destructive', bg: 'bg-destructive/10' };
     const mins = differenceInMinutes(new Date(), new Date(syncLogs[0].created_at));
-    if (mins < 30) return { label: format(new Date(syncLogs[0].created_at), 'HH:mm'), color: 'text-success' };
-    if (mins < 120) return { label: format(new Date(syncLogs[0].created_at), 'HH:mm'), color: 'text-warning' };
-    return { label: format(new Date(syncLogs[0].created_at), 'HH:mm'), color: 'text-destructive' };
+    if (mins < 30) return { label: format(new Date(syncLogs[0].created_at), 'HH:mm'), color: 'text-success', bg: 'bg-success/10' };
+    if (mins < 120) return { label: format(new Date(syncLogs[0].created_at), 'HH:mm'), color: 'text-warning', bg: 'bg-warning/10' };
+    return { label: format(new Date(syncLogs[0].created_at), 'HH:mm'), color: 'text-destructive', bg: 'bg-destructive/10' };
   };
 
   const lastSync = getLastSyncStatus();
 
   if (!selectedProperty) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Please select a property first</p>
+      <div className="flex flex-col items-center justify-center h-64 text-center">
+        <div className="p-3 rounded-2xl bg-muted/60 mb-4">
+          <Plug className="h-8 w-8 text-muted-foreground" />
+        </div>
+        <p className="text-muted-foreground font-medium">Please select a property first</p>
+        <p className="text-sm text-muted-foreground mt-1">Channel settings are property-specific</p>
       </div>
     );
   }
 
+  const statCards = [
+    {
+      label: 'Active Channels',
+      value: enabledChannels.length,
+      icon: enabledChannels.length > 0 ? Wifi : WifiOff,
+      color: enabledChannels.length > 0 ? 'text-success' : 'text-destructive',
+      bg: enabledChannels.length > 0 ? 'bg-success/10' : 'bg-destructive/10',
+      border: enabledChannels.length > 0 ? 'border-success/20' : 'border-destructive/20',
+    },
+    {
+      label: 'Safety Buffer',
+      value: inventorySettings?.safety_buffer ?? 1,
+      icon: Settings2,
+      color: 'text-info',
+      bg: 'bg-info/10',
+      border: 'border-info/20',
+    },
+    {
+      label: 'Sync Frequency',
+      value: inventorySettings?.sync_frequency?.replace('min', ' min') || 'Hourly',
+      icon: RefreshCw,
+      color: 'text-primary',
+      bg: 'bg-primary/10',
+      border: 'border-primary/20',
+    },
+    {
+      label: 'Last Sync',
+      value: lastSync.label,
+      icon: Activity,
+      color: lastSync.color,
+      bg: lastSync.bg,
+      border: 'border-border',
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      {/* Overview Stats */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Active Channels</p>
-                <p className={cn(
-                  "text-2xl font-bold mt-1",
-                  enabledChannels.length > 0 ? "text-success" : "text-destructive"
-                )}>
-                  {enabledChannels.length}
-                </p>
-              </div>
-              <div className={cn(
-                "p-2 rounded-xl",
-                enabledChannels.length > 0 ? "bg-success/10" : "bg-destructive/10"
-              )}>
-                <Link2 className={cn("h-5 w-5", enabledChannels.length > 0 ? "text-success" : "text-destructive")} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Safety Buffer</p>
-                <p className="text-2xl font-bold mt-1">{inventorySettings?.safety_buffer ?? 1}</p>
-              </div>
-              <div className="p-2 rounded-xl bg-muted">
-                <Settings2 className="h-5 w-5 text-muted-foreground" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Sync Frequency</p>
-                <p className="text-2xl font-bold capitalize mt-1">
-                  {inventorySettings?.sync_frequency?.replace('min', ' min') || 'Hourly'}
-                </p>
-              </div>
-              <div className="p-2 rounded-xl bg-muted">
-                <RefreshCw className="h-5 w-5 text-muted-foreground" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Last Sync</p>
-                <p className={cn("text-2xl font-bold mt-1", lastSync.color)}>
-                  {lastSync.label}
-                </p>
-              </div>
-              <div className="p-2 rounded-xl bg-muted">
-                <Activity className="h-5 w-5 text-muted-foreground" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Sync Now aligned right */}
-      <div className="flex justify-end">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Plug className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-lg">Channel Manager</h3>
+            <p className="text-sm text-muted-foreground">Manage OTA connections and sync settings</p>
+          </div>
+        </div>
         <Button 
           onClick={handleManualSync} 
           disabled={syncing || enabledChannels.length === 0}
+          size="sm"
         >
           <RefreshCw className={cn("h-4 w-4 mr-2", syncing && "animate-spin")} />
           {syncing ? 'Syncing...' : 'Sync Now'}
         </Button>
       </div>
 
-      {/* Tabs with renamed labels */}
+      {/* Overview Stats */}
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        {statCards.map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <Card key={stat.label} className={cn("border", stat.border)}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{stat.label}</p>
+                    <p className={cn("text-2xl font-bold", stat.color)}>
+                      {typeof stat.value === 'string' ? (
+                        <span className="capitalize">{stat.value}</span>
+                      ) : stat.value}
+                    </p>
+                  </div>
+                  <div className={cn("p-2.5 rounded-xl", stat.bg)}>
+                    <Icon className={cn("h-5 w-5", stat.color)} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Tabs */}
       <Tabs defaultValue="connections" className="space-y-4">
         <TabsList className="flex flex-wrap h-auto gap-1 bg-transparent p-0">
-          <TabsTrigger value="connections" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-xl">
-            <Plug className="h-4 w-4" />
-            Connections
-          </TabsTrigger>
-          <TabsTrigger value="email-intake" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-xl">
-            <Mail className="h-4 w-4" />
-            Email Intake
-          </TabsTrigger>
-          <TabsTrigger value="room-mapping" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-xl">
-            <Map className="h-4 w-4" />
-            Room Mapping
-          </TabsTrigger>
-          <TabsTrigger value="review-queue" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-xl">
-            <ClipboardList className="h-4 w-4" />
-            Review Queue
-            {reviewCount > 0 && (
-              <Badge variant="destructive" className="h-5 min-w-5 px-1.5 flex items-center justify-center text-xs">
-                {reviewCount}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="inventory-rules" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-xl">
-            <Package className="h-4 w-4" />
-            Inventory Rules
-          </TabsTrigger>
-          <TabsTrigger value="sync-logs" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-xl">
-            <ScrollText className="h-4 w-4" />
-            Sync Logs
-          </TabsTrigger>
+          {[
+            { value: 'connections', icon: Plug, label: 'Connections' },
+            { value: 'email-intake', icon: Mail, label: 'Email Intake' },
+            { value: 'room-mapping', icon: Map, label: 'Room Mapping' },
+            { value: 'review-queue', icon: ClipboardList, label: 'Review Queue', badge: reviewCount },
+            { value: 'inventory-rules', icon: Package, label: 'Inventory Rules' },
+            { value: 'sync-logs', icon: ScrollText, label: 'Sync Logs' },
+          ].map((tab) => {
+            const TabIcon = tab.icon;
+            return (
+              <TabsTrigger 
+                key={tab.value}
+                value={tab.value} 
+                className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-xl"
+              >
+                <TabIcon className="h-4 w-4" />
+                {tab.label}
+                {tab.badge && tab.badge > 0 && (
+                  <Badge variant="destructive" className="h-5 min-w-5 px-1.5 flex items-center justify-center text-xs">
+                    {tab.badge}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            );
+          })}
         </TabsList>
 
         {/* Connections */}
         <TabsContent value="connections" className="space-y-6">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Connected Channels</h3>
+              <h3 className="text-base font-semibold">Connected Channels</h3>
               {availableChannels.length > 0 && (
-                <div className="text-sm text-muted-foreground">
-                  {availableChannels.length} channel{availableChannels.length !== 1 ? 's' : ''} available
-                </div>
+                <Badge variant="secondary" className="text-xs">
+                  {availableChannels.length} available
+                </Badge>
               )}
             </div>
             {loading ? (
@@ -441,12 +443,13 @@ export function ChannelsSettings() {
                 ))}
               </div>
             ) : channels.length === 0 ? (
-              <Card>
+              <Card className="border-dashed">
                 <CardContent className="flex flex-col items-center justify-center py-12">
-                  <Link2 className="h-12 w-12 text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground text-center">
-                    No channels configured yet. Add a channel below to get started.
-                  </p>
+                  <div className="p-3 rounded-2xl bg-muted/60 mb-4">
+                    <Link2 className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <p className="font-medium text-muted-foreground">No channels configured</p>
+                  <p className="text-sm text-muted-foreground mt-1">Add a channel below to get started</p>
                 </CardContent>
               </Card>
             ) : (
@@ -465,30 +468,33 @@ export function ChannelsSettings() {
           </div>
 
           {availableChannels.length > 0 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Plus className="h-5 w-5" />
-                Add Channel
-              </h3>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {availableChannels.map(option => (
-                  <Card 
-                    key={option.type} 
-                    className="cursor-pointer hover:border-primary transition-colors group"
-                    onClick={() => handleCreateChannel(option.type)}
-                  >
-                    <CardContent className="flex items-center gap-4 p-4">
-                      <ChannelIcon type={option.type} size="md" />
-                      <div className="flex-1">
-                        <h4 className="font-medium">{option.name}</h4>
-                        <p className="text-sm text-muted-foreground">{option.description}</p>
-                      </div>
-                      <ExternalLink className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </CardContent>
-                  </Card>
-                ))}
+            <>
+              <Separator />
+              <div className="space-y-4">
+                <h3 className="text-base font-semibold flex items-center gap-2">
+                  <Plus className="h-4 w-4 text-primary" />
+                  Add Channel
+                </h3>
+                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                  {availableChannels.map(option => (
+                    <Card 
+                      key={option.type} 
+                      className="cursor-pointer border-dashed hover:border-primary hover:bg-primary/5 transition-all group"
+                      onClick={() => handleCreateChannel(option.type)}
+                    >
+                      <CardContent className="flex items-center gap-4 p-4">
+                        <ChannelIcon type={option.type} size="md" />
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-sm">{option.name}</h4>
+                          <p className="text-xs text-muted-foreground truncate">{option.description}</p>
+                        </div>
+                        <Plus className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </div>
-            </div>
+            </>
           )}
         </TabsContent>
 
