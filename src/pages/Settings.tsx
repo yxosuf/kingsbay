@@ -44,6 +44,7 @@ import { ChannelsSettings } from '@/components/settings/ChannelsSettings';
 import { ReportsSettings } from '@/components/settings/ReportsSettings';
 import { GuestsSettings } from '@/components/settings/GuestsSettings';
 import { DangerZoneSettings } from '@/components/settings/DangerZoneSettings';
+import { SystemHealthSettings } from '@/components/settings/SystemHealthSettings';
 import { HotelSettings } from '@/components/settings/HotelSettings';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
