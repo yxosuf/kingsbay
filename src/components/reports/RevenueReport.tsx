@@ -361,23 +361,51 @@ export function RevenueReport({ dateRange, propertyId, showAllProperties, proper
         </Card>
       </div>
 
-      {/* Revenue by Booking Source */}
+      {/* Revenue by Booking Source - Chart + Cards */}
       {sourceData.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Revenue by Booking Source</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {sourceData.map((src, idx) => (
-                <div key={src.name} className="text-center p-3 rounded-lg bg-muted/50">
-                  <p className="text-xs text-muted-foreground capitalize mb-1">{src.name}</p>
-                  <CurrencyDisplay amount={src.value} fxRate={fxRate} size="sm" primaryClassName="font-semibold" />
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-base">Revenue by Booking Source</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={sourceData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(35, 20%, 82%)" />
+                  <XAxis type="number" fontSize={11} tick={{ fill: 'hsl(25, 10%, 45%)' }} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
+                  <YAxis type="category" dataKey="name" fontSize={11} tick={{ fill: 'hsl(25, 10%, 45%)' }} width={90} />
+                  <Tooltip
+                    formatter={(value: number) => [`LKR ${value.toLocaleString()}`, 'Revenue']}
+                    contentStyle={{ backgroundColor: 'hsl(40, 25%, 98%)', border: '1px solid hsl(35, 20%, 82%)', borderRadius: '8px' }}
+                  />
+                  <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                    {sourceData.map((_, idx) => (
+                      <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Source Breakdown</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie data={sourceData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} fontSize={11}>
+                    {sourceData.map((_, idx) => (
+                      <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => [`LKR ${value.toLocaleString()}`]} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
