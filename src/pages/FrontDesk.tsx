@@ -217,9 +217,9 @@ export default function FrontDesk() {
         {/* Sections Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Today Arrivals */}
-          <Card>
+          <Card className="border-t-[3px] border-t-success">
             <CardHeader className="pb-3">
-              <SectionHeader icon={Plane} title="Today Arrivals" count={arrivals.length} color="text-emerald-500" />
+              <SectionHeader icon={Plane} title="Today Arrivals" count={arrivals.length} color="text-success" />
             </CardHeader>
             <CardContent className="space-y-2">
               {loading ? (
