@@ -32,7 +32,7 @@ import {
 import { 
   Plus, UserPlus, Trash2, Shield, Hotel, Users, Clock, UtensilsCrossed, 
   Link2, FileText, AlertTriangle, ShieldCheck, Building2, User, 
-  Megaphone, Lock, ChevronRight, HeartPulse, ArrowLeft
+  Megaphone, Lock, ChevronRight, HeartPulse, ArrowLeft, BellRing
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -43,6 +43,7 @@ import { ChannelsSettings } from '@/components/settings/ChannelsSettings';
 import { ReportsSettings } from '@/components/settings/ReportsSettings';
 import { GuestsSettings } from '@/components/settings/GuestsSettings';
 import { DangerZoneSettings } from '@/components/settings/DangerZoneSettings';
+import { NotificationSettings } from '@/components/settings/NotificationSettings';
 import { SystemHealthSettings } from '@/components/settings/SystemHealthSettings';
 import { HotelSettings } from '@/components/settings/HotelSettings';
 import { cn } from '@/lib/utils';
@@ -61,11 +62,12 @@ interface PendingUser {
   created_at: string;
 }
 
-type SettingsSection = 'access' | 'property' | 'guests' | 'services' | 'channels' | 'reports' | 'security' | 'system-health';
+type SettingsSection = 'access' | 'property' | 'notifications' | 'guests' | 'services' | 'channels' | 'reports' | 'security' | 'system-health';
 
 const SETTINGS_NAV: { id: SettingsSection; label: string; icon: typeof Shield; description: string; adminOnly?: boolean }[] = [
   { id: 'access', label: 'Access & Roles', icon: ShieldCheck, description: 'Users, staff, and permissions' },
   { id: 'property', label: 'Property', icon: Building2, description: 'Name, times, currency, tax' },
+  { id: 'notifications', label: 'Notifications', icon: BellRing, description: 'Alert preferences & delivery' },
   { id: 'guests', label: 'Guest Settings', icon: User, description: 'Guest list and management' },
   { id: 'services', label: 'Services', icon: UtensilsCrossed, description: 'Service catalog and pricing' },
   { id: 'channels', label: 'Channel Manager', icon: Megaphone, description: 'OTA connections and sync' },
@@ -296,6 +298,8 @@ export default function Settings() {
         return renderAccessRoles();
       case 'property':
         return <HotelSettings />;
+      case 'notifications':
+        return <NotificationSettings />;
       case 'guests':
         return <GuestsSettings />;
       case 'services':
