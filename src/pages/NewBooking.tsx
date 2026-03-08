@@ -22,6 +22,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useProperty } from '@/hooks/useProperty';
 import { toast } from 'sonner';
+import { sendGuestEmail } from '@/lib/guestEmail';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
 import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
