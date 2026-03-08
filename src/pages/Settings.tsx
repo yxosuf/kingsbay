@@ -504,113 +504,114 @@ export default function Settings() {
     </div>
   );
 
-  const [showContent, setShowContent] = useState(true);
-
-  // On desktop always show content side-by-side; on mobile toggle between nav and content
-  const handleSectionClick = (section: SettingsSection) => {
-    setActiveSection(section);
-    if (isMobile) setShowContent(true);
-  };
-
-  const handleBack = () => {
-    setShowContent(false);
-  };
-
-  const renderNav = () => (
-    <div className="space-y-2">
-      {visibleNav.map((item) => {
-        const Icon = item.icon;
-        const isActive = activeSection === item.id;
-        const showBadge = item.id === 'access' && pendingUsers.length > 0;
-        const isSecuritySection = item.id === 'security';
-
-        return (
-          <button
-            key={item.id}
-            onClick={() => handleSectionClick(item.id)}
-            className={cn(
-              "w-full flex items-center gap-4 px-5 py-4 rounded-xl text-left transition-all group",
-              isActive
-                ? "bg-foreground text-background shadow-lg"
-                : isSecuritySection
-                  ? "bg-destructive/5 border border-destructive/20 hover:border-destructive/40 hover:shadow-sm"
-                  : "bg-card border border-border/60 hover:border-border hover:shadow-sm"
-            )}
-          >
-            <div className={cn(
-              "p-2.5 rounded-lg shrink-0 transition-colors",
-              isActive
-                ? "bg-background/15"
-                : isSecuritySection
-                  ? "bg-destructive/10"
-                  : "bg-muted/80"
-            )}>
-              <Icon className={cn(
-                "h-5 w-5",
-                isActive
-                  ? "text-background/80"
-                  : isSecuritySection
-                    ? "text-destructive/70"
-                    : "text-muted-foreground"
-              )} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className={cn(
-                "font-semibold text-sm",
-                isActive ? "text-background" : isSecuritySection ? "text-destructive" : "text-foreground"
-              )}>
-                {item.label}
-              </p>
-              <p className={cn(
-                "text-xs mt-0.5 truncate",
-                isActive ? "text-background/60" : isSecuritySection ? "text-destructive/50" : "text-muted-foreground"
-              )}>
-                {item.description}
-              </p>
-            </div>
-            {showBadge && (
-              <Badge variant="destructive" className="shrink-0 text-[10px]">
-                {pendingUsers.length}
-              </Badge>
-            )}
-            {isActive && (
-              <ChevronRight className="h-5 w-5 text-background/60 shrink-0" />
-            )}
-          </button>
-        );
-      })}
-    </div>
-  );
-
   return (
     <DashboardLayout title="Settings">
-      <div className="animate-page-in">
+      <div className={cn(
+        "flex gap-6",
+        isMobile ? "flex-col" : "flex-row"
+      )}>
+        {/* Vertical Sidebar Navigation */}
         {isMobile ? (
-          // Mobile: toggle between nav cards and content
-          showContent ? (
-            <div className="space-y-4">
-              <Button variant="ghost" size="sm" onClick={handleBack} className="mb-2">
-                <ChevronRight className="h-4 w-4 rotate-180 mr-1" />
-                Back to Settings
-              </Button>
-              {renderContent()}
-            </div>
-          ) : (
-            renderNav()
-          )
+          // Mobile: horizontal scroll nav
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-thin">
+            {visibleNav.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeSection === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveSection(item.id)}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors shrink-0",
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground border"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
         ) : (
-          // Desktop: side-by-side — card nav + content
-          <div className="flex gap-8">
-            <div className="w-[300px] shrink-0">
-              <div className="sticky top-4">
-                {renderNav()}
+          // Desktop: vertical sidebar
+          <div className="w-64 shrink-0">
+            <Card className="sticky top-4 overflow-hidden">
+              <div className="p-4 border-b bg-muted/30">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Settings
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {visibleNav.length} sections
+                </p>
               </div>
-            </div>
-            <div className="flex-1 min-w-0">
-              {renderContent()}
-            </div>
+              <nav className="p-2 space-y-0.5">
+                {visibleNav.map((item, idx) => {
+                  const Icon = item.icon;
+                  const isActive = activeSection === item.id;
+                  const showBadge = item.id === 'access' && pendingUsers.length > 0;
+                  const isSecuritySection = item.id === 'security';
+                  // Add separator before Security & Data
+                  const showSeparator = isSecuritySection && idx > 0;
+                  return (
+                    <div key={item.id}>
+                      {showSeparator && <Separator className="my-2" />}
+                      <button
+                        onClick={() => setActiveSection(item.id)}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all text-left group relative",
+                          isActive
+                            ? "bg-primary/10 text-primary font-medium"
+                            : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                          isSecuritySection && !isActive && "text-destructive/70 hover:text-destructive"
+                        )}
+                      >
+                        {/* Active accent bar */}
+                        {isActive && (
+                          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-primary rounded-r-full" />
+                        )}
+                        <div className={cn(
+                          "p-1.5 rounded-md transition-colors shrink-0",
+                          isActive
+                            ? "bg-primary/15"
+                            : isSecuritySection && !isActive
+                              ? "bg-destructive/10"
+                              : "bg-muted/60 group-hover:bg-accent"
+                        )}>
+                          <Icon className="h-3.5 w-3.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="block text-[13px] leading-tight">{item.label}</span>
+                          <p className={cn(
+                            "text-[10px] truncate mt-0.5 transition-colors",
+                            isActive ? "text-primary/60" : "text-muted-foreground/60"
+                          )}>
+                            {item.description}
+                          </p>
+                        </div>
+                        {showBadge && (
+                          <Badge variant="destructive" className="h-5 min-w-[20px] px-1 flex items-center justify-center text-[10px] shrink-0">
+                            {pendingUsers.length}
+                          </Badge>
+                        )}
+                        <ChevronRight className={cn(
+                          "h-3.5 w-3.5 shrink-0 transition-all",
+                          isActive ? "opacity-100 text-primary" : "opacity-0 group-hover:opacity-40 translate-x-0 group-hover:translate-x-0.5"
+                        )} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </nav>
+            </Card>
           </div>
         )}
+
+        {/* Content Area */}
+        <div className="flex-1 min-w-0">
+          {renderContent()}
+        </div>
       </div>
 
       {/* Add Staff Dialog */}
