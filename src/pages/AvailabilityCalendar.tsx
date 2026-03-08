@@ -255,7 +255,7 @@ export default function AvailabilityCalendar() {
 
           <div className="flex items-center gap-2">
             <Select value={selectedRoomType} onValueChange={setSelectedRoomType}>
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-[120px] sm:w-[150px] h-8 sm:h-10 text-xs sm:text-sm">
                 <SelectValue placeholder="All room types" />
               </SelectTrigger>
               <SelectContent>
@@ -267,7 +267,7 @@ export default function AvailabilityCalendar() {
             </Select>
 
             <Select value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
-              <SelectTrigger className="w-[120px]">
+              <SelectTrigger className="w-[90px] sm:w-[120px] h-8 sm:h-10 text-xs sm:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
