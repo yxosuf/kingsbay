@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,7 +32,7 @@ import {
 import { 
   Plus, UserPlus, Trash2, Shield, Hotel, Users, Clock, UtensilsCrossed, 
   Link2, FileText, AlertTriangle, ShieldCheck, Building2, User, 
-  Megaphone, Lock, ChevronRight, HeartPulse
+  Megaphone, Lock, ChevronRight, HeartPulse, ArrowLeft
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -48,7 +47,6 @@ import { SystemHealthSettings } from '@/components/settings/SystemHealthSettings
 import { HotelSettings } from '@/components/settings/HotelSettings';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface StaffMember {
   user_id: string;
@@ -85,8 +83,9 @@ const TAB_ALIAS: Record<string, SettingsSection> = {
 };
 
 export default function Settings() {
-  const { isAdmin, user, canWrite } = useAuth();
+  const { isAdmin, user, canWrite, loading: authLoading, role } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
 
   const rawTab = searchParams.get('tab') || 'access';
@@ -504,16 +503,44 @@ export default function Settings() {
     </div>
   );
 
+  // Auth guard
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!user || !role) {
+    navigate('/auth');
+    return null;
+  }
+
   return (
-    <DashboardLayout title="Settings">
+    <div className="flex flex-col h-screen bg-background">
+      {/* Top header with back button */}
+      <header className="h-14 shrink-0 border-b border-border bg-card flex items-center px-4 gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate('/')}
+          className="shrink-0"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <Separator orientation="vertical" className="h-6" />
+        <h1 className="text-lg font-semibold text-foreground">Settings</h1>
+      </header>
+
+      {/* Body */}
       <div className={cn(
-        "flex gap-6 items-start",
+        "flex flex-1 overflow-hidden",
         isMobile ? "flex-col" : "flex-row"
       )}>
-        {/* Vertical Sidebar Navigation */}
+        {/* Settings navigation */}
         {isMobile ? (
-          // Mobile: horizontal scroll nav
-          <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-thin">
+          <div className="flex gap-2 overflow-x-auto p-3 border-b border-border shrink-0 scrollbar-thin">
             {visibleNav.map((item) => {
               const Icon = item.icon;
               const isActive = activeSection === item.id;
@@ -535,83 +562,80 @@ export default function Settings() {
             })}
           </div>
         ) : (
-          // Desktop: vertical sidebar
-          <div className="w-64 shrink-0">
-            <Card className="sticky top-4 overflow-hidden max-h-[calc(100vh-8rem)] overflow-y-auto">
-              <div className="p-4 border-b bg-muted/30">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Settings
-                </p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {visibleNav.length} sections
-                </p>
-              </div>
-              <nav className="p-2 space-y-0.5">
-                {visibleNav.map((item, idx) => {
-                  const Icon = item.icon;
-                  const isActive = activeSection === item.id;
-                  const showBadge = item.id === 'access' && pendingUsers.length > 0;
-                  const isSecuritySection = item.id === 'security';
-                  // Add separator before Security & Data
-                  const showSeparator = isSecuritySection && idx > 0;
-                  return (
-                    <div key={item.id}>
-                      {showSeparator && <Separator className="my-2" />}
-                      <button
-                        onClick={() => setActiveSection(item.id)}
-                        className={cn(
-                          "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all text-left group relative",
-                          isActive
-                            ? "bg-primary/10 text-primary font-medium"
-                            : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-                          isSecuritySection && !isActive && "text-destructive/70 hover:text-destructive"
-                        )}
-                      >
-                        {/* Active accent bar */}
-                        {isActive && (
-                          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-primary rounded-r-full" />
-                        )}
-                        <div className={cn(
-                          "p-1.5 rounded-md transition-colors shrink-0",
-                          isActive
-                            ? "bg-primary/15"
-                            : isSecuritySection && !isActive
-                              ? "bg-destructive/10"
-                              : "bg-muted/60 group-hover:bg-accent"
+          <aside className="w-64 shrink-0 border-r border-border overflow-y-auto bg-card/50">
+            <div className="p-4 border-b border-border bg-muted/30">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Settings
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                {visibleNav.length} sections
+              </p>
+            </div>
+            <nav className="p-2 space-y-0.5">
+              {visibleNav.map((item, idx) => {
+                const Icon = item.icon;
+                const isActive = activeSection === item.id;
+                const showBadge = item.id === 'access' && pendingUsers.length > 0;
+                const isSecuritySection = item.id === 'security';
+                const showSeparator = isSecuritySection && idx > 0;
+                return (
+                  <div key={item.id}>
+                    {showSeparator && <Separator className="my-2" />}
+                    <button
+                      onClick={() => setActiveSection(item.id)}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all text-left group relative",
+                        isActive
+                          ? "bg-primary/10 text-primary font-medium"
+                          : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                        isSecuritySection && !isActive && "text-destructive/70 hover:text-destructive"
+                      )}
+                    >
+                      {isActive && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-primary rounded-r-full" />
+                      )}
+                      <div className={cn(
+                        "p-1.5 rounded-md transition-colors shrink-0",
+                        isActive
+                          ? "bg-primary/15"
+                          : isSecuritySection && !isActive
+                            ? "bg-destructive/10"
+                            : "bg-muted/60 group-hover:bg-accent"
+                      )}>
+                        <Icon className="h-3.5 w-3.5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="block text-[13px] leading-tight">{item.label}</span>
+                        <p className={cn(
+                          "text-[10px] truncate mt-0.5 transition-colors",
+                          isActive ? "text-primary/60" : "text-muted-foreground/60"
                         )}>
-                          <Icon className="h-3.5 w-3.5" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <span className="block text-[13px] leading-tight">{item.label}</span>
-                          <p className={cn(
-                            "text-[10px] truncate mt-0.5 transition-colors",
-                            isActive ? "text-primary/60" : "text-muted-foreground/60"
-                          )}>
-                            {item.description}
-                          </p>
-                        </div>
-                        {showBadge && (
-                          <Badge variant="destructive" className="h-5 min-w-[20px] px-1 flex items-center justify-center text-[10px] shrink-0">
-                            {pendingUsers.length}
-                          </Badge>
-                        )}
-                        <ChevronRight className={cn(
-                          "h-3.5 w-3.5 shrink-0 transition-all",
-                          isActive ? "opacity-100 text-primary" : "opacity-0 group-hover:opacity-40 translate-x-0 group-hover:translate-x-0.5"
-                        )} />
-                      </button>
-                    </div>
-                  );
-                })}
-              </nav>
-            </Card>
-          </div>
+                          {item.description}
+                        </p>
+                      </div>
+                      {showBadge && (
+                        <Badge variant="destructive" className="h-5 min-w-[20px] px-1 flex items-center justify-center text-[10px] shrink-0">
+                          {pendingUsers.length}
+                        </Badge>
+                      )}
+                      <ChevronRight className={cn(
+                        "h-3.5 w-3.5 shrink-0 transition-all",
+                        isActive ? "opacity-100 text-primary" : "opacity-0 group-hover:opacity-40 translate-x-0 group-hover:translate-x-0.5"
+                      )} />
+                    </button>
+                  </div>
+                );
+              })}
+            </nav>
+          </aside>
         )}
 
         {/* Content Area */}
-        <div className="flex-1 min-w-0">
-          {renderContent()}
-        </div>
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          <div className="max-w-[1200px] mx-auto">
+            {renderContent()}
+          </div>
+        </main>
       </div>
 
       {/* Add Staff Dialog */}
@@ -707,6 +731,6 @@ export default function Settings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </DashboardLayout>
+    </div>
   );
 }
