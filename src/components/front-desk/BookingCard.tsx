@@ -170,7 +170,8 @@ export function BookingCard({ booking, onActionComplete, badge }: BookingCardPro
             <p className="text-xs text-muted-foreground mt-0.5">
               Room {booking.rooms?.room_number || '—'} · {booking.rooms?.room_type || ''}
               {booking.num_guests
-                ? ` · ${booking.num_guests} guest${booking.num_guests > 1 ? 's' : ''}`
+                ? ` · ${(booking as any).num_adults || booking.num_guests}A${(booking as any).num_children ? ` + ${(booking as any).num_children}C` : ''}`
+                : ''}
                 : ''}
             </p>
             {booking.guests?.phone && (

@@ -355,7 +355,11 @@ export default function BookingDetails() {
                   <InfoRow icon={Phone} label="Phone" value={booking.guests?.phone} />
                   <InfoRow icon={AtSign} label="Email" value={booking.guests?.email} />
                   <InfoRow icon={Hash} label="ID / Passport" value={booking.guests?.id_passport} />
-                  <InfoRow icon={Users} label="Guests" value={booking.num_guests} />
+                  <InfoRow icon={Users} label="Guests" value={
+                    (booking as any).num_adults
+                      ? `${(booking as any).num_adults} Adult${(booking as any).num_adults !== 1 ? 's' : ''}${(booking as any).num_children > 0 ? ` + ${(booking as any).num_children} Child${(booking as any).num_children !== 1 ? 'ren' : ''}` : ''}`
+                      : `${booking.num_guests} Guest${booking.num_guests !== 1 ? 's' : ''}`
+                  } />
                 </div>
               </CardContent>
             </Card>

@@ -816,6 +816,19 @@ export default function NewBooking() {
                 </div>
               )}
 
+              {/* Passport Photo Warning for OTA */}
+              {bookingSource !== 'direct' && !guestIdPassport && (
+                <div className="flex items-start gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-700">Passport photo recommended</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      OTA bookings should have passport/ID information for compliance. You can still proceed without it.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Special Requests */}
               <div className="space-y-2">
                 <Label>Special Requests</Label>

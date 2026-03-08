@@ -141,6 +141,7 @@ export function BookingTable({ bookings, loading, onActionComplete }: BookingTab
           <TableHead>Check-in</TableHead>
           <TableHead>Check-out</TableHead>
           <TableHead>Status</TableHead>
+          <TableHead>Guests</TableHead>
           <TableHead>Amount</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
