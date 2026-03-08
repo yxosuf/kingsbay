@@ -166,8 +166,45 @@ export default function GuestDetails() {
       console.error('Error fetching services:', error);
     }
   };
+  const handlePassportUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !guest) return;
 
-  const getStatusBadge = (status: string) => {
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File too large. Max 5MB.');
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const filePath = `${guest.property_id || 'global'}/${guest.id}/passport.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('guest-documents')
+        .upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { error: updateError } = await supabase
+        .from('guests')
+        .update({
+          passport_photo_path: filePath,
+          passport_photo_uploaded_at: new Date().toISOString(),
+        } as any)
+        .eq('id', guest.id);
+      if (updateError) throw updateError;
+
+      toast.success('Passport photo uploaded');
+      fetchGuestDetails();
+    } catch (error: any) {
+      logError('Error uploading passport photo', error);
+      toast.error(getSafeErrorMessage(error));
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+
     const variants: Record<string, string> = {
       pending: 'bg-warning/20 text-warning border-warning',
       confirmed: 'bg-info/20 text-info border-info',
