@@ -14,6 +14,7 @@ import {
 import { Eye, LogIn, LogOut, X, UserX } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { sendGuestEmail } from '@/lib/guestEmail';
 
 interface Booking {
   id: string;
@@ -59,6 +60,8 @@ export function BookingQuickActions({ booking, onActionComplete, compact = false
       if (roomError) throw roomError;
 
       toast.success('Guest checked in successfully');
+      // Send confirmation email (fire-and-forget)
+      sendGuestEmail(booking.id, 'booking_confirmation').catch(() => {});
       onActionComplete();
     } catch {
       toast.error('Failed to check in guest');

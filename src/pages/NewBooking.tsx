@@ -22,6 +22,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useProperty } from '@/hooks/useProperty';
 import { toast } from 'sonner';
+import { sendGuestEmail } from '@/lib/guestEmail';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
 import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
@@ -434,6 +435,10 @@ export default function NewBooking() {
       }
 
       toast.success('Booking created successfully!');
+      // Send booking confirmation email (fire-and-forget)
+      if (newBooking) {
+        sendGuestEmail(newBooking.id, 'booking_confirmation').catch(() => {});
+      }
       navigate('/bookings');
     } catch (error: any) {
       logError('Error creating booking', error);
