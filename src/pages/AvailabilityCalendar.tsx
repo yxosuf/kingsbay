@@ -328,8 +328,6 @@ export default function AvailabilityCalendar() {
                       gridTemplateColumns: `${isMobile ? '70px' : '120px'} repeat(${dateRange.length}, minmax(${viewMode === 'month' ? (isMobile ? '28px' : '36px') : (isMobile ? '44px' : '80px')}, 1fr))`,
                     }}
                   >
-                    }}
-                  >
                     {/* Header row */}
                     <div className="p-1.5 sm:p-2 text-[10px] sm:text-xs font-medium text-muted-foreground sticky left-0 bg-card z-30 border-r border-b">
                       Room
