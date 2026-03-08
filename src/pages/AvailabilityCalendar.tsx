@@ -353,7 +353,7 @@ export default function AvailabilityCalendar() {
             ) : (
               <TooltipProvider>
                 <div ref={containerRef} className="overflow-x-auto scrollbar-thin">
-                  <div style={{ minWidth: `${labelWidth + dateRange.length * minColWidth}px` }}>
+                  <div style={{ width: '100%', minWidth: `${labelWidth + dateRange.length * minColWidth}px` }}>
                     {/* Header row */}
                     <div className="flex border-b sticky top-0 bg-card z-20">
                       <div style={{ width: labelWidth }} className="shrink-0 p-2 text-xs font-medium text-muted-foreground sticky left-0 bg-card z-30 border-r">
