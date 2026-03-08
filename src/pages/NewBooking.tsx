@@ -87,6 +87,9 @@ export default function NewBooking() {
   // Additional services state
   const [selectedServices, setSelectedServices] = useState<SelectedService[]>([]);
 
+  // Booked dates for calendar indicators
+  const [bookedDateSet, setBookedDateSet] = useState<Set<string>>(new Set());
+
   // OTA pricing state
   const [bookingSource, setBookingSource] = useState<string>('direct');
   const [otaPrice, setOtaPrice] = useState<string>('');
