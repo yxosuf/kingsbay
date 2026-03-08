@@ -669,13 +669,36 @@ export default function BookingDetails() {
         )}
 
         {/* Print invoice button for checked_out (when floating bar isn't showing) */}
-        {booking.status === 'checked_out' && invoiceNumber && (
-          <div className="flex justify-end">
-            <Button variant="outline" onClick={() => setShowPrintPreview(true)}>
-              <Printer className="h-4 w-4 mr-2" />
-              Print Invoice
-            </Button>
+        {booking.status === 'checked_out' && (
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {canWrite && bookingFeedback.length === 0 && (
+              <Button variant="outline" onClick={() => setShowFeedbackDialog(true)}>
+                <Star className="h-4 w-4 mr-2" />
+                Add Feedback
+              </Button>
+            )}
+            {invoiceNumber && (
+              <Button variant="outline" onClick={() => setShowPrintPreview(true)}>
+                <Printer className="h-4 w-4 mr-2" />
+                Print Invoice
+              </Button>
+            )}
           </div>
+        )}
+
+        {/* Feedback Display */}
+        {bookingFeedback.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Star className="h-4 w-4 text-warning" />
+                Guest Feedback
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FeedbackCard feedback={bookingFeedback[0]} />
+            </CardContent>
+          </Card>
         )}
       </div>
 
