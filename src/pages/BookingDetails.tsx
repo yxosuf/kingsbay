@@ -588,6 +588,14 @@ export default function BookingDetails() {
                 </CardContent>
               </Card>
             )}
+
+
+            {/* Transactions */}
+            <TransactionsTab
+              bookingId={booking.id}
+              totalAmount={grandTotal}
+              fxRate={fxRate}
+            />
           </div>
 
           {/* Summary */}
