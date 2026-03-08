@@ -204,7 +204,7 @@ export default function GuestDetails() {
     }
   };
 
-
+  const getStatusBadge = (status: string) => {
     const variants: Record<string, string> = {
       pending: 'bg-warning/20 text-warning border-warning',
       confirmed: 'bg-info/20 text-info border-info',
