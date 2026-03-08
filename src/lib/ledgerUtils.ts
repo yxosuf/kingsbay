@@ -184,6 +184,33 @@ export async function postCommission(
  * DR: Accounts Receivable
  * CR: Cash/Bank/Card/Online
  */
+/**
+ * Post ledger entry for a card bank fee.
+ * DR: Bank Fees Expense
+ * CR: Cash/Bank/Card/Online (same asset account as payment)
+ */
+export async function postBankFee(
+  transactionId: string,
+  feeAmount: number,
+  method: string,
+  propertyId: string,
+  bookingId?: string,
+  createdBy?: string
+) {
+  const assetCode = methodToAccountCode(method);
+  return createEntry(
+    `Card bank fee (3%)`,
+    propertyId,
+    [
+      { accountCode: ACCOUNTS.BANK_FEES, debit: feeAmount, credit: 0 },
+      { accountCode: assetCode, debit: 0, credit: feeAmount },
+    ],
+    bookingId,
+    transactionId,
+    createdBy
+  );
+}
+
 export async function postRefund(
   transactionId: string,
   amount: number,
