@@ -7,7 +7,8 @@ import {
   Settings,
   Crown,
   LogOut,
-  Building2
+  Building2,
+  MonitorSmartphone,
 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
