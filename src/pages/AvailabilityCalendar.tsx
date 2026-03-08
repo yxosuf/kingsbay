@@ -410,7 +410,7 @@ export default function AvailabilityCalendar() {
                 </div>
 
                 {/* Legend */}
-                <div className="flex flex-wrap gap-4 mt-4 pt-3 border-t px-3">
+                <div className="flex flex-wrap gap-2 sm:gap-4 mt-3 sm:mt-4 pt-2 sm:pt-3 border-t px-2 sm:px-3">
                   {[
                     { cls: 'cell-reserved', label: 'Reserved' },
                     { cls: 'cell-occupied', label: 'Occupied' },
@@ -418,14 +418,14 @@ export default function AvailabilityCalendar() {
                     { cls: 'cell-blocked', label: 'Blocked' },
                     { cls: 'cell-cleaning', label: 'Cleaning' },
                   ].map(item => (
-                    <div key={item.label} className="flex items-center gap-1.5">
-                      <div className={cn("w-8 h-4 rounded", item.cls)} />
-                      <span className="text-xs text-muted-foreground">{item.label}</span>
+                    <div key={item.label} className="flex items-center gap-1 sm:gap-1.5">
+                      <div className={cn("w-5 sm:w-8 h-3 sm:h-4 rounded", item.cls)} />
+                      <span className="text-[10px] sm:text-xs text-muted-foreground">{item.label}</span>
                     </div>
                   ))}
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-0.5 h-4 bg-primary/30 rounded" />
-                    <span className="text-xs text-muted-foreground">Today</span>
+                  <div className="flex items-center gap-1 sm:gap-1.5">
+                    <div className="w-0.5 h-3 sm:h-4 bg-primary/30 rounded" />
+                    <span className="text-[10px] sm:text-xs text-muted-foreground">Today</span>
                   </div>
                 </div>
               </TooltipProvider>
