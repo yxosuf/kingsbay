@@ -22,7 +22,9 @@ import {
   LogIn, 
   LogOut,
   Cloud,
-  TrendingUp
+  TrendingUp,
+  CalendarCheck,
+  Sun,
 } from 'lucide-react';
 import { DashboardAvailabilityCalendar } from '@/components/dashboard/DashboardAvailabilityCalendar';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,6 +32,7 @@ import { toast } from 'sonner';
 import { useProperty } from '@/hooks/useProperty';
 import { PropertyBadge } from '@/components/layout/PropertyBadge';
 import { useAuth } from '@/hooks/useAuth';
+import { cn } from '@/lib/utils';
 
 interface DashboardStats {
   activeGuests: number;
@@ -82,7 +85,6 @@ export default function Dashboard() {
     try {
       const propertyFilter = !showAllProperties && selectedProperty?.id;
       
-      // Fetch active guests (checked_in bookings)
       let activeGuestsQuery = supabase
         .from('bookings')
         .select('*', { count: 'exact', head: true })
@@ -90,7 +92,6 @@ export default function Dashboard() {
       if (propertyFilter) activeGuestsQuery = activeGuestsQuery.eq('property_id', selectedProperty.id);
       const { count: activeGuests } = await activeGuestsQuery;
 
-      // Fetch today's arrivals
       const today = toDateString(new Date());
       let arrivalsQuery = supabase
         .from('bookings')
@@ -100,7 +101,6 @@ export default function Dashboard() {
       if (propertyFilter) arrivalsQuery = arrivalsQuery.eq('property_id', selectedProperty.id);
       const { count: arrivalsToday } = await arrivalsQuery;
 
-      // Fetch available rooms dynamically: total rooms minus rooms with active bookings today
       let totalRoomsQuery = supabase
         .from('rooms')
         .select('id')
@@ -109,7 +109,6 @@ export default function Dashboard() {
       const { data: allRooms } = await totalRoomsQuery;
       const totalRoomCount = allRooms?.length || 0;
 
-      // Find rooms with blocking bookings for today using [check_in, check_out)
       let blockedQuery = supabase
         .from('bookings')
         .select('room_id')
@@ -121,7 +120,6 @@ export default function Dashboard() {
       const blockedRoomIds = new Set(blockedBookings?.map(b => b.room_id) || []);
       const availableRooms = totalRoomCount - blockedRoomIds.size;
 
-      // Fetch total revenue this month (from invoices)
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
@@ -135,7 +133,6 @@ export default function Dashboard() {
       
       const totalRevenue = invoices?.reduce((sum, i) => sum + Number(i.total_amount), 0) || 0;
 
-      // Fetch today's check-ins (arrivals)
       let checkInsQuery = supabase
         .from('bookings')
         .select(`
@@ -151,7 +148,6 @@ export default function Dashboard() {
       if (propertyFilter) checkInsQuery = checkInsQuery.eq('property_id', selectedProperty.id);
       const { data: checkIns } = await checkInsQuery;
 
-      // Fetch today's check-outs (departures)
       let checkOutsQuery = supabase
         .from('bookings')
         .select(`
@@ -174,7 +170,6 @@ export default function Dashboard() {
         availableRooms: availableRooms || 0,
       });
 
-      // Combine and format activity items
       const activityItems: ActivityItem[] = [
         ...(checkIns?.map((b: any) => ({
           id: b.id,
@@ -203,8 +198,6 @@ export default function Dashboard() {
   };
 
   const fetchWeather = async () => {
-    // Using a simple weather approximation for Colombo
-    // In production, you'd call a real weather API via edge function
     setWeather({
       temperature: 29.1,
       location: 'Colombo, Sri Lanka',
@@ -214,7 +207,6 @@ export default function Dashboard() {
 
   const fetchExchangeRate = async () => {
     try {
-      // Try to fetch from property_inventory_settings or use fallback
       const propertyId = selectedProperty?.id;
       if (propertyId) {
         const { data } = await supabase
@@ -222,15 +214,12 @@ export default function Dashboard() {
           .select('*')
           .eq('property_id', propertyId)
           .maybeSingle();
-        // If we have a stored rate, use it; otherwise use fallback
-        // The fx_usd_lkr_rate column may not exist yet, so fallback gracefully
         const rate = (data as any)?.fx_usd_lkr_rate;
         if (rate) {
           setExchangeRate({ usdToLkr: Number(rate) });
           return;
         }
       }
-      // Fallback to approximate rate
       setExchangeRate({ usdToLkr: 309.06 });
     } catch {
       setExchangeRate({ usdToLkr: 309.06 });
@@ -258,12 +247,12 @@ export default function Dashboard() {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; className: string }> = {
-      pending: { variant: 'secondary', className: 'bg-warning/20 text-warning-foreground border-warning' },
-      confirmed: { variant: 'outline', className: 'bg-info/20 text-info border-info' },
-      checked_in: { variant: 'default', className: 'bg-success/20 text-success border-success' },
-      checked_out: { variant: 'secondary', className: 'bg-muted text-muted-foreground' },
-      cancelled: { variant: 'destructive', className: '' },
+    const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' | 'info'; className?: string }> = {
+      pending: { variant: 'warning' },
+      confirmed: { variant: 'info' },
+      checked_in: { variant: 'success' },
+      checked_out: { variant: 'secondary' },
+      cancelled: { variant: 'destructive' },
     };
     
     const config = variants[status] || variants.pending;
@@ -283,6 +272,7 @@ export default function Dashboard() {
       onClick: () => navigate('/guests?filter=active'),
       color: 'text-primary',
       bgColor: 'bg-primary/10',
+      borderColor: 'border-l-primary',
     },
     {
       title: 'Total Revenue',
@@ -292,6 +282,7 @@ export default function Dashboard() {
       onClick: () => navigate('/reports?type=revenue'),
       color: 'text-success',
       bgColor: 'bg-success/10',
+      borderColor: 'border-l-success',
     },
     {
       title: 'Arrivals Today',
@@ -300,6 +291,7 @@ export default function Dashboard() {
       onClick: () => navigate('/bookings?filter=today'),
       color: 'text-warning',
       bgColor: 'bg-warning/10',
+      borderColor: 'border-l-warning',
     },
     {
       title: 'Available Rooms',
@@ -308,12 +300,13 @@ export default function Dashboard() {
       onClick: () => navigate('/rooms'),
       color: 'text-info',
       bgColor: 'bg-info/10',
+      borderColor: 'border-l-info',
     },
   ];
 
   return (
     <DashboardLayout title="Dashboard">
-      <div className="space-y-4 sm:space-y-6">
+      <div className="space-y-5 sm:space-y-6">
         {/* Property Badge */}
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Viewing:</span>
@@ -322,23 +315,33 @@ export default function Dashboard() {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          {statCards.map((stat) => (
+          {statCards.map((stat, i) => (
             <Card 
               key={stat.title} 
-              className="cursor-pointer hover:shadow-md transition-shadow"
+              className={cn(
+                "cursor-pointer border-l-4 hover:shadow-lg transition-all duration-200",
+                stat.borderColor
+              )}
               onClick={stat.onClick}
             >
               <CardContent className="p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="space-y-1 min-w-0">
-                    <p className="text-xs sm:text-sm text-muted-foreground truncate">{stat.title}</p>
-                    <p className="text-lg sm:text-2xl font-bold text-foreground truncate">{stat.value}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground font-medium truncate">{stat.title}</p>
+                    <p className={cn(
+                      "text-xl sm:text-2xl font-bold text-foreground truncate animate-fade-in-up",
+                    )} style={{ animationDelay: `${i * 80}ms` }}>
+                      {stat.value}
+                    </p>
                     {stat.subtitle && (
                       <p className="text-xs text-muted-foreground">{stat.subtitle}</p>
                     )}
                   </div>
-                  <div className={`p-2 sm:p-3 rounded-xl ${stat.bgColor} self-start sm:self-auto shrink-0`}>
-                    <stat.icon className={`h-5 w-5 sm:h-6 sm:w-6 ${stat.color}`} />
+                  <div className={cn(
+                    "p-2.5 sm:p-3 rounded-xl self-start sm:self-auto shrink-0",
+                    stat.bgColor
+                  )}>
+                    <stat.icon className={cn("h-5 w-5 sm:h-6 sm:w-6", stat.color)} />
                   </div>
                 </div>
               </CardContent>
@@ -351,7 +354,10 @@ export default function Dashboard() {
           {/* Today's Activity */}
           <Card className="lg:col-span-2">
             <CardHeader className="flex flex-row items-center justify-between pb-3 sm:pb-6">
-              <CardTitle className="text-base sm:text-lg">Today's Activity</CardTitle>
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                <CalendarCheck className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                Today's Activity
+              </CardTitle>
               <Button 
                 variant="link" 
                 className="text-primary text-sm px-0"
@@ -366,27 +372,30 @@ export default function Dashboard() {
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                 </div>
               ) : todayActivity.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  No check-ins or check-outs scheduled for today.
+                <div className="text-center py-10">
+                  <div className="mx-auto w-12 h-12 rounded-full bg-muted/60 flex items-center justify-center mb-3">
+                    <CalendarCheck className="h-6 w-6 text-muted-foreground/50" />
+                  </div>
+                  <p className="text-sm font-medium text-muted-foreground">No activity today</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">Check-ins and check-outs will appear here</p>
                 </div>
               ) : (
                 <div className="space-y-3 sm:space-y-0">
                   {/* Mobile view */}
                   <div className="sm:hidden space-y-3">
                     {todayActivity.map((activity) => (
-                      <Card key={`${activity.id}-${activity.type}`} className="border-border/50">
+                      <Card key={`${activity.id}-${activity.type}`} className="border-border/50 hover:shadow-sm">
                         <CardContent className="p-3">
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-2 min-w-0 flex-1">
-                              <div className={`p-1.5 rounded-full shrink-0 ${
-                                activity.type === 'check_in' 
-                                  ? 'bg-success/20' 
-                                  : 'bg-warning/20'
-                              }`}>
+                              <div className={cn(
+                                "p-1.5 rounded-full shrink-0",
+                                activity.type === 'check_in' ? 'bg-success/15' : 'bg-warning/15'
+                              )}>
                                 {activity.type === 'check_in' ? (
-                                  <LogIn className={`h-3.5 w-3.5 text-success`} />
+                                  <LogIn className="h-3.5 w-3.5 text-success" />
                                 ) : (
-                                  <LogOut className={`h-3.5 w-3.5 text-warning`} />
+                                  <LogOut className="h-3.5 w-3.5 text-warning" />
                                 )}
                               </div>
                               <div className="min-w-0">
@@ -394,13 +403,7 @@ export default function Dashboard() {
                                 <p className="text-sm text-muted-foreground">Room {activity.room_number}</p>
                               </div>
                             </div>
-                            <Badge 
-                              variant="outline" 
-                              className={activity.type === 'check_in' 
-                                ? 'bg-success/10 text-success border-success' 
-                                : 'bg-warning/10 text-warning border-warning'
-                              }
-                            >
+                            <Badge variant={activity.type === 'check_in' ? 'success' : 'warning'}>
                               {activity.type === 'check_in' ? 'Arrival' : 'Departure'}
                             </Badge>
                           </div>
@@ -453,14 +456,21 @@ export default function Dashboard() {
                     </TableHeader>
                     <TableBody>
                       {todayActivity.map((activity) => (
-                        <TableRow key={`${activity.id}-${activity.type}`}>
+                        <TableRow 
+                          key={`${activity.id}-${activity.type}`}
+                          className={cn(
+                            "transition-colors",
+                            activity.type === 'check_in' 
+                              ? "hover:bg-success/5 border-l-2 border-l-transparent hover:border-l-success" 
+                              : "hover:bg-warning/5 border-l-2 border-l-transparent hover:border-l-warning"
+                          )}
+                        >
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <div className={`p-1.5 rounded-full ${
-                                activity.type === 'check_in' 
-                                  ? 'bg-success/20' 
-                                  : 'bg-warning/20'
-                              }`}>
+                              <div className={cn(
+                                "p-1.5 rounded-full",
+                                activity.type === 'check_in' ? 'bg-success/15' : 'bg-warning/15'
+                              )}>
                                 {activity.type === 'check_in' ? (
                                   <LogIn className="h-4 w-4 text-success" />
                                 ) : (
@@ -518,33 +528,36 @@ export default function Dashboard() {
           {/* Side Widgets */}
           <div className="grid grid-cols-2 lg:grid-cols-1 gap-3 sm:gap-4">
             {/* Weather Widget */}
-            <Card className="bg-primary text-primary-foreground">
-              <CardContent className="p-4 sm:p-6">
+            <Card className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground border-0 overflow-hidden relative">
+              <CardContent className="p-4 sm:p-6 relative z-10">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0">
-                    <p className="text-xs sm:text-sm opacity-80">Weather</p>
-                    <p className="text-2xl sm:text-3xl font-bold">
+                    <p className="text-xs sm:text-sm opacity-70 font-medium">Weather</p>
+                    <p className="text-2xl sm:text-3xl font-bold mt-1">
                       {weather?.temperature || '--'}°C
                     </p>
-                    <p className="text-xs sm:text-sm opacity-80 truncate">{weather?.location}</p>
+                    <p className="text-xs sm:text-sm opacity-70 truncate mt-1">{weather?.condition}</p>
+                    <p className="text-[10px] sm:text-xs opacity-50 truncate">{weather?.location}</p>
                   </div>
-                  <Cloud className="h-8 w-8 sm:h-12 sm:w-12 opacity-80 shrink-0" />
+                  <Sun className="h-10 w-10 sm:h-14 sm:w-14 opacity-30 shrink-0" />
                 </div>
               </CardContent>
+              {/* Decorative circle */}
+              <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-primary-foreground/5" />
             </Card>
 
             {/* Exchange Rate Widget */}
-            <Card>
+            <Card className="overflow-hidden">
               <CardContent className="p-4 sm:p-6">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0">
-                    <p className="text-xs sm:text-sm text-muted-foreground">USD Rate</p>
-                    <p className="text-xl sm:text-2xl font-bold text-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground font-medium">USD → LKR</p>
+                    <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
                       Rs. {exchangeRate?.usdToLkr?.toFixed(2) || '--'}
                     </p>
-                    <p className="text-xs text-muted-foreground hidden sm:block">Real-time market rate</p>
+                    <p className="text-xs text-muted-foreground/70 hidden sm:block mt-1">Real-time market rate</p>
                   </div>
-                  <div className="p-2 sm:p-3 rounded-xl bg-success/10 shrink-0">
+                  <div className="p-2.5 sm:p-3 rounded-xl bg-success/10 shrink-0">
                     <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-success" />
                   </div>
                 </div>

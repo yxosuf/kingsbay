@@ -73,7 +73,6 @@ export function DashboardAvailabilityCalendar() {
       const startDate = format(dateRange[0], 'yyyy-MM-dd');
       const endDate = format(dateRange[dateRange.length - 1], 'yyyy-MM-dd');
 
-      // Fetch rooms
       const { data: roomData, error: roomError } = await supabase
         .from('rooms')
         .select('id, room_number, room_type, status')
@@ -83,7 +82,6 @@ export function DashboardAvailabilityCalendar() {
       if (roomError) throw roomError;
       setRooms(roomData || []);
 
-      // Fetch bookings for the date range (include needs_review for hold display)
       const { data: bookingData, error: bookingError } = await supabase
         .from('bookings')
         .select(`
@@ -106,7 +104,6 @@ export function DashboardAvailabilityCalendar() {
         guest: Array.isArray(b.guest) ? b.guest[0] : b.guest
       })) as Booking[]);
 
-      // Fetch room availability blocks
       const { data: availabilityData, error: availabilityError } = await supabase
         .from('room_availability')
         .select('id, room_id, date, is_available, blocked_reason')
@@ -126,7 +123,6 @@ export function DashboardAvailabilityCalendar() {
   const getCellStatus = (room: Room, date: Date) => {
     const dateStr = toDateString(date);
 
-    // Check for manual blocks
     const block = availability.find(
       a => a.room_id === room.id && a.date === dateStr && !a.is_available
     );
@@ -139,10 +135,8 @@ export function DashboardAvailabilityCalendar() {
       };
     }
 
-    // Check for bookings using string comparison: [check_in, check_out)
     const booking = bookings.find(b => {
       if (b.room_id !== room.id) return false;
-      // needs_review: only block if hold has NOT expired
       if (b.status === 'needs_review') {
         if (!b.hold_expires_at) return false;
         if (new Date(b.hold_expires_at) <= new Date()) return false;
@@ -156,7 +150,7 @@ export function DashboardAvailabilityCalendar() {
           status: 'held',
           label: 'H',
           tooltip: `${booking.guest?.name || 'Guest'} (Hold - Needs Review)`,
-          className: 'bg-orange-500/20 text-orange-700 dark:text-orange-400',
+          className: 'bg-warning/15 text-warning border border-warning/20',
         };
       }
       const isOccupied = booking.status === 'checked_in';
@@ -165,12 +159,11 @@ export function DashboardAvailabilityCalendar() {
         label: isOccupied ? 'O' : 'R',
         tooltip: `${booking.guest?.name || 'Guest'} (${isOccupied ? 'Occupied' : 'Reserved'})`,
         className: isOccupied
-          ? 'bg-destructive/20 text-destructive'
-          : 'bg-warning/20 text-warning',
+          ? 'bg-destructive/12 text-destructive border border-destructive/15'
+          : 'bg-info/12 text-info border border-info/15',
       };
     }
 
-    // Room is in maintenance
     if (room.status === 'maintenance') {
       return {
         status: 'maintenance',
@@ -196,7 +189,7 @@ export function DashboardAvailabilityCalendar() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-          <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
+          <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
           Room Availability (7 Days)
         </CardTitle>
         <Button 
@@ -233,7 +226,7 @@ export function DashboardAvailabilityCalendar() {
                         key={date.toISOString()} 
                         className={cn(
                           "p-1 sm:p-1.5 text-center text-xs font-medium min-w-[40px] sm:min-w-[50px]",
-                          isToday(date) && "bg-primary/10 rounded-t"
+                          isToday(date) && "bg-primary/5 rounded-t"
                         )}
                       >
                         <div className="text-muted-foreground">{format(date, 'EEE')}</div>
@@ -249,7 +242,7 @@ export function DashboardAvailabilityCalendar() {
                 </thead>
                 <tbody>
                   {rooms.slice(0, 8).map(room => (
-                    <tr key={room.id} className="hover:bg-muted/30">
+                    <tr key={room.id} className="hover:bg-muted/20 transition-colors">
                       <td className="sticky left-0 bg-card z-10 p-1.5 sm:p-2 border-t">
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -269,14 +262,14 @@ export function DashboardAvailabilityCalendar() {
                             key={date.toISOString()} 
                             className={cn(
                               "p-0.5 sm:p-1 border-t text-center",
-                              isToday(date) && "bg-primary/5"
+                              isToday(date) && "bg-primary/[0.03]"
                             )}
                           >
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <div 
                                   className={cn(
-                                    "h-6 sm:h-7 rounded flex items-center justify-center text-xs font-medium cursor-default",
+                                    "h-6 sm:h-7 rounded-md flex items-center justify-center text-xs font-medium cursor-default transition-colors",
                                     cell.className
                                   )}
                                 >
@@ -301,22 +294,22 @@ export function DashboardAvailabilityCalendar() {
               )}
             </div>
 
-            {/* Legend */}
-            <div className="flex flex-wrap gap-3 sm:gap-4 mt-3 pt-3 border-t">
+            {/* Legend with pill-shaped indicators */}
+            <div className="flex flex-wrap gap-3 sm:gap-4 mt-4 pt-3 border-t">
               <div className="flex items-center gap-1.5">
-                <div className="w-5 h-5 rounded bg-success/10 flex items-center justify-center text-success text-xs">✓</div>
+                <div className="w-6 h-5 rounded-md bg-success/10 flex items-center justify-center text-success text-xs font-medium">✓</div>
                 <span className="text-xs text-muted-foreground">Available</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="w-5 h-5 rounded bg-warning/20 flex items-center justify-center text-warning text-xs">R</div>
+                <div className="w-6 h-5 rounded-md bg-info/12 border border-info/15 flex items-center justify-center text-info text-xs font-medium">R</div>
                 <span className="text-xs text-muted-foreground">Reserved</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="w-5 h-5 rounded bg-destructive/20 flex items-center justify-center text-destructive text-xs">O</div>
+                <div className="w-6 h-5 rounded-md bg-destructive/12 border border-destructive/15 flex items-center justify-center text-destructive text-xs font-medium">O</div>
                 <span className="text-xs text-muted-foreground">Occupied</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="w-5 h-5 rounded bg-muted flex items-center justify-center text-muted-foreground text-xs">✕</div>
+                <div className="w-6 h-5 rounded-md bg-muted flex items-center justify-center text-muted-foreground text-xs font-medium">✕</div>
                 <span className="text-xs text-muted-foreground">Blocked</span>
               </div>
             </div>

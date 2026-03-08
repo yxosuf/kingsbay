@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface Notification {
@@ -26,7 +26,6 @@ interface Notification {
 export function NotificationBell() {
   const navigate = useNavigate();
   const { selectedProperty, showAllProperties } = useProperty();
-  const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -41,7 +40,6 @@ export function NotificationBell() {
         .order('created_at', { ascending: false })
         .limit(20);
 
-      // Filter by property if one is selected
       if (selectedProperty && !showAllProperties) {
         query = query.eq('property_id', selectedProperty.id);
       }
@@ -61,7 +59,6 @@ export function NotificationBell() {
     fetchNotifications();
   }, [selectedProperty, showAllProperties]);
 
-  // Real-time subscription
   useEffect(() => {
     const channel = supabase
       .channel('notifications-changes')
@@ -84,7 +81,6 @@ export function NotificationBell() {
   }, [selectedProperty, showAllProperties]);
 
   const handleNotificationClick = async (notification: Notification) => {
-    // Mark as read
     if (!notification.is_read) {
       await supabase
         .from('notifications')
@@ -96,7 +92,6 @@ export function NotificationBell() {
       );
     }
 
-    // Navigate if link exists
     if (notification.link) {
       setOpen(false);
       navigate(notification.link);
@@ -117,15 +112,10 @@ export function NotificationBell() {
       if (error) throw error;
 
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-      toast({
-        title: 'All notifications marked as read',
-      });
+      toast.success('All notifications marked as read');
     } catch (error) {
       console.error('Error marking all as read:', error);
-      toast({
-        title: 'Failed to mark notifications as read',
-        variant: 'destructive',
-      });
+      toast.error('Failed to mark notifications as read');
     }
   };
 
