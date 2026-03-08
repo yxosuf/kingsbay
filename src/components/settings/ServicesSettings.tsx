@@ -38,6 +38,13 @@ const categoryIcons: Record<ServiceCategory, typeof UtensilsCrossed> = {
 
 const categoryLabels: Record<ServiceCategory, string> = {
   room_service: 'Room Service',
+  transport: 'Transport',
+  facilities: 'Facilities',
+  special_request: 'Special',
+};
+
+const categoryLabelsFull: Record<ServiceCategory, string> = {
+  room_service: 'Room Service',
   transport: 'Transport & Tours',
   facilities: 'Facilities & Spa',
   special_request: 'Special Requests',
@@ -183,12 +190,17 @@ export function ServicesSettings() {
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-        <TabsList className="w-full flex flex-wrap h-auto gap-1">
-          <TabsTrigger value="all" className="flex-1 min-w-[80px] text-xs sm:text-sm">All</TabsTrigger>
-          {Object.entries(categoryLabels).map(([key, label]) => (
-            <TabsTrigger key={key} value={key} className="flex-1 min-w-[80px] text-xs sm:text-sm">{label}</TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="overflow-x-auto -mx-1 px-1">
+          <TabsList className="inline-flex w-auto min-w-full sm:w-full h-auto gap-0.5 p-1">
+            <TabsTrigger value="all" className="px-2.5 py-1.5 text-xs sm:text-sm whitespace-nowrap">All</TabsTrigger>
+            {Object.entries(categoryLabels).map(([key, label]) => (
+              <TabsTrigger key={key} value={key} className="px-2.5 py-1.5 text-xs sm:text-sm whitespace-nowrap">
+                <span className="sm:hidden">{label}</span>
+                <span className="hidden sm:inline">{categoryLabelsFull[key as ServiceCategory]}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
         <TabsContent value={activeTab} className="mt-6">
           {loading ? (
@@ -221,7 +233,7 @@ export function ServicesSettings() {
                           </div>
                           <div className="min-w-0">
                             <p className="font-medium text-sm truncate">{service.name}</p>
-                            <p className="text-xs text-muted-foreground">{categoryLabels[service.category]}</p>
+                            <p className="text-xs text-muted-foreground">{categoryLabelsFull[service.category]}</p>
                           </div>
                         </div>
                         <Badge variant={service.is_active ? 'success' : 'secondary'} className="shrink-0 text-[10px]">
