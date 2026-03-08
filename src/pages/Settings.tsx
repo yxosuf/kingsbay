@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,10 +29,26 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Plus, UserPlus, Trash2, Shield, Hotel, Users, Clock, UtensilsCrossed, 
   Link2, FileText, AlertTriangle, ShieldCheck, Building2, User, 
-  Megaphone, Lock, ChevronRight, HeartPulse, ArrowLeft, BellRing, SlidersHorizontal, DollarSign
+  Megaphone, Lock, ChevronRight, HeartPulse, ArrowLeft, BellRing, SlidersHorizontal, DollarSign,
+  Search, Star, StarOff, Command
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -50,6 +66,7 @@ import { OtherSettings } from '@/components/settings/OtherSettings';
 import { RateManagementSettings } from '@/components/settings/RateManagementSettings';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useUserSettings } from '@/hooks/useUserSettings';
 
 interface StaffMember {
   user_id: string;
@@ -66,18 +83,41 @@ interface PendingUser {
 
 type SettingsSection = 'access' | 'property' | 'rates' | 'notifications' | 'guests' | 'services' | 'channels' | 'reports' | 'security' | 'system-health' | 'other';
 
-const SETTINGS_NAV: { id: SettingsSection; label: string; icon: typeof Shield; description: string; adminOnly?: boolean }[] = [
-  { id: 'access', label: 'Access & Roles', icon: ShieldCheck, description: 'Users, staff, and permissions' },
-  { id: 'property', label: 'Property', icon: Building2, description: 'Name, times, currency, tax' },
-  { id: 'rates', label: 'Rate Management', icon: DollarSign, description: 'Plans, seasons, pricing', adminOnly: true },
-  { id: 'notifications', label: 'Notifications', icon: BellRing, description: 'Alert preferences & delivery' },
-  { id: 'guests', label: 'Guest Settings', icon: User, description: 'Guest list and management' },
-  { id: 'services', label: 'Services', icon: UtensilsCrossed, description: 'Service catalog and pricing' },
-  { id: 'channels', label: 'Channel Manager', icon: Megaphone, description: 'OTA connections and sync' },
-  { id: 'reports', label: 'Reports', icon: FileText, description: 'Reports and data exports' },
-  { id: 'security', label: 'Security & Data', icon: Lock, description: 'Data management and danger zone', adminOnly: true },
-  { id: 'system-health', label: 'System Health', icon: HeartPulse, description: 'Diagnostics and validation', adminOnly: true },
-  { id: 'other', label: 'Other Settings', icon: SlidersHorizontal, description: 'Pages, theme, preferences' },
+interface SectionConfig {
+  id: SettingsSection;
+  label: string;
+  icon: typeof Shield;
+  description: string;
+  keywords: string[];
+  adminOnly?: boolean;
+}
+
+interface GroupConfig {
+  id: string;
+  label: string;
+  sections: SectionConfig[];
+}
+
+const SECTION_CONFIG: SectionConfig[] = [
+  { id: 'property', label: 'Property', icon: Building2, description: 'Name, times, currency, tax', keywords: ['hotel', 'name', 'check-in', 'checkout', 'currency', 'tax', 'timezone'] },
+  { id: 'other', label: 'Other Settings', icon: SlidersHorizontal, description: 'Pages, theme, preferences', keywords: ['theme', 'dark mode', 'light mode', 'sidebar', 'landing page'] },
+  { id: 'rates', label: 'Rate Management', icon: DollarSign, description: 'Plans, seasons, pricing', keywords: ['pricing', 'rates', 'seasons', 'discounts', 'occupancy'], adminOnly: true },
+  { id: 'services', label: 'Services', icon: UtensilsCrossed, description: 'Service catalog and pricing', keywords: ['services', 'amenities', 'extras', 'add-ons'] },
+  { id: 'channels', label: 'Channel Manager', icon: Megaphone, description: 'OTA connections and sync', keywords: ['ota', 'booking.com', 'airbnb', 'expedia', 'agoda', 'ical'] },
+  { id: 'access', label: 'Access & Roles', icon: ShieldCheck, description: 'Users, staff, and permissions', keywords: ['users', 'staff', 'roles', 'permissions', 'admin', 'manager'] },
+  { id: 'guests', label: 'Guest Settings', icon: User, description: 'Guest list and management', keywords: ['guests', 'customers', 'vip', 'blacklist'] },
+  { id: 'notifications', label: 'Notifications', icon: BellRing, description: 'Alert preferences & delivery', keywords: ['alerts', 'notifications', 'push', 'email'] },
+  { id: 'reports', label: 'Reports', icon: FileText, description: 'Reports and data exports', keywords: ['reports', 'export', 'analytics', 'statistics'] },
+  { id: 'security', label: 'Security & Data', icon: Lock, description: 'Data management and danger zone', keywords: ['danger', 'delete', 'reset', 'clear data', 'security'], adminOnly: true },
+  { id: 'system-health', label: 'System Health', icon: HeartPulse, description: 'Diagnostics and validation', keywords: ['health', 'diagnostics', 'validation', 'errors'], adminOnly: true },
+];
+
+const GROUPS: GroupConfig[] = [
+  { id: 'basics', label: 'Basics', sections: SECTION_CONFIG.filter(s => ['property', 'other'].includes(s.id)) },
+  { id: 'operations', label: 'Operations', sections: SECTION_CONFIG.filter(s => ['rates', 'services', 'channels'].includes(s.id)) },
+  { id: 'people', label: 'People', sections: SECTION_CONFIG.filter(s => ['access', 'guests'].includes(s.id)) },
+  { id: 'comms', label: 'Comms & Insights', sections: SECTION_CONFIG.filter(s => ['notifications', 'reports'].includes(s.id)) },
+  { id: 'advanced', label: 'Advanced', sections: SECTION_CONFIG.filter(s => ['security', 'system-health'].includes(s.id)) },
 ];
 
 // Map old tab names to new section IDs for backward compatibility
@@ -90,11 +130,13 @@ const TAB_ALIAS: Record<string, SettingsSection> = {
 
 export default function Settings() {
   const { isAdmin, user, canWrite, loading: authLoading, role } = useAuth();
+  const { settings: userSettings, saveSettings: saveUserSettings } = useUserSettings();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const rawTab = searchParams.get('tab') || 'access';
+  const rawTab = searchParams.get('tab') || 'property';
   const activeSection: SettingsSection = (TAB_ALIAS[rawTab] || rawTab) as SettingsSection;
 
   const setActiveSection = (section: SettingsSection) => {
@@ -112,6 +154,35 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [newEmail, setNewEmail] = useState('');
   const [newRole, setNewRole] = useState('front_desk');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+
+  // Debounced search
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Cmd+K keyboard shortcut
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Auto-expand group containing active section
+  useEffect(() => {
+    const group = GROUPS.find(g => g.sections.some(s => s.id === activeSection));
+    if (group && !expandedGroups.includes(group.id)) {
+      setExpandedGroups(prev => [...prev, group.id]);
+    }
+  }, [activeSection]);
 
   useEffect(() => {
     if (!authLoading && (!user || !role)) {
@@ -123,6 +194,48 @@ export default function Settings() {
     fetchStaff();
     fetchPendingUsers();
   }, []);
+
+  const favoriteSettings = userSettings.favorite_settings || [];
+
+  const toggleFavorite = (sectionId: string) => {
+    const newFavorites = favoriteSettings.includes(sectionId)
+      ? favoriteSettings.filter(f => f !== sectionId)
+      : [...favoriteSettings, sectionId];
+    saveUserSettings({ favorite_settings: newFavorites });
+  };
+
+  const visibleSections = useMemo(() => {
+    return SECTION_CONFIG.filter(s => !s.adminOnly || isAdmin);
+  }, [isAdmin]);
+
+  const filteredGroups = useMemo(() => {
+    if (!debouncedSearch.trim()) {
+      return GROUPS.map(g => ({
+        ...g,
+        sections: g.sections.filter(s => !s.adminOnly || isAdmin)
+      })).filter(g => g.sections.length > 0);
+    }
+
+    const query = debouncedSearch.toLowerCase();
+    return GROUPS.map(g => ({
+      ...g,
+      sections: g.sections.filter(s => {
+        if (s.adminOnly && !isAdmin) return false;
+        return (
+          s.label.toLowerCase().includes(query) ||
+          s.description.toLowerCase().includes(query) ||
+          s.keywords.some(k => k.toLowerCase().includes(query))
+        );
+      })
+    })).filter(g => g.sections.length > 0);
+  }, [debouncedSearch, isAdmin]);
+
+  const favoriteSections = useMemo(() => {
+    return visibleSections.filter(s => favoriteSettings.includes(s.id));
+  }, [visibleSections, favoriteSettings]);
+
+  const currentSection = SECTION_CONFIG.find(s => s.id === activeSection);
+  const currentGroup = GROUPS.find(g => g.sections.some(s => s.id === activeSection));
 
   const fetchStaff = async () => {
     try {
@@ -300,8 +413,6 @@ export default function Settings() {
     );
   };
 
-  const visibleNav = SETTINGS_NAV.filter(item => !item.adminOnly || isAdmin);
-
   const renderContent = () => {
     switch (activeSection) {
       case 'access':
@@ -327,7 +438,7 @@ export default function Settings() {
       case 'other':
         return <OtherSettings />;
       default:
-        return renderAccessRoles();
+        return <HotelSettings />;
     }
   };
 
@@ -477,8 +588,8 @@ export default function Settings() {
                         {member.user_id !== user?.id && (
                           <Button
                             variant="ghost"
-                            size="icon"
-                            className="text-destructive"
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
                             onClick={() => handleRemoveStaff(member.user_id)}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -493,189 +604,250 @@ export default function Settings() {
           )}
         </CardContent>
       </Card>
-
-      {/* Role Permissions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Role Permissions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {[
-              { role: 'admin', title: 'Admin', desc: 'Full access to all features including staff management, room configuration, and service settings.' },
-              { role: 'manager', title: 'Manager', desc: 'Can manage bookings, view reports, update room status. Cannot manage staff or system settings.' },
-              { role: 'front_desk', title: 'Front Desk', desc: 'Can create/edit bookings, check-in/out guests, add services to guest accounts.' },
-              { role: 'viewer', title: 'Viewer', desc: 'Read-only access. Can view dashboard, bookings, availability, guests, and reports. Cannot create, edit, or delete anything.' },
-            ].map(({ role, title, desc }) => (
-              <div key={role} className="flex items-start gap-4">
-                {getRoleBadge(role)}
-                <div>
-                  <p className="font-medium">{title}</p>
-                  <p className="text-sm text-muted-foreground">{desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 
-  // Auth guard
+  const renderSidebar = () => (
+    <div className="flex flex-col h-full">
+      {/* Favorites Section */}
+      {favoriteSections.length > 0 && (
+        <div className="px-3 py-2">
+          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+            <Star className="h-3 w-3" />
+            Favorites
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {favoriteSections.map(section => {
+              const Icon = section.icon;
+              return (
+                <Button
+                  key={section.id}
+                  variant={activeSection === section.id ? 'secondary' : 'ghost'}
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => setActiveSection(section.id)}
+                >
+                  <Icon className="h-3 w-3 mr-1" />
+                  {section.label}
+                </Button>
+              );
+            })}
+          </div>
+          <Separator className="mt-3" />
+        </div>
+      )}
+
+      {/* Groups Accordion */}
+      <ScrollArea className="flex-1">
+        <Accordion
+          type="multiple"
+          value={expandedGroups}
+          onValueChange={setExpandedGroups}
+          className="px-2"
+        >
+          {filteredGroups.map(group => (
+            <AccordionItem key={group.id} value={group.id} className="border-none">
+              <AccordionTrigger className="py-2 px-2 hover:no-underline hover:bg-muted/50 rounded-lg text-sm font-medium">
+                <span className="flex items-center gap-2">
+                  {group.label}
+                  <Badge variant="secondary" className="h-5 text-[10px] font-normal">
+                    {group.sections.length}
+                  </Badge>
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="pb-1 pt-0">
+                <div className="flex flex-col gap-0.5 pl-2">
+                  {group.sections.map(section => {
+                    const Icon = section.icon;
+                    const isActive = activeSection === section.id;
+                    const isFavorite = favoriteSettings.includes(section.id);
+                    return (
+                      <div
+                        key={section.id}
+                        className={cn(
+                          'group flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition-colors',
+                          isActive ? 'bg-primary/10 text-primary' : 'hover:bg-muted/50'
+                        )}
+                        onClick={() => setActiveSection(section.id)}
+                      >
+                        <Icon className="h-4 w-4 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate">{section.label}</div>
+                          <div className="text-xs text-muted-foreground truncate">{section.description}</div>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFavorite(section.id);
+                          }}
+                          className={cn(
+                            'opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-background',
+                            isFavorite && 'opacity-100'
+                          )}
+                        >
+                          {isFavorite ? (
+                            <Star className="h-3.5 w-3.5 fill-warning text-warning" />
+                          ) : (
+                            <StarOff className="h-3.5 w-3.5 text-muted-foreground" />
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      </ScrollArea>
+    </div>
+  );
+
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
   }
 
-  if (!user || !role) {
-    return null;
-  }
-
   return (
-    <div className="flex flex-col h-screen bg-background">
-      {/* Top header with back button */}
-      <header className="h-14 shrink-0 border-b border-border bg-card flex items-center px-4 gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate('/')}
-          className="shrink-0"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <Separator orientation="vertical" className="h-6" />
-        <h1 className="text-lg font-semibold text-foreground">Settings</h1>
-      </header>
-
-      {/* Body */}
-      <div className={cn(
-        "flex flex-1 overflow-hidden",
-        isMobile ? "flex-col" : "flex-row"
-      )}>
-        {/* Settings navigation */}
-        {isMobile ? (
-          <div className="flex gap-2 overflow-x-auto p-3 border-b border-border shrink-0 scrollbar-thin">
-            {visibleNav.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeSection === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveSection(item.id)}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors shrink-0",
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground border"
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          <aside className="w-64 shrink-0 border-r border-border overflow-y-auto bg-card/50">
-            <div className="p-4 border-b border-border bg-muted/30">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Settings
-              </p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                {visibleNav.length} sections
-              </p>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="sticky top-0 z-50 bg-background border-b">
+        <div className="flex items-center gap-4 p-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-xl font-semibold">Settings</h1>
+          <div className="flex-1 max-w-md ml-auto">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                ref={searchInputRef}
+                placeholder="Search settings..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-16"
+              />
+              <kbd className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+                <Command className="h-3 w-3" />K
+              </kbd>
             </div>
-            <nav className="p-2 space-y-0.5">
-              {visibleNav.map((item, idx) => {
-                const Icon = item.icon;
-                const isActive = activeSection === item.id;
-                const showBadge = item.id === 'access' && pendingUsers.length > 0;
-                const isSecuritySection = item.id === 'security';
-                const showSeparator = isSecuritySection && idx > 0;
-                return (
-                  <div key={item.id}>
-                    {showSeparator && <Separator className="my-2" />}
-                    <button
-                      onClick={() => setActiveSection(item.id)}
-                      className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all text-left group relative",
-                        isActive
-                          ? "bg-primary/10 text-primary font-medium"
-                          : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-                        isSecuritySection && !isActive && "text-destructive/70 hover:text-destructive"
-                      )}
-                    >
-                      {isActive && (
-                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-primary rounded-r-full" />
-                      )}
-                      <div className={cn(
-                        "p-1.5 rounded-md transition-colors shrink-0",
-                        isActive
-                          ? "bg-primary/15"
-                          : isSecuritySection && !isActive
-                            ? "bg-destructive/10"
-                            : "bg-muted/60 group-hover:bg-accent"
-                      )}>
-                        <Icon className="h-3.5 w-3.5" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <span className="block text-[13px] leading-tight">{item.label}</span>
-                        <p className={cn(
-                          "text-[10px] truncate mt-0.5 transition-colors",
-                          isActive ? "text-primary/60" : "text-muted-foreground/60"
-                        )}>
-                          {item.description}
-                        </p>
-                      </div>
-                      {showBadge && (
-                        <Badge variant="destructive" className="h-5 min-w-[20px] px-1 flex items-center justify-center text-[10px] shrink-0">
-                          {pendingUsers.length}
-                        </Badge>
-                      )}
-                      <ChevronRight className={cn(
-                        "h-3.5 w-3.5 shrink-0 transition-all",
-                        isActive ? "opacity-100 text-primary" : "opacity-0 group-hover:opacity-40 translate-x-0 group-hover:translate-x-0.5"
-                      )} />
-                    </button>
-                  </div>
-                );
-              })}
-            </nav>
-          </aside>
-        )}
-
-        {/* Content Area */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <div className="max-w-[1200px] mx-auto">
-            {renderContent()}
           </div>
-        </main>
+        </div>
       </div>
 
-      {/* Add Staff Dialog */}
+      <div className="flex h-[calc(100vh-73px)]">
+        {/* Sidebar - Desktop */}
+        {!isMobile && (
+          <div className="w-72 border-r bg-muted/30 flex-shrink-0">
+            {renderSidebar()}
+          </div>
+        )}
+
+        {/* Main Content */}
+        <div className="flex-1 overflow-auto">
+          <div className="p-6 max-w-4xl mx-auto">
+            {/* Breadcrumbs */}
+            <Breadcrumb className="mb-4">
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink href="/settings">Settings</BreadcrumbLink>
+                </BreadcrumbItem>
+                {currentGroup && (
+                  <>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <BreadcrumbPage className="text-muted-foreground">{currentGroup.label}</BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </>
+                )}
+                {currentSection && (
+                  <>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <BreadcrumbPage>{currentSection.label}</BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </>
+                )}
+              </BreadcrumbList>
+            </Breadcrumb>
+
+            {/* Mobile Navigation */}
+            {isMobile && (
+              <div className="mb-6">
+                <Accordion
+                  type="multiple"
+                  value={expandedGroups}
+                  onValueChange={setExpandedGroups}
+                >
+                  {filteredGroups.map(group => (
+                    <AccordionItem key={group.id} value={group.id}>
+                      <AccordionTrigger className="text-sm">
+                        <span className="flex items-center gap-2">
+                          {group.label}
+                          <Badge variant="secondary" className="h-5 text-[10px]">
+                            {group.sections.length}
+                          </Badge>
+                        </span>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="flex flex-col gap-1">
+                          {group.sections.map(section => {
+                            const Icon = section.icon;
+                            const isActive = activeSection === section.id;
+                            return (
+                              <Button
+                                key={section.id}
+                                variant={isActive ? 'secondary' : 'ghost'}
+                                className="justify-start h-auto py-2"
+                                onClick={() => setActiveSection(section.id)}
+                              >
+                                <Icon className="h-4 w-4 mr-2" />
+                                <div className="text-left">
+                                  <div className="font-medium">{section.label}</div>
+                                  <div className="text-xs text-muted-foreground">{section.description}</div>
+                                </div>
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </div>
+            )}
+
+            {/* Section Content */}
+            {renderContent()}
+          </div>
+        </div>
+      </div>
+
+      {/* Dialogs */}
       <Dialog open={showAddStaff} onOpenChange={setShowAddStaff}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add Staff Member</DialogTitle>
             <DialogDescription>
-              Add an existing user as a staff member. They must have signed up first.
+              Add a new staff member by their email. They must have signed up first.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Email Address</Label>
+              <Label htmlFor="email">Email Address</Label>
               <Input
+                id="email"
                 type="email"
+                placeholder="staff@hotel.com"
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
-                placeholder="staff@kingsbay.com"
               />
             </div>
             <div className="space-y-2">
-              <Label>Role</Label>
+              <Label htmlFor="role">Role</Label>
               <Select value={newRole} onValueChange={setNewRole}>
                 <SelectTrigger>
                   <SelectValue />
@@ -700,40 +872,26 @@ export default function Settings() {
         </DialogContent>
       </Dialog>
 
-      {/* Assign Role Dialog */}
-      <Dialog open={showAssignRole} onOpenChange={(open) => {
-        setShowAssignRole(open);
-        if (!open) {
-          setSelectedUser(null);
-          setAssignRole('front_desk');
-        }
-      }}>
+      <Dialog open={showAssignRole} onOpenChange={setShowAssignRole}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Assign Role</DialogTitle>
             <DialogDescription>
-              Assign a role to {selectedUser?.full_name || selectedUser?.email || 'this user'} to grant them access to the system.
+              Assign a role to {selectedUser?.full_name || selectedUser?.email}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>User</Label>
-              <Input
-                value={`${selectedUser?.full_name || 'No name'} (${selectedUser?.email || 'No email'})`}
-                disabled
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Role</Label>
-              <Select value={assignRole} onValueChange={(v) => setAssignRole(v as 'admin' | 'manager' | 'front_desk')}>
+              <Label htmlFor="assign-role">Role</Label>
+              <Select value={assignRole} onValueChange={(v: any) => setAssignRole(v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin - Full access</SelectItem>
-                  <SelectItem value="manager">Manager - Manage bookings & reports</SelectItem>
-                  <SelectItem value="front_desk">Front Desk - Basic operations</SelectItem>
-                  <SelectItem value="viewer">Viewer - Read-only access</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="front_desk">Front Desk</SelectItem>
+                  <SelectItem value="viewer">Viewer</SelectItem>
                 </SelectContent>
               </Select>
             </div>

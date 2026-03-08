@@ -1,86 +1,51 @@
+# Kings Bay PMS — Implementation Complete ✅
 
+All plan items have been implemented and verified.
 
-# Settings Page Redesign Plan
+## Phase 1 — Critical Fixes ✅
+| # | Item |
+|---|------|
+| 1 | Viewer Role RLS — `is_write_staff()`, write-restricted policies |
+| 2 | Availability Calendar — `[check_in, check_out)` string comparison |
+| 3 | Hybrid Hold System — `hold_expires_at`, edge function, countdown UI |
+| 4 | Cleaning Timer — `cleaning_until`, edge function, auto-release |
+| 5 | Rooms Derived Status — Occupied/Due Out/Arriving/Cleaning/Dirty/Inspected/Clean |
+| 6 | Guests in Settings — Tab, `/guests` redirect, guest details with services |
+| 7 | Guest Retention — `archived_at`/`deleted_at`, edge function, filters |
+| 8 | Nationality + Phone Code — Country selector, `countryData.ts` |
+| 9 | FX Rate System — `CurrencyDisplay`, `useFxRate`, edge function |
+| 10 | Danger Zone — Admin-only, password confirm, per-property, audit |
 
-## Overview
+## Phase 2 — Operational ✅
+| # | Item |
+|---|------|
+| 11 | Front Desk Speed Mode — Quick actions, arrivals/departures |
+| 12 | Channel Manager — iCal, email inbound, needs_review flow |
+| 13 | Housekeeping Board — Drag-drop (Dirty→Cleaning→Clean→Inspected), staff assignment |
+| 14 | Notifications — Bell, preferences, edge functions |
+| 15 | Data Quality — Duplicate detection (phone/email/passport/NIC), admin merge tool |
 
-Replace the current flat 11-tab settings page with a grouped, searchable dashboard layout using 5 collapsible category groups, a global search bar, and favorites pinning.
+## Phase 3 — Finance ✅
+| # | Item |
+|---|------|
+| 16 | Booking Transactions Ledger — `booking_transactions`, TransactionsTab |
+| 17 | Accounting Layer — `ledger_accounts/entries/lines`, auto-posting |
 
-## Architecture
+## Phase 4 ✅
+| # | Item |
+|---|------|
+| 18 | System Health Monitor — `/settings?tab=system-health`, admin checks |
 
-The existing settings components (`HotelSettings`, `RateManagementSettings`, `ServicesSettings`, etc.) remain **unchanged**. Only `Settings.tsx` is rewritten to group and present them differently.
+## Additional Features ✅
+- Guest Email System (Resend) — booking_confirmation, pre_arrival, checkout_summary
+- Guest Feedback System — dialog, display, reports, dashboard widget
+- Printable Invoice — react-to-print
+- PWA Support — service worker, manifest
+- Extend Stay / Move Room dialogs
+- Add Service Dialog with category filtering
+- Reports (Occupancy, Revenue, Financial, Feedback)
+- Mobile Responsive — bottom nav, responsive tables/tabs
+- Passport Photo Upload — secure storage in guest-documents bucket
+- Guest Details — services purchased with totals, VIP/blacklist badges
 
-### New Layout Structure
-
-```text
-┌─────────────────────────────────────────────────┐
-│ ← Back   Settings              ⌘K Search...    │
-├─────────────────────────────────────────────────┤
-│ ★ Favorites: [Rate Management] [Security]       │
-├────────────┬────────────────────────────────────┤
-│ Sidebar    │ Content Area                       │
-│            │                                    │
-│ ▼ Basics   │  [Active section component]        │
-│   Property │                                    │
-│   Other    │                                    │
-│            │                                    │
-│ ▸ Operations                                    │
-│ ▸ People   │                                    │
-│ ▸ Comms    │                                    │
-│ ▸ Advanced │                                    │
-└────────────┴────────────────────────────────────┘
-```
-
-Mobile: Sidebar collapses to vertical accordion. Search stays sticky.
-
-### 5 Category Groups
-
-| Group | Sections |
-|-------|----------|
-| Basics | Property, Other Settings |
-| Operations | Rate Management*, Services, Channel Manager |
-| People | Access & Roles, Guest Settings |
-| Comms & Insights | Notifications, Reports |
-| Advanced | Security & Data*, System Health* |
-
-*admin-only sections
-
-### Key Features
-
-1. **Global Search** — Full-width input with 300ms debounce. Matches against section labels, descriptions, and keywords. Filters sidebar to show only matching sections. Cmd+K shortcut opens/focuses search.
-
-2. **Collapsible Groups** — Each category is an accordion in the sidebar. Clicking a section within loads it in the content area. Active section's group auto-expands.
-
-3. **Favorites** — Users can pin/unpin sections. Stored in `user_settings.favorite_settings` (add jsonb column). Pinned sections appear as a horizontal row above the sidebar.
-
-4. **Completion Badges** — Each group shows a simple section count badge (e.g., "2 sections"). No fake completion percentages since settings don't have a "complete" state.
-
-5. **Breadcrumbs** — `Settings > [Group Name] > [Section Name]` displayed above content.
-
-6. **URL Persistence** — Existing `?tab=` deep linking preserved. All old tab aliases still work.
-
-### Database Change
-
-Add `favorite_settings` column to `user_settings`:
-
-```sql
-ALTER TABLE user_settings 
-ADD COLUMN favorite_settings jsonb NOT NULL DEFAULT '[]'::jsonb;
-```
-
-### Files Modified
-
-| File | Change |
-|------|--------|
-| `src/pages/Settings.tsx` | Full rewrite — grouped sidebar, search, favorites, breadcrumbs |
-| `src/hooks/useUserSettings.tsx` | Add `favorite_settings` to the interface and fetch/save logic |
-| Migration SQL | Add `favorite_settings` column |
-
-### Implementation Details
-
-- No new dependencies needed — uses existing Radix Accordion, Input, Badge components
-- Search uses simple string matching against section label + description + keyword array
-- Keyboard shortcut (Cmd+K / Ctrl+K) via `useEffect` keydown listener
-- Mobile: groups render as full-width accordions, search is sticky top
-- All 11 existing section components render exactly as before — zero changes to child components
-
+## All items verified and complete. No remaining work.

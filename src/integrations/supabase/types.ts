@@ -1900,6 +1900,7 @@ export type Database = {
         Row: {
           created_at: string
           default_landing_page: string
+          favorite_settings: Json
           hidden_pages: Json
           id: string
           theme: string
@@ -1909,6 +1910,7 @@ export type Database = {
         Insert: {
           created_at?: string
           default_landing_page?: string
+          favorite_settings?: Json
           hidden_pages?: Json
           id?: string
           theme?: string
@@ -1918,6 +1920,7 @@ export type Database = {
         Update: {
           created_at?: string
           default_landing_page?: string
+          favorite_settings?: Json
           hidden_pages?: Json
           id?: string
           theme?: string
