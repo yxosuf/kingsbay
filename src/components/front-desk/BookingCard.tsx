@@ -340,6 +340,21 @@ export function BookingCard({ booking, onActionComplete, badge }: BookingCardPro
         booking={booking}
         onSuccess={onActionComplete}
       />
+
+      {/* Quick Payment Dialog */}
+      {booking.invoices && booking.invoices.length > 0 && (
+        <PaymentDialog
+          open={paymentOpen}
+          onOpenChange={setPaymentOpen}
+          booking={{
+            id: booking.id,
+            guests: booking.guests ? { name: booking.guests.name } : null,
+            rooms: booking.rooms ? { room_number: booking.rooms.room_number } : null,
+            invoices: booking.invoices,
+          }}
+          onSuccess={onActionComplete}
+        />
+      )}
     </>
   );
 }
