@@ -62,6 +62,10 @@ interface BookingDetailsData {
   imported_via: string | null;
   needs_review: boolean | null;
   review_reason: string | null;
+  rate_plan_id: string | null;
+  discount_code_id: string | null;
+  discount_amount: number | null;
+  price_breakdown: any | null;
   guests: {
     id: string;
     name: string;
