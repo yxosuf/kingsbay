@@ -29,7 +29,21 @@ export function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, isAdmin } = useAuth();
+  const { selectedProperty, showAllProperties } = useProperty();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const fetchUnread = async () => {
+      let query = supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('is_read', false);
+      if (selectedProperty && !showAllProperties) query = query.eq('property_id', selectedProperty.id);
+      const { count } = await query;
+      setUnreadCount(count || 0);
+    };
+    fetchUnread();
+    const channel = supabase.channel('bottomnav-notif').on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => fetchUnread()).subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [selectedProperty, showAllProperties]);
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
