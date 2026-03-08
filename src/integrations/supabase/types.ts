@@ -403,6 +403,67 @@ export type Database = {
           },
         ]
       }
+      guest_feedback: {
+        Row: {
+          booking_id: string
+          categories: Json | null
+          comment: string | null
+          created_at: string
+          created_by: string | null
+          guest_id: string
+          id: string
+          property_id: string | null
+          rating: number
+          updated_at: string
+        }
+        Insert: {
+          booking_id: string
+          categories?: Json | null
+          comment?: string | null
+          created_at?: string
+          created_by?: string | null
+          guest_id: string
+          id?: string
+          property_id?: string | null
+          rating: number
+          updated_at?: string
+        }
+        Update: {
+          booking_id?: string
+          categories?: Json | null
+          comment?: string | null
+          created_at?: string
+          created_by?: string | null
+          guest_id?: string
+          id?: string
+          property_id?: string | null
+          rating?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_feedback_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_feedback_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_feedback_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_services: {
         Row: {
           booking_id: string

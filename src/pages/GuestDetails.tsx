@@ -13,13 +13,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ArrowLeft, User, Calendar, Receipt, Edit, MapPin, Phone, Mail, CreditCard } from 'lucide-react';
+import { ArrowLeft, User, Calendar, Receipt, Edit, MapPin, Phone, Mail, CreditCard, Star } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
 import { EditGuestDialog } from '@/components/guest/EditGuestDialog';
 import { useAuth } from '@/hooks/useAuth';
+import { useGuestFeedback } from '@/hooks/useGuestFeedback';
+import { FeedbackSummary, FeedbackCard } from '@/components/feedback/FeedbackDisplay';
 
 interface GuestDetails {
   id: string;
@@ -64,6 +66,9 @@ export default function GuestDetails() {
   const [allServices, setAllServices] = useState<GuestService[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const { feedback: guestFeedback, averageRating, loading: feedbackLoading } = useGuestFeedback({
+    guestId: id,
+  });
 
   useEffect(() => {
     if (id) {
@@ -339,6 +344,15 @@ export default function GuestDetails() {
           <TabsList>
             <TabsTrigger value="bookings">Booking History</TabsTrigger>
             <TabsTrigger value="services">Services Purchased</TabsTrigger>
+            <TabsTrigger value="feedback" className="flex items-center gap-1.5">
+              <Star className="h-3.5 w-3.5" />
+              Feedback
+              {guestFeedback.length > 0 && (
+                <span className="text-xs bg-warning/20 text-warning px-1.5 py-0.5 rounded-full">
+                  {guestFeedback.length}
+                </span>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="bookings" className="mt-6">
@@ -493,6 +507,27 @@ export default function GuestDetails() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="feedback" className="mt-6 space-y-4">
+            <FeedbackSummary feedback={guestFeedback} averageRating={averageRating} />
+            {guestFeedback.length === 0 ? (
+              <Card>
+                <CardContent className="py-10 text-center">
+                  <Star className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">No feedback recorded yet</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">
+                    Feedback can be added from the booking details page after checkout
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {guestFeedback.map((fb) => (
+                  <FeedbackCard key={fb.id} feedback={fb} />
+                ))}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>

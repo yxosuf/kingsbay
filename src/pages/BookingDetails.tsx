@@ -16,7 +16,7 @@ import {
 import {
   User, BedDouble, Calendar, CreditCard, ArrowLeft, Printer, Globe, Plus,
   CalendarPlus, Link as LinkIcon, Mail, AlertTriangle, Phone, AtSign,
-  Hash, Users, Clock, DollarSign, ShoppingBag, MessageSquare, Sparkles,
+  Hash, Users, Clock, DollarSign, ShoppingBag, MessageSquare, Sparkles, Star,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -34,6 +34,9 @@ import { BookingTimeline } from '@/components/booking/BookingTimeline';
 import { BookingStatusBadge } from '@/components/booking/BookingStatusBadge';
 import { AdminStatusOverride } from '@/components/booking/AdminStatusOverride';
 import { cn } from '@/lib/utils';
+import { FeedbackDialog } from '@/components/feedback/FeedbackDialog';
+import { FeedbackCard } from '@/components/feedback/FeedbackDisplay';
+import { useGuestFeedback } from '@/hooks/useGuestFeedback';
 
 interface BookingDetailsData {
   id: string;
@@ -112,9 +115,13 @@ export default function BookingDetails() {
   const [showAddServiceDialog, setShowAddServiceDialog] = useState(false);
   const [linkedBookings, setLinkedBookings] = useState<{id: string; check_in: string; check_out: string; rooms: {room_number: string} | null}[]>([]);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
+  const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState<string | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
   const { fxRate } = useFxRate(booking?.property_id);
+  const { feedback: bookingFeedback, refetch: refetchFeedback } = useGuestFeedback({
+    bookingId: id,
+  });
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -662,13 +669,36 @@ export default function BookingDetails() {
         )}
 
         {/* Print invoice button for checked_out (when floating bar isn't showing) */}
-        {booking.status === 'checked_out' && invoiceNumber && (
-          <div className="flex justify-end">
-            <Button variant="outline" onClick={() => setShowPrintPreview(true)}>
-              <Printer className="h-4 w-4 mr-2" />
-              Print Invoice
-            </Button>
+        {booking.status === 'checked_out' && (
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {canWrite && bookingFeedback.length === 0 && (
+              <Button variant="outline" onClick={() => setShowFeedbackDialog(true)}>
+                <Star className="h-4 w-4 mr-2" />
+                Add Feedback
+              </Button>
+            )}
+            {invoiceNumber && (
+              <Button variant="outline" onClick={() => setShowPrintPreview(true)}>
+                <Printer className="h-4 w-4 mr-2" />
+                Print Invoice
+              </Button>
+            )}
           </div>
+        )}
+
+        {/* Feedback Display */}
+        {bookingFeedback.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Star className="h-4 w-4 text-warning" />
+                Guest Feedback
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FeedbackCard feedback={bookingFeedback[0]} />
+            </CardContent>
+          </Card>
         )}
       </div>
 
@@ -729,6 +759,19 @@ export default function BookingDetails() {
             fetchBookingDetails();
             fetchLinkedBookings();
           }}
+        />
+      )}
+
+      {/* Feedback Dialog */}
+      {booking.guests && (
+        <FeedbackDialog
+          open={showFeedbackDialog}
+          onOpenChange={setShowFeedbackDialog}
+          bookingId={booking.id}
+          guestId={booking.guest_id}
+          guestName={booking.guests.name}
+          propertyId={booking.property_id}
+          onSuccess={refetchFeedback}
         />
       )}
 

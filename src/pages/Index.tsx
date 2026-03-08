@@ -31,6 +31,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { DashboardAvailabilityCalendar } from '@/components/dashboard/DashboardAvailabilityCalendar';
+import { RecentFeedbackWidget } from '@/components/dashboard/RecentFeedbackWidget';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useProperty } from '@/hooks/useProperty';
@@ -652,8 +653,11 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Availability Calendar Widget */}
-        <DashboardAvailabilityCalendar />
+        {/* Feedback & Calendar Widgets */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <RecentFeedbackWidget />
+          <DashboardAvailabilityCalendar />
+        </div>
       </div>
     </DashboardLayout>
   );
