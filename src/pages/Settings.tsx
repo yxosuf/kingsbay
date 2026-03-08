@@ -33,7 +33,7 @@ import {
 import { 
   Plus, UserPlus, Trash2, Shield, Hotel, Users, Clock, UtensilsCrossed, 
   Link2, FileText, AlertTriangle, ShieldCheck, Building2, User, 
-  Megaphone, Lock, ChevronRight
+  Megaphone, Lock, ChevronRight, HeartPulse
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -44,6 +44,7 @@ import { ChannelsSettings } from '@/components/settings/ChannelsSettings';
 import { ReportsSettings } from '@/components/settings/ReportsSettings';
 import { GuestsSettings } from '@/components/settings/GuestsSettings';
 import { DangerZoneSettings } from '@/components/settings/DangerZoneSettings';
+import { SystemHealthSettings } from '@/components/settings/SystemHealthSettings';
 import { HotelSettings } from '@/components/settings/HotelSettings';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -62,7 +63,7 @@ interface PendingUser {
   created_at: string;
 }
 
-type SettingsSection = 'access' | 'property' | 'guests' | 'services' | 'channels' | 'reports' | 'security';
+type SettingsSection = 'access' | 'property' | 'guests' | 'services' | 'channels' | 'reports' | 'security' | 'system-health';
 
 const SETTINGS_NAV: { id: SettingsSection; label: string; icon: typeof Shield; description: string; adminOnly?: boolean }[] = [
   { id: 'access', label: 'Access & Roles', icon: ShieldCheck, description: 'Users, staff, and permissions' },
@@ -72,6 +73,7 @@ const SETTINGS_NAV: { id: SettingsSection; label: string; icon: typeof Shield; d
   { id: 'channels', label: 'Channel Manager', icon: Megaphone, description: 'OTA connections and sync' },
   { id: 'reports', label: 'Reports', icon: FileText, description: 'Reports and data exports' },
   { id: 'security', label: 'Security & Data', icon: Lock, description: 'Data management and danger zone', adminOnly: true },
+  { id: 'system-health', label: 'System Health', icon: HeartPulse, description: 'Diagnostics and validation', adminOnly: true },
 ];
 
 // Map old tab names to new section IDs for backward compatibility
@@ -305,6 +307,8 @@ export default function Settings() {
         return <ReportsSettings />;
       case 'security':
         return isAdmin ? <DangerZoneSettings /> : null;
+      case 'system-health':
+        return isAdmin ? <SystemHealthSettings /> : null;
       default:
         return renderAccessRoles();
     }
