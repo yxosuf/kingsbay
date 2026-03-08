@@ -105,83 +105,45 @@ export default function Dashboard() {
     try {
       const propertyFilter = !showAllProperties && selectedProperty?.id;
       
-      let activeGuestsQuery = supabase
-        .from('bookings')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'checked_in');
-      if (propertyFilter) activeGuestsQuery = activeGuestsQuery.eq('property_id', selectedProperty.id);
-      const { count: activeGuests } = await activeGuestsQuery;
-
       const today = toDateString(new Date());
-      let arrivalsQuery = supabase
-        .from('bookings')
-        .select('*', { count: 'exact', head: true })
-        .eq('check_in', today)
-        .in('status', ['pending', 'confirmed']);
-      if (propertyFilter) arrivalsQuery = arrivalsQuery.eq('property_id', selectedProperty.id);
-      const { count: arrivalsToday } = await arrivalsQuery;
-
-      let totalRoomsQuery = supabase
-        .from('rooms')
-        .select('id')
-        .neq('status', 'maintenance');
-      if (propertyFilter) totalRoomsQuery = totalRoomsQuery.eq('property_id', selectedProperty.id);
-      const { data: allRooms } = await totalRoomsQuery;
-      const totalRoomCount = allRooms?.length || 0;
-
-      let blockedQuery = supabase
-        .from('bookings')
-        .select('room_id')
-        .in('status', ['confirmed', 'checked_in', 'pending', 'needs_review'])
-        .lte('check_in', today)
-        .gt('check_out', today);
-      if (propertyFilter) blockedQuery = blockedQuery.eq('property_id', selectedProperty.id);
-      const { data: blockedBookings } = await blockedQuery;
-      const blockedRoomIds = new Set(blockedBookings?.map(b => b.room_id) || []);
-      const availableRooms = totalRoomCount - blockedRoomIds.size;
-
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
-      
-      let invoicesQuery = supabase
-        .from('invoices')
-        .select('total_amount, property_id')
-        .gte('created_at', startOfMonth.toISOString());
-      if (propertyFilter) invoicesQuery = invoicesQuery.eq('property_id', selectedProperty.id);
-      const { data: invoices } = await invoicesQuery;
-      
+
+      // Build all queries
+      let activeGuestsQ = supabase.from('bookings').select('*', { count: 'exact', head: true }).eq('status', 'checked_in');
+      let arrivalsQ = supabase.from('bookings').select('*', { count: 'exact', head: true }).eq('check_in', today).in('status', ['pending', 'confirmed']);
+      let totalRoomsQ = supabase.from('rooms').select('id').neq('status', 'maintenance');
+      let blockedQ = supabase.from('bookings').select('room_id').in('status', ['confirmed', 'checked_in', 'pending', 'needs_review']).lte('check_in', today).gt('check_out', today);
+      let invoicesQ = supabase.from('invoices').select('total_amount, property_id').gte('created_at', startOfMonth.toISOString());
+      let checkInsQ = supabase.from('bookings').select('id, status, check_in, property_id, guests (name), rooms (room_number)').eq('check_in', today).in('status', ['pending', 'confirmed', 'checked_in']);
+      let checkOutsQ = supabase.from('bookings').select('id, status, check_out, property_id, guests (name), rooms (room_number)').eq('check_out', today).in('status', ['checked_in', 'checked_out']);
+
+      if (propertyFilter) {
+        activeGuestsQ = activeGuestsQ.eq('property_id', selectedProperty.id);
+        arrivalsQ = arrivalsQ.eq('property_id', selectedProperty.id);
+        totalRoomsQ = totalRoomsQ.eq('property_id', selectedProperty.id);
+        blockedQ = blockedQ.eq('property_id', selectedProperty.id);
+        invoicesQ = invoicesQ.eq('property_id', selectedProperty.id);
+        checkInsQ = checkInsQ.eq('property_id', selectedProperty.id);
+        checkOutsQ = checkOutsQ.eq('property_id', selectedProperty.id);
+      }
+
+      // Execute ALL queries in parallel
+      const [
+        { count: activeGuests },
+        { count: arrivalsToday },
+        { data: allRooms },
+        { data: blockedBookings },
+        { data: invoices },
+        { data: checkIns },
+        { data: checkOuts },
+      ] = await Promise.all([activeGuestsQ, arrivalsQ, totalRoomsQ, blockedQ, invoicesQ, checkInsQ, checkOutsQ]);
+
+      const totalRoomCount = allRooms?.length || 0;
+      const blockedRoomIds = new Set(blockedBookings?.map(b => b.room_id) || []);
+      const availableRooms = totalRoomCount - blockedRoomIds.size;
       const totalRevenue = invoices?.reduce((sum, i) => sum + Number(i.total_amount), 0) || 0;
-
-      let checkInsQuery = supabase
-        .from('bookings')
-        .select(`
-          id,
-          status,
-          check_in,
-          property_id,
-          guests (name),
-          rooms (room_number)
-        `)
-        .eq('check_in', today)
-        .in('status', ['pending', 'confirmed', 'checked_in']);
-      if (propertyFilter) checkInsQuery = checkInsQuery.eq('property_id', selectedProperty.id);
-      const { data: checkIns } = await checkInsQuery;
-
-      let checkOutsQuery = supabase
-        .from('bookings')
-        .select(`
-          id,
-          status,
-          check_out,
-          property_id,
-          guests (name),
-          rooms (room_number)
-        `)
-        .eq('check_out', today)
-        .in('status', ['checked_in', 'checked_out']);
-      if (propertyFilter) checkOutsQuery = checkOutsQuery.eq('property_id', selectedProperty.id);
-      const { data: checkOuts } = await checkOutsQuery;
 
       setStats({
         activeGuests: activeGuests || 0,
