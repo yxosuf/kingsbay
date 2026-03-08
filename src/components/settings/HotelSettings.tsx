@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Hotel, Clock, Save, DollarSign, MapPin, Receipt, Globe } from 'lucide-react';
+import { Hotel, Clock, Save, DollarSign, MapPin, Receipt, Globe, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { useAuth } from '@/hooks/useAuth';
