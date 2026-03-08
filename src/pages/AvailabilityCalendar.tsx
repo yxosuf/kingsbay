@@ -279,7 +279,7 @@ export default function AvailabilityCalendar() {
         </div>
 
         {/* Inventory Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
           {[
             { label: 'Sellable Today', value: todaySummary.sellable, icon: ShieldCheck, color: 'text-success', bg: 'bg-success/10' },
             { label: 'Total Rooms', value: rooms.length, icon: BedDouble, color: 'text-foreground', bg: 'bg-muted' },
@@ -287,15 +287,15 @@ export default function AvailabilityCalendar() {
             { label: 'Safety Buffer', value: inventorySettings?.safety_buffer || 0, icon: Lock, color: 'text-muted-foreground', bg: 'bg-muted' },
           ].map((item, i) => (
             <Card key={item.label}>
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className={cn("p-2 rounded-xl", item.bg)}>
-                  <item.icon className={cn("h-5 w-5", item.color)} />
+              <CardContent className="p-2.5 sm:p-4 flex items-center gap-2 sm:gap-3">
+                <div className={cn("p-1.5 sm:p-2 rounded-lg sm:rounded-xl", item.bg)}>
+                  <item.icon className={cn("h-4 w-4 sm:h-5 sm:w-5", item.color)} />
                 </div>
                 <div>
-                  <p className={cn("text-2xl font-bold animate-fade-in-up", item.color)} style={{ animationDelay: `${i * 60}ms` }}>
+                  <p className={cn("text-lg sm:text-2xl font-bold animate-fade-in-up", item.color)} style={{ animationDelay: `${i * 60}ms` }}>
                     {item.value}
                   </p>
-                  <p className="text-xs text-muted-foreground">{item.label}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">{item.label}</p>
                 </div>
               </CardContent>
             </Card>
