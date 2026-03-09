@@ -22,25 +22,15 @@ export interface IChannelIntegration {
 
   /**
    * Push rate updates to OTA channel
-   * @param propertyId - The property UUID
-   * @param roomTypeId - The room type identifier
-   * @param ratePlanId - The rate plan UUID
+   * Note: Implementation details vary by OTA provider
    */
-  pushRates(propertyId: string, roomTypeId: string, ratePlanId: string): Promise<void>;
+  pushRates(...args: any[]): Promise<any>;
 
   /**
    * Push availability updates to OTA channel
-   * @param propertyId - The property UUID
-   * @param roomTypeId - The room type identifier
-   * @param date - The date in YYYY-MM-DD format
-   * @param status - Availability status ('available' | 'blocked')
+   * Note: Implementation details vary by OTA provider
    */
-  pushAvailability(
-    propertyId: string,
-    roomTypeId: string,
-    date: string,
-    status: string
-  ): Promise<void>;
+  pushAvailability(...args: any[]): Promise<any>;
 }
 
 /**
