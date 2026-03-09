@@ -95,9 +95,9 @@ export default function AvailabilityCalendar() {
     if (selectedProperty?.id) {
       fetchData();
     }
-  }, [selectedProperty?.id, dateRange]);
+  }, [selectedProperty?.id, rangeStart, rangeEnd]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!selectedProperty?.id) return;
     setLoading(true);
 
