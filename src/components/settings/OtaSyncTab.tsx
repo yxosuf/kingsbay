@@ -216,79 +216,100 @@ export function OtaSyncTab() {
           </TabsTrigger>
         </TabsList>
 
-      <TabsContent value="connected" className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {integrations?.map((ota) => (
-            <Card key={ota.id}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <ChannelIcon type={ota.ota_name} size="md" />
-                    <div>
-                      <CardTitle className="text-lg">{ota.display_name}</CardTitle>
-                      <CardDescription className="mt-1">
-                        <Badge
-                          variant={
-                            ota.status === 'active'
-                              ? 'success'
-                              : ota.status === 'disabled'
-                              ? 'outline'
-                              : 'warning'
-                          }
-                        >
-                          {ota.status === 'coming_soon'
-                            ? 'Coming Soon'
-                            : ota.status === 'active'
-                            ? 'Active'
-                            : 'Disabled'}
-                        </Badge>
-                      </CardDescription>
-                    </div>
-                  </div>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
+        <TabsContent value="connected" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {integrations?.map((ota) => {
+              const hasApiKey = !!ota.api_key;
+              const isActive = hasApiKey && ota.is_enabled && ota.status !== 'coming_soon';
+
+              return (
+                <Card key={ota.id}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <ChannelIcon type={ota.ota_name} size="md" />
                         <div>
-                          <Switch
-                            checked={ota.is_enabled}
-                            disabled={!ota.api_key}
-                            onCheckedChange={(enabled) =>
-                              toggleMutation.mutate({ id: ota.id, enabled })
-                            }
-                          />
+                          <CardTitle className="text-lg">{ota.display_name}</CardTitle>
+                          <CardDescription className="mt-1">
+                            <Badge
+                              variant={
+                                isActive
+                                  ? 'success'
+                                  : ota.status === 'disabled' || hasApiKey
+                                  ? 'outline'
+                                  : 'warning'
+                              }
+                            >
+                              {isActive
+                                ? 'Active'
+                                : ota.status === 'coming_soon' && !hasApiKey
+                                ? 'Not Configured'
+                                : 'Disabled'}
+                            </Badge>
+                          </CardDescription>
                         </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {ota.api_key
-                          ? 'Toggle integration'
-                          : 'Will be active once API key is configured'}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">API Key</Label>
-                  <Input
-                    type="password"
-                    disabled
-                    value={ota.api_key ? '••••••••••••••••' : ''}
-                    placeholder="Not configured"
-                    className="bg-muted"
-                  />
-                  {ota.last_rate_push_at && (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Last rate push:{' '}
-                      {new Date(ota.last_rate_push_at).toLocaleDateString()}
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </TabsContent>
+                      </div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div>
+                              <Switch
+                                checked={ota.is_enabled}
+                                disabled={!hasApiKey}
+                                onCheckedChange={(enabled) =>
+                                  toggleEnabled.mutate({ integrationId: ota.id, enabled })
+                                }
+                              />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {hasApiKey
+                              ? 'Toggle integration'
+                              : 'Configure API key first'}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">API Key Status</span>
+                      <Badge variant={hasApiKey ? 'success' : 'outline'} className="text-xs">
+                        {hasApiKey ? 'Configured' : 'Not Set'}
+                      </Badge>
+                    </div>
+
+                    {ota.sandbox_mode !== null && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Environment</span>
+                        <Badge variant="outline" className="text-xs">
+                          {ota.sandbox_mode ? 'Sandbox' : 'Production'}
+                        </Badge>
+                      </div>
+                    )}
+
+                    {ota.last_rate_push_at && (
+                      <p className="text-xs text-muted-foreground">
+                        Last sync:{' '}
+                        {new Date(ota.last_rate_push_at).toLocaleDateString()}
+                      </p>
+                    )}
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-2"
+                      onClick={() => setSelectedIntegration(ota.id)}
+                    >
+                      <Key className="h-3 w-3 mr-2" />
+                      {hasApiKey ? 'Manage API Key' : 'Add API Key'}
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </TabsContent>
 
       <TabsContent value="settings">
         <Card>
