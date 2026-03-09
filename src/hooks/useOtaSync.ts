@@ -81,6 +81,15 @@ export function useOtaSync(propertyId?: string) {
       apiKey: string;
       sandboxMode: boolean;
     }) => {
+      // Get integration details for audit log
+      const { data: integration } = await supabase
+        .from('ota_integrations')
+        .select('ota_name, api_key')
+        .eq('id', integrationId)
+        .single();
+
+      const isUpdate = !!integration?.api_key;
+
       const { error } = await supabase
         .from('ota_integrations')
         .update({
@@ -91,6 +100,21 @@ export function useOtaSync(propertyId?: string) {
         .eq('id', integrationId);
 
       if (error) throw error;
+
+      // Create audit log
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('audit_logs').insert({
+          user_id: user.id,
+          property_id: propertyId,
+          action: isUpdate ? 'ota_api_key_updated' : 'ota_api_key_added',
+          details: {
+            ota_name: integration?.ota_name,
+            integration_id: integrationId,
+            sandbox_mode: sandboxMode,
+          },
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ota-integrations', propertyId] });
