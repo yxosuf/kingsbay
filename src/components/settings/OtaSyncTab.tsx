@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,9 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Loader2, Globe, FlaskConical, History } from 'lucide-react';
+import { Loader2, Globe, FlaskConical, History, Settings as SettingsIcon, Key, Wifi } from 'lucide-react';
 import { ChannelIcon } from '@/components/channels/ChannelIcon';
 import { useProperty } from '@/hooks/useProperty';
+import { useOtaSync } from '@/hooks/useOtaSync';
+import { OtaApiKeyDialog } from '@/components/settings/OtaApiKeyDialog';
+import { OtaSyncHistoryTable } from '@/components/settings/OtaSyncHistoryTable';
 import {
   Tooltip,
   TooltipContent,
@@ -42,61 +45,52 @@ export function OtaSyncTab() {
   const { selectedProperty } = useProperty();
   const queryClient = useQueryClient();
   const [simulateEnabled, setSimulateEnabled] = useState(false);
+  const [selectedIntegration, setSelectedIntegration] = useState<string | null>(null);
 
-  const { data: integrations, isLoading } = useQuery({
-    queryKey: ['ota-integrations', selectedProperty?.id],
-    queryFn: async () => {
-      if (!selectedProperty?.id) return [];
+  const {
+    integrations,
+    syncLogs,
+    integrationsLoading,
+    logsLoading,
+    saveApiKey,
+    deleteApiKey,
+    toggleEnabled,
+    testConnection,
+  } = useOtaSync(selectedProperty?.id);
 
-      const { data, error } = await supabase
-        .from('ota_integrations')
-        .select('*')
-        .eq('property_id', selectedProperty.id)
-        .order('display_name');
+  // Auto-seed default integrations on first load
+  const DEFAULT_OTAS = [
+    { ota_name: 'booking_com', display_name: 'Booking.com' },
+    { ota_name: 'airbnb', display_name: 'Airbnb' },
+    { ota_name: 'expedia', display_name: 'Expedia' },
+    { ota_name: 'agoda', display_name: 'Agoda' },
+  ];
 
-      if (error) throw error;
+  // Check if we need to seed integrations
+  if (!integrationsLoading && integrations.length === 0 && selectedProperty?.id) {
+    const seedIntegrations = async () => {
+      const seedData = DEFAULT_OTAS.map(ota => ({
+        property_id: selectedProperty.id,
+        ota_name: ota.ota_name,
+        display_name: ota.display_name,
+        is_enabled: false,
+        status: 'coming_soon',
+      }));
 
-      // Auto-seed if none exist
-      if (!data || data.length === 0) {
-        const seedData = DEFAULT_OTAS.map(ota => ({
-          property_id: selectedProperty.id,
-          ota_name: ota.ota_name,
-          display_name: ota.display_name,
-          is_enabled: false,
-          status: 'coming_soon' as const,
-        }));
-
-        const { data: seeded, error: seedError } = await supabase
-          .from('ota_integrations')
-          .insert(seedData)
-          .select();
-
-        if (seedError) throw seedError;
-        return seeded as OtaIntegration[];
-      }
-
-      return data as OtaIntegration[];
-    },
-    enabled: !!selectedProperty?.id,
-  });
-
-  const toggleMutation = useMutation({
-    mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
       const { error } = await supabase
         .from('ota_integrations')
-        .update({ is_enabled: enabled })
-        .eq('id', id);
+        .insert(seedData);
 
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ota-integrations'] });
-      toast.success('OTA integration updated');
-    },
-    onError: (error: Error) => {
-      toast.error('Failed to update integration: ' + error.message);
-    },
-  });
+      if (!error) {
+        queryClient.invalidateQueries({ queryKey: ['ota-integrations', selectedProperty.id] });
+      }
+    };
+
+    seedIntegrations();
+  }
+
+  const selectedIntegrationData = integrations.find(i => i.id === selectedIntegration) || null;
+
 
   const simulateBookingMutation = useMutation({
     mutationFn: async () => {
@@ -192,7 +186,7 @@ export function OtaSyncTab() {
     );
   }
 
-  if (isLoading) {
+  if (integrationsLoading) {
     return (
       <div className="flex items-center justify-center py-8">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -201,137 +195,169 @@ export function OtaSyncTab() {
   }
 
   return (
-    <Tabs defaultValue="connected" className="space-y-4">
-      <TabsList>
-        <TabsTrigger value="connected">
-          <Globe className="h-4 w-4 mr-2" />
-          Connected OTAs
-        </TabsTrigger>
-        <TabsTrigger value="settings">Settings</TabsTrigger>
-        <TabsTrigger value="history">
-          <History className="h-4 w-4 mr-2" />
-          Sync History
-        </TabsTrigger>
-        <TabsTrigger value="simulate">
-          <FlaskConical className="h-4 w-4 mr-2" />
-          Simulate
-        </TabsTrigger>
-      </TabsList>
+    <>
+      <Tabs defaultValue="connected" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="connected">
+            <Globe className="h-4 w-4 mr-2" />
+            Connected OTAs
+          </TabsTrigger>
+          <TabsTrigger value="settings">
+            <SettingsIcon className="h-4 w-4 mr-2" />
+            API Keys
+          </TabsTrigger>
+          <TabsTrigger value="history">
+            <History className="h-4 w-4 mr-2" />
+            Sync History
+          </TabsTrigger>
+          <TabsTrigger value="simulate">
+            <FlaskConical className="h-4 w-4 mr-2" />
+            Simulate
+          </TabsTrigger>
+        </TabsList>
 
-      <TabsContent value="connected" className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {integrations?.map((ota) => (
-            <Card key={ota.id}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <ChannelIcon type={ota.ota_name} size="md" />
-                    <div>
-                      <CardTitle className="text-lg">{ota.display_name}</CardTitle>
-                      <CardDescription className="mt-1">
-                        <Badge
-                          variant={
-                            ota.status === 'active'
-                              ? 'success'
-                              : ota.status === 'disabled'
-                              ? 'outline'
-                              : 'warning'
-                          }
-                        >
-                          {ota.status === 'coming_soon'
-                            ? 'Coming Soon'
-                            : ota.status === 'active'
-                            ? 'Active'
-                            : 'Disabled'}
-                        </Badge>
-                      </CardDescription>
-                    </div>
-                  </div>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
+        <TabsContent value="connected" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {integrations?.map((ota) => {
+              const hasApiKey = !!ota.api_key;
+              const isActive = hasApiKey && ota.is_enabled && ota.status !== 'coming_soon';
+
+              return (
+                <Card key={ota.id}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <ChannelIcon type={ota.ota_name} size="md" />
                         <div>
-                          <Switch
-                            checked={ota.is_enabled}
-                            disabled={!ota.api_key}
-                            onCheckedChange={(enabled) =>
-                              toggleMutation.mutate({ id: ota.id, enabled })
-                            }
-                          />
+                          <CardTitle className="text-lg">{ota.display_name}</CardTitle>
+                          <CardDescription className="mt-1">
+                            <Badge
+                              variant={
+                                isActive
+                                  ? 'success'
+                                  : ota.status === 'disabled' || hasApiKey
+                                  ? 'outline'
+                                  : 'warning'
+                              }
+                            >
+                              {isActive
+                                ? 'Active'
+                                : ota.status === 'coming_soon' && !hasApiKey
+                                ? 'Not Configured'
+                                : 'Disabled'}
+                            </Badge>
+                          </CardDescription>
                         </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {ota.api_key
-                          ? 'Toggle integration'
-                          : 'Will be active once API key is configured'}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">API Key</Label>
-                  <Input
-                    type="password"
-                    disabled
-                    value={ota.api_key ? '••••••••••••••••' : ''}
-                    placeholder="Not configured"
-                    className="bg-muted"
-                  />
-                  {ota.last_rate_push_at && (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Last rate push:{' '}
-                      {new Date(ota.last_rate_push_at).toLocaleDateString()}
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </TabsContent>
+                      </div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div>
+                              <Switch
+                                checked={ota.is_enabled}
+                                disabled={!hasApiKey}
+                                onCheckedChange={(enabled) =>
+                                  toggleEnabled.mutate({ integrationId: ota.id, enabled })
+                                }
+                              />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {hasApiKey
+                              ? 'Toggle integration'
+                              : 'Configure API key first'}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">API Key Status</span>
+                      <Badge variant={hasApiKey ? 'success' : 'outline'} className="text-xs">
+                        {hasApiKey ? 'Configured' : 'Not Set'}
+                      </Badge>
+                    </div>
 
-      <TabsContent value="settings">
-        <Card>
-          <CardHeader>
-            <CardTitle>API Configuration</CardTitle>
-            <CardDescription>
-              Configure API keys for each OTA integration
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8 text-muted-foreground">
-              <Globe className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium mb-2">Coming Soon</p>
-              <p className="text-sm">
-                API key management will be available once OTA partnerships are
-                established.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
+                    {ota.sandbox_mode !== null && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Environment</span>
+                        <Badge variant="outline" className="text-xs">
+                          {ota.sandbox_mode ? 'Sandbox' : 'Production'}
+                        </Badge>
+                      </div>
+                    )}
 
-      <TabsContent value="history">
-        <Card>
-          <CardHeader>
-            <CardTitle>Sync History</CardTitle>
-            <CardDescription>
-              View rate and availability push logs to connected OTAs
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8 text-muted-foreground">
-              <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium mb-2">No Sync History</p>
-              <p className="text-sm">
-                Sync logs will appear here once OTA integrations are active.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
+                    {ota.last_rate_push_at && (
+                      <p className="text-xs text-muted-foreground">
+                        Last sync:{' '}
+                        {new Date(ota.last_rate_push_at).toLocaleDateString()}
+                      </p>
+                    )}
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-2"
+                      onClick={() => setSelectedIntegration(ota.id)}
+                    >
+                      <Key className="h-3 w-3 mr-2" />
+                      {hasApiKey ? 'Manage API Key' : 'Add API Key'}
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="settings">
+          <Card>
+            <CardHeader>
+              <CardTitle>API Configuration</CardTitle>
+              <CardDescription>
+                Manage API keys for each OTA integration. Keys are encrypted and stored securely.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {integrations?.map((ota) => (
+                  <Button
+                    key={ota.id}
+                    variant="outline"
+                    className="h-16 flex items-center justify-between px-4"
+                    onClick={() => setSelectedIntegration(ota.id)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <ChannelIcon type={ota.ota_name} size="md" />
+                      <div className="text-left">
+                        <p className="font-medium">{ota.display_name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {ota.api_key ? 'Key configured' : 'No key set'}
+                        </p>
+                      </div>
+                    </div>
+                    <Key className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="history">
+          <Card>
+            <CardHeader>
+              <CardTitle>Sync History</CardTitle>
+              <CardDescription>
+                View detailed logs of all rate and availability pushes to connected OTAs
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <OtaSyncHistoryTable logs={syncLogs} loading={logsLoading} />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
       <TabsContent value="simulate">
         <Card>
@@ -385,7 +411,33 @@ export function OtaSyncTab() {
             )}
           </CardContent>
         </Card>
-      </TabsContent>
-    </Tabs>
+        </TabsContent>
+      </Tabs>
+
+      {/* API Key Management Dialog */}
+      {selectedIntegrationData && (
+        <OtaApiKeyDialog
+          integration={selectedIntegrationData}
+          open={!!selectedIntegration}
+          onClose={() => setSelectedIntegration(null)}
+          onSave={async (apiKey, sandboxMode) => {
+            await saveApiKey.mutateAsync({
+              integrationId: selectedIntegrationData.id,
+              apiKey,
+              sandboxMode,
+            });
+          }}
+          onDelete={async () => {
+            await deleteApiKey.mutateAsync(selectedIntegrationData.id);
+          }}
+          onTest={async () => {
+            await testConnection.mutateAsync(selectedIntegrationData.id);
+          }}
+          isSaving={saveApiKey.isPending}
+          isDeleting={deleteApiKey.isPending}
+          isTesting={testConnection.isPending}
+        />
+      )}
+    </>
   );
 }

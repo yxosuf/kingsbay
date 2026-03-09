@@ -1147,46 +1147,112 @@ export type Database = {
       ota_integrations: {
         Row: {
           api_key: string | null
+          auto_retry_enabled: boolean | null
           created_at: string
           display_name: string
           id: string
           is_enabled: boolean
           last_availability_push_at: string | null
           last_rate_push_at: string | null
+          max_retries: number | null
           ota_name: string
           property_id: string
+          sandbox_mode: boolean | null
           status: string
           updated_at: string
         }
         Insert: {
           api_key?: string | null
+          auto_retry_enabled?: boolean | null
           created_at?: string
           display_name: string
           id?: string
           is_enabled?: boolean
           last_availability_push_at?: string | null
           last_rate_push_at?: string | null
+          max_retries?: number | null
           ota_name: string
           property_id: string
+          sandbox_mode?: boolean | null
           status?: string
           updated_at?: string
         }
         Update: {
           api_key?: string | null
+          auto_retry_enabled?: boolean | null
           created_at?: string
           display_name?: string
           id?: string
           is_enabled?: boolean
           last_availability_push_at?: string | null
           last_rate_push_at?: string | null
+          max_retries?: number | null
           ota_name?: string
           property_id?: string
+          sandbox_mode?: boolean | null
           status?: string
           updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "ota_integrations_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ota_sync_logs: {
+        Row: {
+          action_type: string
+          created_at: string
+          error_message: string | null
+          id: string
+          integration_id: string
+          ota_name: string
+          property_id: string
+          request_payload: Json | null
+          response_message: string | null
+          retry_count: number | null
+          status: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          integration_id: string
+          ota_name: string
+          property_id: string
+          request_payload?: Json | null
+          response_message?: string | null
+          retry_count?: number | null
+          status: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          integration_id?: string
+          ota_name?: string
+          property_id?: string
+          request_payload?: Json | null
+          response_message?: string | null
+          retry_count?: number | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ota_sync_logs_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "ota_integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ota_sync_logs_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
