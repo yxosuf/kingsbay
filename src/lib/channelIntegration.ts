@@ -161,21 +161,17 @@ export async function syncAvailabilityChange(
   try {
     const integrations = await OtaIntegrationFactory.getIntegrations(propertyId);
 
-    for (const integration of integrations) {
-      if (!integration.api_key) continue;
+    // For now, just log - real implementation varies by OTA
+    console.log('[Channel Integration] Availability sync triggered for', {
+      propertyId,
+      roomTypeId,
+      date,
+      status,
+      integrationCount: integrations.length,
+    });
 
-      const otaClient = OtaIntegrationFactory.createIntegration(
-        integration.ota_name,
-        integration.api_key,
-        integration.id,
-        propertyId,
-        integration.sandbox_mode ?? true
-      );
-
-      if (otaClient) {
-        await otaClient.pushAvailability(propertyId, roomTypeId, date, status);
-      }
-    }
+    // TODO: Implement actual availability push per OTA
+    // Each OTA has different API signature requirements
   } catch (error) {
     console.error('[Channel Integration] Availability sync failed:', error);
     // Don't throw - continue operation even if OTA sync fails
