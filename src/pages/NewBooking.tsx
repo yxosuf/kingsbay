@@ -188,12 +188,12 @@ export default function NewBooking() {
     });
   }, [selectedProperty?.id, checkIn, checkOut, roomId, selectedRatePlanId, numGuests, rooms, discountCode]);
 
-  // Fetch booked dates for calendar indicators
+  // Fetch booked dates for calendar indicators (reduced range from 6 to 2 months)
   useEffect(() => {
     const fetchBookedDates = async () => {
       if (!selectedProperty?.id) return;
       const rangeStart = format(new Date(), 'yyyy-MM-dd');
-      const rangeEnd = format(addMonths(new Date(), 6), 'yyyy-MM-dd');
+      const rangeEnd = format(addMonths(new Date(), 2), 'yyyy-MM-dd');
 
       const { data } = await supabase
         .from('bookings')
@@ -203,15 +203,17 @@ export default function NewBooking() {
         .lt('check_in', rangeEnd)
         .gt('check_out', rangeStart);
 
-      const dates = new Set<string>();
-      (data || []).forEach(b => {
-        const start = parseLocalDate(b.check_in);
-        const end = parseLocalDate(b.check_out);
-        // Block [check_in, check_out) 
-        const days = eachDayOfInterval({ start, end: new Date(end.getTime() - 86400000) });
-        days.forEach(d => dates.add(toDateString(d)));
+      startTransition(() => {
+        const dates = new Set<string>();
+        (data || []).forEach(b => {
+          const start = parseLocalDate(b.check_in);
+          const end = parseLocalDate(b.check_out);
+          // Block [check_in, check_out) 
+          const days = eachDayOfInterval({ start, end: new Date(end.getTime() - 86400000) });
+          days.forEach(d => dates.add(toDateString(d)));
+        });
+        setBookedDateSet(dates);
       });
-      setBookedDateSet(dates);
     };
     fetchBookedDates();
   }, [selectedProperty?.id]);
