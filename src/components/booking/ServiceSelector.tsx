@@ -44,7 +44,7 @@ const categoryLabels: Record<ServiceCategory, string> = {
   special_request: 'Special',
 };
 
-export function ServiceSelector({ selectedServices, onServicesChange }: ServiceSelectorProps) {
+const ServiceSelectorComponent = ({ selectedServices, onServicesChange }: ServiceSelectorProps) => {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -70,49 +70,49 @@ export function ServiceSelector({ selectedServices, onServicesChange }: ServiceS
     }
   };
 
-  const addService = (service: Service) => {
-    const existing = selectedServices.find((s) => s.serviceId === service.id);
-    if (existing) {
-      // Increase quantity
-      onServicesChange(
-        selectedServices.map((s) =>
+  const addService = useCallback((service: Service) => {
+    onServicesChange((prev) => {
+      const existing = prev.find((s) => s.serviceId === service.id);
+      if (existing) {
+        // Increase quantity
+        return prev.map((s) =>
           s.serviceId === service.id
             ? { ...s, quantity: s.quantity + 1, totalPrice: (s.quantity + 1) * s.unitPrice }
             : s
-        )
-      );
-    } else {
-      // Add new service
-      onServicesChange([
-        ...selectedServices,
-        {
-          serviceId: service.id,
-          name: service.name,
-          quantity: 1,
-          unitPrice: service.price,
-          totalPrice: service.price,
-        },
-      ]);
-    }
-  };
+        );
+      } else {
+        // Add new service
+        return [
+          ...prev,
+          {
+            serviceId: service.id,
+            name: service.name,
+            quantity: 1,
+            unitPrice: service.price,
+            totalPrice: service.price,
+          },
+        ];
+      }
+    });
+  }, [onServicesChange]);
 
-  const updateQuantity = (serviceId: string, newQuantity: number) => {
+  const updateQuantity = useCallback((serviceId: string, newQuantity: number) => {
     if (newQuantity <= 0) {
-      removeService(serviceId);
+      onServicesChange((prev) => prev.filter((s) => s.serviceId !== serviceId));
       return;
     }
-    onServicesChange(
-      selectedServices.map((s) =>
+    onServicesChange((prev) =>
+      prev.map((s) =>
         s.serviceId === serviceId
           ? { ...s, quantity: newQuantity, totalPrice: newQuantity * s.unitPrice }
           : s
       )
     );
-  };
+  }, [onServicesChange]);
 
-  const removeService = (serviceId: string) => {
-    onServicesChange(selectedServices.filter((s) => s.serviceId !== serviceId));
-  };
+  const removeService = useCallback((serviceId: string) => {
+    onServicesChange((prev) => prev.filter((s) => s.serviceId !== serviceId));
+  }, [onServicesChange]);
 
   const totalServicesAmount = selectedServices.reduce((sum, s) => sum + s.totalPrice, 0);
 
