@@ -1,51 +1,130 @@
-# Kings Bay PMS — Implementation Complete ✅
 
-All plan items have been implemented and verified.
 
-## Phase 1 — Critical Fixes ✅
-| # | Item |
-|---|------|
-| 1 | Viewer Role RLS — `is_write_staff()`, write-restricted policies |
-| 2 | Availability Calendar — `[check_in, check_out)` string comparison |
-| 3 | Hybrid Hold System — `hold_expires_at`, edge function, countdown UI |
-| 4 | Cleaning Timer — `cleaning_until`, edge function, auto-release |
-| 5 | Rooms Derived Status — Occupied/Due Out/Arriving/Cleaning/Dirty/Inspected/Clean |
-| 6 | Guests in Settings — Tab, `/guests` redirect, guest details with services |
-| 7 | Guest Retention — `archived_at`/`deleted_at`, edge function, filters |
-| 8 | Nationality + Phone Code — Country selector, `countryData.ts` |
-| 9 | FX Rate System — `CurrencyDisplay`, `useFxRate`, edge function |
-| 10 | Danger Zone — Admin-only, password confirm, per-property, audit |
+# Hover-Based Auto-Expand Sidebar Implementation Plan
 
-## Phase 2 — Operational ✅
-| # | Item |
-|---|------|
-| 11 | Front Desk Speed Mode — Quick actions, arrivals/departures |
-| 12 | Channel Manager — iCal, email inbound, needs_review flow |
-| 13 | Housekeeping Board — Drag-drop (Dirty→Cleaning→Clean→Inspected), staff assignment |
-| 14 | Notifications — Bell, preferences, edge functions |
-| 15 | Data Quality — Duplicate detection (phone/email/passport/NIC), admin merge tool |
+## Current State Analysis
 
-## Phase 3 — Finance ✅
-| # | Item |
-|---|------|
-| 16 | Booking Transactions Ledger — `booking_transactions`, TransactionsTab |
-| 17 | Accounting Layer — `ledger_accounts/entries/lines`, auto-posting |
+The sidebar currently uses manual toggle behavior via:
+- `SidebarTrigger` button in header
+- Keyboard shortcut (Cmd/Ctrl + B)
+- Click-based collapse/expand
 
-## Phase 4 ✅
-| # | Item |
-|---|------|
-| 18 | System Health Monitor — `/settings?tab=system-health`, admin checks |
+The reference image shows:
+- **Vertical icon-only sidebar** with circular icon buttons
+- **Clean, minimal design** with soft blue accent colors
+- **Icons stacked vertically**: Dashboard, settings, users, etc.
+- **User avatar at bottom**
+- **Consistent spacing and sizing**
 
-## Additional Features ✅
-- Guest Email System (Resend) — booking_confirmation, pre_arrival, checkout_summary
-- Guest Feedback System — dialog, display, reports, dashboard widget
-- Printable Invoice — react-to-print
-- PWA Support — service worker, manifest
-- Extend Stay / Move Room dialogs
-- Add Service Dialog with category filtering
-- Reports (Occupancy, Revenue, Financial, Feedback)
-- Mobile Responsive — bottom nav, responsive tables/tabs
-- Passport Photo Upload — secure storage in guest-documents bucket
-- Guest Details — services purchased with totals, VIP/blacklist badges
+## Design Goals
 
-## All items verified and complete. No remaining work.
+1. **Auto-expand on hover**: Sidebar expands when mouse enters, collapses when mouse leaves
+2. **Match visual style**: Circular icon buttons, vertical layout, clean spacing
+3. **Smooth transitions**: 200-300ms animation for expand/collapse
+4. **Preserve functionality**: Keep existing navigation, active states, tooltips
+
+## Technical Implementation
+
+### 1. Sidebar Hover Logic (`AppSidebar.tsx`)
+
+**Add hover state management:**
+```typescript
+const [isHovered, setIsHovered] = useState(false);
+const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+```
+
+**Override sidebar state based on hover:**
+```typescript
+// Use hover state to control expansion
+useEffect(() => {
+  if (!isMobile && isHovered) {
+    setOpen(true);
+  } else if (!isMobile && !isHovered) {
+    setOpen(false);
+  }
+}, [isHovered, isMobile, setOpen]);
+```
+
+**Add mouse event handlers:**
+```typescript
+const handleMouseEnter = () => {
+  if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+  setIsHovered(true);
+};
+
+const handleMouseLeave = () => {
+  hoverTimeoutRef.current = setTimeout(() => {
+    setIsHovered(false);
+  }, 100); // Small delay to prevent flickering
+};
+```
+
+### 2. Visual Redesign Matching Reference Image
+
+**Header Changes:**
+- Remove property name text in collapsed state
+- Make logo circular and centered
+- Reduce header padding
+
+**Navigation Items:**
+- Convert to circular icon buttons when collapsed
+- Add blue accent color on active (matching reference)
+- Increase icon size slightly for better visibility
+- Center icons in collapsed state
+
+**Footer:**
+- Show only avatar circle when collapsed
+- Expand to show full user info on hover
+
+**Color Adjustments:**
+- Update active state to use soft blue accent (`--sidebar-ring` or custom blue)
+- Lighter background for cleaner look
+- More subtle hover states
+
+### 3. Sidebar Component Updates (`sidebar.tsx`)
+
+**No changes needed** - the existing `Sidebar` component already supports:
+- Controlled `open` state
+- Smooth transitions via CSS
+- Icon-only collapsed mode
+
+### 4. Layout Integration (`DashboardLayout.tsx`)
+
+**Default sidebar to collapsed:**
+```typescript
+<SidebarProvider defaultOpen={false}>
+```
+
+This ensures sidebar starts collapsed and expands only on hover.
+
+## Files to Modify
+
+1. **`src/components/layout/AppSidebar.tsx`**
+   - Add hover state and event handlers
+   - Apply hover logic to control sidebar expansion
+   - Adjust visual styling to match reference image
+   - Update icon sizes and spacing
+
+2. **`src/components/layout/DashboardLayout.tsx`**
+   - Set `defaultOpen={false}` on `SidebarProvider`
+
+3. **`src/index.css`** (optional)
+   - Add custom blue accent color variable if needed
+   - Fine-tune transition timings
+
+## Interaction Flow
+
+1. **Page loads**: Sidebar collapsed (icon-only, ~48px width)
+2. **User hovers**: Sidebar smoothly expands to full width (~256px) after 0ms
+3. **User moves away**: After 100ms delay, sidebar collapses back
+4. **Active route**: Always highlighted with blue accent, visible in both states
+5. **Mobile**: Unchanged - continues using sheet/drawer behavior
+
+## Expected Visual Result
+
+- **Collapsed state**: Vertical strip of circular icons (dashboard, front desk, bookings, etc.)
+- **Expanded state**: Full sidebar with text labels and details
+- **Transition**: Smooth 200ms ease animation
+- **Active indicator**: Blue circular background or left border accent
+- **User section**: Avatar circle at bottom, expands to show name/role on hover
+
