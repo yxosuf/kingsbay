@@ -132,21 +132,16 @@ export async function syncRateChange(
   try {
     const integrations = await OtaIntegrationFactory.getIntegrations(propertyId);
 
-    for (const integration of integrations) {
-      if (!integration.api_key) continue;
+    // For now, just log - real implementation would calculate dates and rates
+    console.log('[Channel Integration] Rate sync triggered for', {
+      propertyId,
+      roomTypeId,
+      ratePlanId,
+      integrationCount: integrations.length,
+    });
 
-      const otaClient = OtaIntegrationFactory.createIntegration(
-        integration.ota_name,
-        integration.api_key,
-        integration.id,
-        propertyId,
-        integration.sandbox_mode ?? true
-      );
-
-      if (otaClient) {
-        await otaClient.pushRates(propertyId, roomTypeId, ratePlanId);
-      }
-    }
+    // TODO: Implement actual rate calculation and batch push
+    // Each OTA has different API signature requirements
   } catch (error) {
     console.error('[Channel Integration] Rate sync failed:', error);
     // Don't throw - continue operation even if OTA sync fails
