@@ -311,26 +311,39 @@ export function OtaSyncTab() {
           </div>
         </TabsContent>
 
-      <TabsContent value="settings">
-        <Card>
-          <CardHeader>
-            <CardTitle>API Configuration</CardTitle>
-            <CardDescription>
-              Configure API keys for each OTA integration
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8 text-muted-foreground">
-              <Globe className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium mb-2">Coming Soon</p>
-              <p className="text-sm">
-                API key management will be available once OTA partnerships are
-                established.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
+        <TabsContent value="settings">
+          <Card>
+            <CardHeader>
+              <CardTitle>API Configuration</CardTitle>
+              <CardDescription>
+                Manage API keys for each OTA integration. Keys are encrypted and stored securely.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {integrations?.map((ota) => (
+                  <Button
+                    key={ota.id}
+                    variant="outline"
+                    className="h-16 flex items-center justify-between px-4"
+                    onClick={() => setSelectedIntegration(ota.id)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <ChannelIcon type={ota.ota_name} size="md" />
+                      <div className="text-left">
+                        <p className="font-medium">{ota.display_name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {ota.api_key ? 'Key configured' : 'No key set'}
+                        </p>
+                      </div>
+                    </div>
+                    <Key className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
       <TabsContent value="history">
         <Card>
