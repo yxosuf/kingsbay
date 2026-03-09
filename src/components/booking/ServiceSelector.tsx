@@ -27,7 +27,7 @@ export interface SelectedService {
 
 interface ServiceSelectorProps {
   selectedServices: SelectedService[];
-  onServicesChange: (services: SelectedService[]) => void;
+  onServicesChange: (services: SelectedService[] | ((prev: SelectedService[]) => SelectedService[])) => void;
 }
 
 const categoryIcons: Record<ServiceCategory, typeof UtensilsCrossed> = {
