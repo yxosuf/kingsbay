@@ -91,23 +91,6 @@ export function OtaSyncTab() {
 
   const selectedIntegrationData = integrations.find(i => i.id === selectedIntegration) || null;
 
-  const toggleMutation = useMutation({
-    mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
-      const { error } = await supabase
-        .from('ota_integrations')
-        .update({ is_enabled: enabled })
-        .eq('id', id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ota-integrations'] });
-      toast.success('OTA integration updated');
-    },
-    onError: (error: Error) => {
-      toast.error('Failed to update integration: ' + error.message);
-    },
-  });
 
   const simulateBookingMutation = useMutation({
     mutationFn: async () => {
