@@ -2,15 +2,26 @@
  * Channel Integration Service
  * 
  * This module provides a standardized interface for pushing rates and availability
- * to external OTA channels (Booking.com, Airbnb, Expedia, etc.).
+ * to external OTA channels (Booking.com, Airbnb, Expedia, Agoda).
  * 
- * Current implementation is a stub that logs actions to console.
- * Replace StubChannelIntegration with real API implementations when ready.
+ * Factory pattern implementation routes requests to the correct OTA provider.
  */
+
+import { supabase } from '@/integrations/supabase/client';
+import { BookingComIntegration } from './integrations/bookingCom';
+import { AirbnbIntegration } from './integrations/airbnb';
+import { ExpediaIntegration } from './integrations/expedia';
+import { AgodaIntegration } from './integrations/agoda';
 
 export interface IChannelIntegration {
   /**
-   * Push rate updates to connected OTA channels
+   * Test API connection to the OTA
+   * @returns Promise with connection result
+   */
+  testConnection(): Promise<{ success: boolean; message: string }>;
+
+  /**
+   * Push rate updates to OTA channel
    * @param propertyId - The property UUID
    * @param roomTypeId - The room type identifier
    * @param ratePlanId - The rate plan UUID
@@ -18,7 +29,7 @@ export interface IChannelIntegration {
   pushRates(propertyId: string, roomTypeId: string, ratePlanId: string): Promise<void>;
 
   /**
-   * Push availability updates to connected OTA channels
+   * Push availability updates to OTA channel
    * @param propertyId - The property UUID
    * @param roomTypeId - The room type identifier
    * @param date - The date in YYYY-MM-DD format
