@@ -140,7 +140,7 @@ export function AppSidebar() {
         "border-b border-sidebar-border",
         collapsed && !isMobile ? "p-2 flex justify-center" : "p-4"
       )}>
-        <div className="flex items-center gap-3">
+        <div className={cn("flex items-center gap-3", collapsed && !isMobile && "justify-center")}>
           <div className={cn(
             "shrink-0 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground flex",
             collapsed && !isMobile ? "h-8 w-8" : "h-10 w-10"
