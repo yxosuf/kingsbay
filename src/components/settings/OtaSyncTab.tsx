@@ -45,6 +45,18 @@ export function OtaSyncTab() {
   const { selectedProperty } = useProperty();
   const queryClient = useQueryClient();
   const [simulateEnabled, setSimulateEnabled] = useState(false);
+  const [selectedIntegration, setSelectedIntegration] = useState<string | null>(null);
+
+  const {
+    integrations,
+    syncLogs,
+    integrationsLoading,
+    logsLoading,
+    saveApiKey,
+    deleteApiKey,
+    toggleEnabled,
+    testConnection,
+  } = useOtaSync(selectedProperty?.id);
 
   const { data: integrations, isLoading } = useQuery({
     queryKey: ['ota-integrations', selectedProperty?.id],
