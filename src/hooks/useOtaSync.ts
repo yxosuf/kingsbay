@@ -222,6 +222,13 @@ export function useOtaSync(propertyId?: string) {
 
   const testConnection = useMutation({
     mutationFn: async (integrationId: string) => {
+      // Check rate limit: max 5 tests per hour per integration
+      const rateCheck = await checkRateLimit('ota_test_connection', 5, 60);
+      
+      if (!rateCheck.allowed) {
+        throw new Error(formatRateLimitError(rateCheck));
+      }
+
       const { OtaIntegrationFactory } = await import('@/lib/channelIntegration');
       return await OtaIntegrationFactory.testConnection(integrationId);
     },

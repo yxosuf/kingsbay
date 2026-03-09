@@ -58,36 +58,40 @@ export function OtaSyncTab() {
     testConnection,
   } = useOtaSync(selectedProperty?.id);
 
-  // Auto-seed default integrations on first load
-  const DEFAULT_OTAS = [
-    { ota_name: 'booking_com', display_name: 'Booking.com' },
-    { ota_name: 'airbnb', display_name: 'Airbnb' },
-    { ota_name: 'expedia', display_name: 'Expedia' },
-    { ota_name: 'agoda', display_name: 'Agoda' },
-  ];
+  // Track if we've seeded this property
+  const hasSeeded = useRef<Set<string>>(new Set());
 
-  // Check if we need to seed integrations
-  if (!integrationsLoading && integrations.length === 0 && selectedProperty?.id) {
+  // Auto-seed default integrations on first load (in useEffect to avoid render-time side effects)
+  useEffect(() => {
     const seedIntegrations = async () => {
-      const seedData = DEFAULT_OTAS.map(ota => ({
-        property_id: selectedProperty.id,
-        ota_name: ota.ota_name,
-        display_name: ota.display_name,
-        is_enabled: false,
-        status: 'coming_soon',
-      }));
+      if (
+        !integrationsLoading &&
+        integrations.length === 0 &&
+        selectedProperty?.id &&
+        !hasSeeded.current.has(selectedProperty.id)
+      ) {
+        hasSeeded.current.add(selectedProperty.id);
 
-      const { error } = await supabase
-        .from('ota_integrations')
-        .insert(seedData);
+        const seedData = DEFAULT_OTAS.map((ota) => ({
+          property_id: selectedProperty.id,
+          ota_name: ota.ota_name,
+          display_name: ota.display_name,
+          is_enabled: false,
+          status: 'coming_soon',
+        }));
 
-      if (!error) {
-        queryClient.invalidateQueries({ queryKey: ['ota-integrations', selectedProperty.id] });
+        const { error } = await supabase.from('ota_integrations').insert(seedData);
+
+        if (!error) {
+          queryClient.invalidateQueries({
+            queryKey: ['ota-integrations', selectedProperty.id],
+          });
+        }
       }
     };
 
     seedIntegrations();
-  }
+  }, [integrationsLoading, integrations.length, selectedProperty?.id, queryClient]);
 
   const selectedIntegrationData = integrations.find(i => i.id === selectedIntegration) || null;
 
