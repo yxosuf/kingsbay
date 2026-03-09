@@ -174,8 +174,8 @@ const GuestSelectorComponent = ({
                   </SelectTrigger>
                   <SelectContent>
                     {countries.map((country) => (
-                      <SelectItem key={country.code} value={getDialCodeByCountry(country.name)}>
-                        {country.flag} {country.name} ({getDialCodeByCountry(country.name)})
+                    <SelectItem key={country.code} value={getDialCodeByCountry(country.name)}>
+                        {country.name} ({getDialCodeByCountry(country.name)})
                       </SelectItem>
                     ))}
                   </SelectContent>
