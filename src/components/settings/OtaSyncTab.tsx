@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,9 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Loader2, Globe, FlaskConical, History } from 'lucide-react';
+import { Loader2, Globe, FlaskConical, History, Settings as SettingsIcon, Key, Wifi } from 'lucide-react';
 import { ChannelIcon } from '@/components/channels/ChannelIcon';
 import { useProperty } from '@/hooks/useProperty';
+import { useOtaSync } from '@/hooks/useOtaSync';
+import { OtaApiKeyDialog } from '@/components/settings/OtaApiKeyDialog';
+import { OtaSyncHistoryTable } from '@/components/settings/OtaSyncHistoryTable';
 import {
   Tooltip,
   TooltipContent,
