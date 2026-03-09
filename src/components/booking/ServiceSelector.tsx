@@ -276,4 +276,6 @@ const ServiceSelectorComponent = ({ selectedServices, onServicesChange }: Servic
       </CardContent>
     </Card>
   );
-}
+};
+
+export const ServiceSelector = memo(ServiceSelectorComponent);
