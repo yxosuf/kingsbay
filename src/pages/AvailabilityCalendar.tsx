@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, startTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -95,9 +95,9 @@ export default function AvailabilityCalendar() {
     if (selectedProperty?.id) {
       fetchData();
     }
-  }, [selectedProperty?.id, dateRange]);
+  }, [selectedProperty?.id, rangeStart, rangeEnd]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!selectedProperty?.id) return;
     setLoading(true);
 
@@ -109,7 +109,10 @@ export default function AvailabilityCalendar() {
         .order('room_number');
 
       if (roomError) throw roomError;
-      setRooms(roomData || []);
+      
+      startTransition(() => {
+        setRooms(roomData || []);
+      });
 
       const { data: bookingData, error: bookingError } = await supabase
         .from('bookings')
@@ -123,10 +126,13 @@ export default function AvailabilityCalendar() {
         .in('status', ['confirmed', 'checked_in', 'pending', 'needs_review']);
 
       if (bookingError) throw bookingError;
-      setBookings((bookingData || []).map(b => ({
-        ...b,
-        guest: Array.isArray(b.guest) ? b.guest[0] : b.guest
-      })) as Booking[]);
+      
+      startTransition(() => {
+        setBookings((bookingData || []).map(b => ({
+          ...b,
+          guest: Array.isArray(b.guest) ? b.guest[0] : b.guest
+        })) as Booking[]);
+      });
 
       const { data: availabilityData, error: availabilityError } = await supabase
         .from('room_availability')
@@ -136,7 +142,10 @@ export default function AvailabilityCalendar() {
         .lte('date', rangeEnd);
 
       if (availabilityError) throw availabilityError;
-      setAvailability(availabilityData || []);
+      
+      startTransition(() => {
+        setAvailability(availabilityData || []);
+      });
 
       const { data: settingsData } = await supabase
         .from('property_inventory_settings')
@@ -151,18 +160,20 @@ export default function AvailabilityCalendar() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedProperty?.id, rangeStart, rangeEnd]);
 
-  const getRoomTypes = () => {
+  const getRoomTypes = useMemo(() => {
     const types = new Set(rooms.map(r => r.room_type));
     return Array.from(types);
-  };
+  }, [rooms]);
 
-  const filteredRooms = selectedRoomType === 'all' 
-    ? rooms 
-    : rooms.filter(r => r.room_type === selectedRoomType);
+  const filteredRooms = useMemo(() => {
+    return selectedRoomType === 'all' 
+      ? rooms 
+      : rooms.filter(r => r.room_type === selectedRoomType);
+  }, [selectedRoomType, rooms]);
 
-  const getInventorySummary = (date: Date) => {
+  const getInventorySummary = useCallback((date: Date) => {
     const dateStr = toDateString(date);
     let available = 0;
     let booked = 0;
@@ -187,7 +198,7 @@ export default function AvailabilityCalendar() {
     const safetyBuffer = inventorySettings?.safety_buffer || 0;
     const sellable = Math.max(0, available - safetyBuffer);
     return { available, booked, blocked, sellable, total: rooms.length };
-  };
+  }, [rooms, bookings, availability, inventorySettings]);
 
   const navigatePeriod = (direction: 'prev' | 'next') => {
     if (viewMode === 'week') {
@@ -260,7 +271,7 @@ export default function AvailabilityCalendar() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
-                {getRoomTypes().map(type => (
+                {getRoomTypes.map(type => (
                   <SelectItem key={type} value={type}>{type}</SelectItem>
                 ))}
               </SelectContent>
