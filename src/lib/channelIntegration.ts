@@ -131,7 +131,7 @@ class OtaIntegrationFactory {
 export { OtaIntegrationFactory };
 
 /**
- * Helper function to push rates when they change
+ * Helper function to push rates to all enabled OTA integrations
  * Call this after rate overrides, seasonal rules, or rate plan updates
  */
 export async function syncRateChange(
@@ -140,7 +140,23 @@ export async function syncRateChange(
   ratePlanId: string
 ): Promise<void> {
   try {
-    await channelIntegration.pushRates(propertyId, roomTypeId, ratePlanId);
+    const integrations = await OtaIntegrationFactory.getIntegrations(propertyId);
+
+    for (const integration of integrations) {
+      if (!integration.api_key) continue;
+
+      const otaClient = OtaIntegrationFactory.createIntegration(
+        integration.ota_name,
+        integration.api_key,
+        integration.id,
+        propertyId,
+        integration.sandbox_mode ?? true
+      );
+
+      if (otaClient) {
+        await otaClient.pushRates(propertyId, roomTypeId, ratePlanId);
+      }
+    }
   } catch (error) {
     console.error('[Channel Integration] Rate sync failed:', error);
     // Don't throw - continue operation even if OTA sync fails
@@ -148,7 +164,7 @@ export async function syncRateChange(
 }
 
 /**
- * Helper function to push availability when it changes
+ * Helper function to push availability to all enabled OTA integrations
  * Call this after bookings are created, modified, or cancelled
  */
 export async function syncAvailabilityChange(
@@ -158,7 +174,23 @@ export async function syncAvailabilityChange(
   status: 'available' | 'blocked'
 ): Promise<void> {
   try {
-    await channelIntegration.pushAvailability(propertyId, roomTypeId, date, status);
+    const integrations = await OtaIntegrationFactory.getIntegrations(propertyId);
+
+    for (const integration of integrations) {
+      if (!integration.api_key) continue;
+
+      const otaClient = OtaIntegrationFactory.createIntegration(
+        integration.ota_name,
+        integration.api_key,
+        integration.id,
+        propertyId,
+        integration.sandbox_mode ?? true
+      );
+
+      if (otaClient) {
+        await otaClient.pushAvailability(propertyId, roomTypeId, date, status);
+      }
+    }
   } catch (error) {
     console.error('[Channel Integration] Availability sync failed:', error);
     // Don't throw - continue operation even if OTA sync fails
