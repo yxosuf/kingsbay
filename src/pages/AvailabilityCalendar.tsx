@@ -151,18 +151,20 @@ export default function AvailabilityCalendar() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedProperty?.id, rangeStart, rangeEnd]);
 
-  const getRoomTypes = () => {
+  const getRoomTypes = useMemo(() => {
     const types = new Set(rooms.map(r => r.room_type));
     return Array.from(types);
-  };
+  }, [rooms]);
 
-  const filteredRooms = selectedRoomType === 'all' 
-    ? rooms 
-    : rooms.filter(r => r.room_type === selectedRoomType);
+  const filteredRooms = useMemo(() => {
+    return selectedRoomType === 'all' 
+      ? rooms 
+      : rooms.filter(r => r.room_type === selectedRoomType);
+  }, [selectedRoomType, rooms]);
 
-  const getInventorySummary = (date: Date) => {
+  const getInventorySummary = useCallback((date: Date) => {
     const dateStr = toDateString(date);
     let available = 0;
     let booked = 0;
