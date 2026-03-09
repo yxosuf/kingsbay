@@ -44,52 +44,84 @@ export interface IChannelIntegration {
 }
 
 /**
- * Stub implementation that logs to console
- * Replace this with real OTA API integrations when ready
+ * OTA Integration Factory
+ * Routes API calls to the appropriate OTA provider based on integration configuration
  */
-class StubChannelIntegration implements IChannelIntegration {
-  async pushRates(
-    propertyId: string,
-    roomTypeId: string,
-    ratePlanId: string
-  ): Promise<void> {
-    console.log('[Channel Integration] Push Rates:', {
-      propertyId,
-      roomTypeId,
-      ratePlanId,
-      timestamp: new Date().toISOString(),
-    });
+class OtaIntegrationFactory {
+  /**
+   * Get configured OTA integrations for a property
+   */
+  static async getIntegrations(propertyId: string) {
+    const { data, error } = await supabase
+      .from('ota_integrations')
+      .select('*')
+      .eq('property_id', propertyId)
+      .eq('is_enabled', true);
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    if (error) {
+      console.error('Failed to fetch OTA integrations:', error);
+      return [];
+    }
 
-    // Future: Call actual OTA APIs here
-    // Example:
-    // await bookingComAPI.pushRates(propertyId, roomTypeId, ratePlanId);
-    // await airbnbAPI.updatePricing(propertyId, roomTypeId, ratePlanId);
+    return data || [];
   }
 
-  async pushAvailability(
+  /**
+   * Create an instance of the appropriate OTA integration class
+   */
+  static createIntegration(
+    otaName: string,
+    apiKey: string,
+    integrationId: string,
     propertyId: string,
-    roomTypeId: string,
-    date: string,
-    status: string
-  ): Promise<void> {
-    console.log('[Channel Integration] Push Availability:', {
-      propertyId,
-      roomTypeId,
-      date,
-      status,
-      timestamp: new Date().toISOString(),
-    });
+    sandboxMode: boolean
+  ): IChannelIntegration | null {
+    switch (otaName) {
+      case 'booking_com':
+        return new BookingComIntegration(apiKey, integrationId, propertyId, sandboxMode);
+      case 'airbnb':
+        return new AirbnbIntegration(apiKey, integrationId, propertyId, sandboxMode);
+      case 'expedia':
+        return new ExpediaIntegration(apiKey, integrationId, propertyId, sandboxMode);
+      case 'agoda':
+        return new AgodaIntegration(apiKey, integrationId, propertyId, sandboxMode);
+      default:
+        console.warn(`Unknown OTA type: ${otaName}`);
+        return null;
+    }
+  }
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 100));
+  /**
+   * Test connection for a specific integration
+   */
+  static async testConnection(integrationId: string): Promise<{ success: boolean; message: string }> {
+    const { data: integration, error } = await supabase
+      .from('ota_integrations')
+      .select('*')
+      .eq('id', integrationId)
+      .single();
 
-    // Future: Call actual OTA APIs here
-    // Example:
-    // await bookingComAPI.updateAvailability(propertyId, roomTypeId, date, status);
-    // await airbnbAPI.setCalendar(propertyId, roomTypeId, date, status === 'available');
+    if (error || !integration) {
+      return { success: false, message: 'Integration not found' };
+    }
+
+    if (!integration.api_key) {
+      return { success: false, message: 'API key not configured' };
+    }
+
+    const otaClient = this.createIntegration(
+      integration.ota_name,
+      integration.api_key,
+      integration.id,
+      integration.property_id,
+      integration.sandbox_mode ?? true
+    );
+
+    if (!otaClient) {
+      return { success: false, message: 'Unsupported OTA type' };
+    }
+
+    return await otaClient.testConnection();
   }
 }
 
