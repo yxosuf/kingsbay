@@ -195,22 +195,26 @@ export function OtaSyncTab() {
   }
 
   return (
-    <Tabs defaultValue="connected" className="space-y-4">
-      <TabsList>
-        <TabsTrigger value="connected">
-          <Globe className="h-4 w-4 mr-2" />
-          Connected OTAs
-        </TabsTrigger>
-        <TabsTrigger value="settings">Settings</TabsTrigger>
-        <TabsTrigger value="history">
-          <History className="h-4 w-4 mr-2" />
-          Sync History
-        </TabsTrigger>
-        <TabsTrigger value="simulate">
-          <FlaskConical className="h-4 w-4 mr-2" />
-          Simulate
-        </TabsTrigger>
-      </TabsList>
+    <>
+      <Tabs defaultValue="connected" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="connected">
+            <Globe className="h-4 w-4 mr-2" />
+            Connected OTAs
+          </TabsTrigger>
+          <TabsTrigger value="settings">
+            <SettingsIcon className="h-4 w-4 mr-2" />
+            API Keys
+          </TabsTrigger>
+          <TabsTrigger value="history">
+            <History className="h-4 w-4 mr-2" />
+            Sync History
+          </TabsTrigger>
+          <TabsTrigger value="simulate">
+            <FlaskConical className="h-4 w-4 mr-2" />
+            Simulate
+          </TabsTrigger>
+        </TabsList>
 
       <TabsContent value="connected" className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
