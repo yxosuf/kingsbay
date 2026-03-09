@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { checkRateLimit, formatRateLimitError } from '@/lib/rateLimiting';
 
 export interface OtaIntegration {
   id: string;
@@ -80,6 +81,15 @@ export function useOtaSync(propertyId?: string) {
       apiKey: string;
       sandboxMode: boolean;
     }) => {
+      // Get integration details for audit log
+      const { data: integration } = await supabase
+        .from('ota_integrations')
+        .select('ota_name, api_key')
+        .eq('id', integrationId)
+        .single();
+
+      const isUpdate = !!integration?.api_key;
+
       const { error } = await supabase
         .from('ota_integrations')
         .update({
@@ -90,6 +100,21 @@ export function useOtaSync(propertyId?: string) {
         .eq('id', integrationId);
 
       if (error) throw error;
+
+      // Create audit log
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('audit_logs').insert({
+          user_id: user.id,
+          property_id: propertyId,
+          action: isUpdate ? 'ota_api_key_updated' : 'ota_api_key_added',
+          details: {
+            ota_name: integration?.ota_name,
+            integration_id: integrationId,
+            sandbox_mode: sandboxMode,
+          },
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ota-integrations', propertyId] });
@@ -102,6 +127,13 @@ export function useOtaSync(propertyId?: string) {
 
   const deleteApiKey = useMutation({
     mutationFn: async (integrationId: string) => {
+      // Get integration details for audit log
+      const { data: integration } = await supabase
+        .from('ota_integrations')
+        .select('ota_name')
+        .eq('id', integrationId)
+        .single();
+
       const { error } = await supabase
         .from('ota_integrations')
         .update({
@@ -112,6 +144,20 @@ export function useOtaSync(propertyId?: string) {
         .eq('id', integrationId);
 
       if (error) throw error;
+
+      // Create audit log
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('audit_logs').insert({
+          user_id: user.id,
+          property_id: propertyId,
+          action: 'ota_api_key_deleted',
+          details: {
+            ota_name: integration?.ota_name,
+            integration_id: integrationId,
+          },
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ota-integrations', propertyId] });
@@ -176,6 +222,13 @@ export function useOtaSync(propertyId?: string) {
 
   const testConnection = useMutation({
     mutationFn: async (integrationId: string) => {
+      // Check rate limit: max 5 tests per hour per integration
+      const rateCheck = await checkRateLimit('ota_test_connection', 5, 60);
+      
+      if (!rateCheck.allowed) {
+        throw new Error(formatRateLimitError(rateCheck));
+      }
+
       const { OtaIntegrationFactory } = await import('@/lib/channelIntegration');
       return await OtaIntegrationFactory.testConnection(integrationId);
     },

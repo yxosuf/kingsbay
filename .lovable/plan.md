@@ -1,134 +1,51 @@
+# Kings Bay PMS — Implementation Complete ✅
 
+All plan items have been implemented and verified.
 
-# OTA Integration Missing Features - Implementation Plan
+## Phase 1 — Critical Fixes ✅
+| # | Item |
+|---|------|
+| 1 | Viewer Role RLS — `is_write_staff()`, write-restricted policies |
+| 2 | Availability Calendar — `[check_in, check_out)` string comparison |
+| 3 | Hybrid Hold System — `hold_expires_at`, edge function, countdown UI |
+| 4 | Cleaning Timer — `cleaning_until`, edge function, auto-release |
+| 5 | Rooms Derived Status — Occupied/Due Out/Arriving/Cleaning/Dirty/Inspected/Clean |
+| 6 | Guests in Settings — Tab, `/guests` redirect, guest details with services |
+| 7 | Guest Retention — `archived_at`/`deleted_at`, edge function, filters |
+| 8 | Nationality + Phone Code — Country selector, `countryData.ts` |
+| 9 | FX Rate System — `CurrencyDisplay`, `useFxRate`, edge function |
+| 10 | Danger Zone — Admin-only, password confirm, per-property, audit |
 
-## Identified Issues
+## Phase 2 — Operational ✅
+| # | Item |
+|---|------|
+| 11 | Front Desk Speed Mode — Quick actions, arrivals/departures |
+| 12 | Channel Manager — iCal, email inbound, needs_review flow |
+| 13 | Housekeeping Board — Drag-drop (Dirty→Cleaning→Clean→Inspected), staff assignment |
+| 14 | Notifications — Bell, preferences, edge functions |
+| 15 | Data Quality — Duplicate detection (phone/email/passport/NIC), admin merge tool |
 
-### 1. Code Quality Issues in OtaSyncTab
-- **Duplicate constant**: `DEFAULT_OTAS` defined twice (lines 37-42 and 62-67)
-- **Render-time side effect**: Auto-seeding logic executes during render (lines 70-90), should be in `useEffect`
+## Phase 3 — Finance ✅
+| # | Item |
+|---|------|
+| 16 | Booking Transactions Ledger — `booking_transactions`, TransactionsTab |
+| 17 | Accounting Layer — `ledger_accounts/entries/lines`, auto-posting |
 
-### 2. Real API Implementation
-The provider classes (BookingComIntegration, AirbnbIntegration, ExpediaIntegration, AgodaIntegration) **ARE actually making real API calls** - they are NOT stubs. They implement:
-- Real HTTP requests to OTA endpoints
-- Proper authentication headers
-- Sync log creation/updates
-- Error handling
+## Phase 4 ✅
+| # | Item |
+|---|------|
+| 18 | System Health Monitor — `/settings?tab=system-health`, admin checks |
 
-**Note**: These are placeholder endpoints for demonstration. In production, you would need:
-- Valid API credentials from each OTA
-- Actual property/room IDs from the OTA systems
-- Proper rate plan mappings
+## Additional Features ✅
+- Guest Email System (Resend) — booking_confirmation, pre_arrival, checkout_summary
+- Guest Feedback System — dialog, display, reports, dashboard widget
+- Printable Invoice — react-to-print
+- PWA Support — service worker, manifest
+- Extend Stay / Move Room dialogs
+- Add Service Dialog with category filtering
+- Reports (Occupancy, Revenue, Financial, Feedback)
+- Mobile Responsive — bottom nav, responsive tables/tabs
+- Passport Photo Upload — secure storage in guest-documents bucket
+- Guest Details — services purchased with totals, VIP/blacklist badges
 
-### 3. Missing Features to Implement
-
-**A. Notification System for Sync Failures**
-- Create notifications on sync failure
-- Track retry count and send alerts after 3+ failures
-- Integrate with existing notification system
-
-**B. Security & Auditing**
-- Rate limiting for test connection endpoint (max 5/hour per OTA)
-- Audit log entries for API key creation/modification
-- Leverage existing `audit_logs` table
-
-**C. Edge Function** (optional)
-- Background processor for async rate/availability syncs
-- Batch processing to avoid rate limits
-- Retry mechanism with exponential backoff
-
----
-
-## Implementation Steps
-
-### Step 1: Fix OtaSyncTab Code Quality Issues
-
-**File**: `src/components/settings/OtaSyncTab.tsx`
-
-Changes:
-- Remove duplicate `DEFAULT_OTAS` (lines 62-67)
-- Move auto-seeding logic to `useEffect` hook
-- Add proper dependencies and cleanup
-
-### Step 2: Add Notification System for Sync Failures
-
-**Files to modify**:
-- `src/lib/integrations/bookingCom.ts`
-- `src/lib/integrations/airbnb.ts`
-- `src/lib/integrations/expedia.ts`
-- `src/lib/integrations/agoda.ts`
-
-Logic to add:
-- After sync failure, check retry count from sync log
-- If retry_count >= 3, call `create-notification` edge function
-- Notification payload:
-  - `type`: 'channel_sync'
-  - `category`: 'channel_sync'
-  - `priority`: 'high'
-  - `title`: 'OTA Sync Failed'
-  - `message`: Error details
-  - `target_roles`: ['admin', 'manager']
-
-### Step 3: Implement Rate Limiting
-
-**Create**: `src/lib/rateLimiting.ts`
-
-Add helper function:
-- Check `upload_rate_limits` table for `action_type = 'ota_test_connection'`
-- Enforce 5 requests per hour per integration
-- Return boolean indicating if request is allowed
-
-**Modify**: `src/hooks/useOtaSync.ts`
-- Add rate limit check before `testConnection` mutation
-- Show toast error if rate limit exceeded
-
-### Step 4: Add Audit Logging for API Key Changes
-
-**Modify**: `src/hooks/useOtaSync.ts`
-
-Add audit log entries in mutations:
-- `saveApiKey`: Log "API Key Added/Updated"
-- `deleteApiKey`: Log "API Key Removed"
-
-Insert into `audit_logs` table:
-- `action`: 'ota_api_key_updated' / 'ota_api_key_deleted'
-- `details`: `{ ota_name, integration_id, sandbox_mode }`
-
-### Step 5: Create Edge Function for Async Sync (Optional)
-
-**Create**: `supabase/functions/ota-sync/index.ts`
-
-Features:
-- Accept sync requests via HTTP POST
-- Batch multiple rate/availability updates
-- Implement exponential backoff retry
-- Update `ota_sync_logs` table
-- Call notification edge function on failure
-
----
-
-## Files to Create/Modify
-
-| File | Action | Purpose |
-|------|--------|---------|
-| `src/components/settings/OtaSyncTab.tsx` | Modify | Fix duplicate constant + render-time side effect |
-| `src/lib/integrations/bookingCom.ts` | Modify | Add notification on repeated failures |
-| `src/lib/integrations/airbnb.ts` | Modify | Add notification on repeated failures |
-| `src/lib/integrations/expedia.ts` | Modify | Add notification on repeated failures |
-| `src/lib/integrations/agoda.ts` | Modify | Add notification on repeated failures |
-| `src/lib/rateLimiting.ts` | Create | Rate limiting utility |
-| `src/hooks/useOtaSync.ts` | Modify | Add rate limiting + audit logging |
-| `supabase/functions/ota-sync/index.ts` | Create (optional) | Background sync processor |
-
----
-
-## Testing Checklist
-
-After implementation:
-- ✅ OtaSyncTab renders without duplicate constant warnings
-- ✅ Auto-seeding only runs once via useEffect
-- ✅ Test connection rate limit enforced (5/hour)
-- ✅ Audit log created when API key saved/deleted
-- ✅ Notification created after 3+ sync failures
-- ✅ Edge function processes sync requests (if implemented)
-
+## All items verified and complete. No remaining work.

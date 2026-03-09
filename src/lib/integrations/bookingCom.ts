@@ -215,6 +215,15 @@ export class BookingComIntegration {
     responseMessage?: string,
     errorMessage?: string
   ): Promise<void> {
+    // Get current retry count
+    const { data: logData } = await supabase
+      .from('ota_sync_logs')
+      .select('retry_count')
+      .eq('id', logId)
+      .single();
+
+    const retryCount = logData?.retry_count || 0;
+
     const { error } = await supabase
       .from('ota_sync_logs')
       .update({
@@ -226,6 +235,41 @@ export class BookingComIntegration {
 
     if (error) {
       console.error('Failed to update sync log:', error);
+    }
+
+    // Send notification after 3+ failures
+    if (status === 'failure' && retryCount >= 3) {
+      await this.sendFailureNotification(errorMessage || 'Unknown error');
+    }
+  }
+
+  private async sendFailureNotification(errorMessage: string): Promise<void> {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-notification`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            property_id: this.propertyId,
+            type: 'channel_sync',
+            category: 'channel_sync',
+            priority: 'high',
+            title: 'OTA Sync Failed',
+            message: `Booking.com sync failed after multiple retries: ${errorMessage}`,
+            target_roles: ['admin', 'manager'],
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        console.error('Failed to send notification:', await response.text());
+      }
+    } catch (error) {
+      console.error('Error sending notification:', error);
     }
   }
 }
