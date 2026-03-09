@@ -574,13 +574,18 @@ export default function NewBooking() {
     }
   };
 
-  const filteredGuests = existingGuests.filter(
-    (g) =>
-      g.name.toLowerCase().includes(guestSearch.toLowerCase()) ||
-      g.phone?.includes(guestSearch)
-  );
+  // Memoize expensive computations
+  const filteredGuests = useMemo(() => {
+    return existingGuests.filter(
+      (g) =>
+        g.name.toLowerCase().includes(debouncedGuestSearch.toLowerCase()) ||
+        g.phone?.includes(debouncedGuestSearch)
+    );
+  }, [existingGuests, debouncedGuestSearch]);
 
-  const selectedRoom = rooms.find((r) => r.id === roomId);
+  const selectedRoom = useMemo(() => {
+    return rooms.find((r) => r.id === roomId);
+  }, [rooms, roomId]);
 
   return (
     <DashboardLayout title={isWalkIn ? "Walk-in Booking" : "New Booking"}>
