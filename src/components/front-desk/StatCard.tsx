@@ -1,4 +1,4 @@
-import { Card } from '@/components/ui/card';
+import { KpiCard, type ColorVariant } from '@/components/ui/KpiCard';
 import { LucideIcon } from 'lucide-react';
 
 interface StatCardProps {
@@ -8,18 +8,28 @@ interface StatCardProps {
   color: string;
 }
 
+function colorToVariant(color: string): ColorVariant {
+  if (color.includes('success')) return 'success';
+  if (color.includes('warning')) return 'warning';
+  if (color.includes('destructive')) return 'destructive';
+  if (color.includes('info')) return 'info';
+  return 'primary';
+}
+
 export function StatCard({ icon: Icon, label, count, color }: StatCardProps) {
   return (
-    <Card className="p-4">
-      <div className="flex items-center gap-3">
-        <div className={`rounded-lg bg-muted p-2 ${color}`}>
-          <Icon className="h-5 w-5" />
-        </div>
-        <div>
-          <p className="text-2xl font-bold">{count}</p>
-          <p className="text-xs text-muted-foreground">{label}</p>
+    <KpiCard colorVariant={colorToVariant(color)}>
+      <div className="p-4">
+        <div className="flex items-center gap-3">
+          <div className="rounded-lg bg-muted p-2">
+            <Icon className={`h-5 w-5 ${color}`} />
+          </div>
+          <div>
+            <p className="text-2xl font-bold">{count}</p>
+            <p className="text-xs text-muted-foreground">{label}</p>
+          </div>
         </div>
       </div>
-    </Card>
+    </KpiCard>
   );
 }

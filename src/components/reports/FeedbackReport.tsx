@@ -200,8 +200,8 @@ export function FeedbackReport({ dateRange, propertyId, showAllProperties, prope
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-5">
+        <KpiCard colorVariant="primary">
+          <div className="p-5">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-primary/10"><MessageSquare className="h-5 w-5 text-primary" /></div>
               <div>
@@ -209,10 +209,10 @@ export function FeedbackReport({ dateRange, propertyId, showAllProperties, prope
                 <p className="text-2xl font-bold">{data.totalReviews}</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-5">
+          </div>
+        </KpiCard>
+        <KpiCard colorVariant="warning">
+          <div className="p-5">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-warning/10"><Star className="h-5 w-5 text-warning" /></div>
               <div>
@@ -220,10 +220,10 @@ export function FeedbackReport({ dateRange, propertyId, showAllProperties, prope
                 <p className="text-2xl font-bold">{data.averageRating.toFixed(1)} <span className="text-sm text-muted-foreground">/ 5</span></p>
               </div>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-5">
+          </div>
+        </KpiCard>
+        <KpiCard colorVariant="success">
+          <div className="p-5">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-success/10"><TrendingUp className="h-5 w-5 text-success" /></div>
               <div>
@@ -231,10 +231,10 @@ export function FeedbackReport({ dateRange, propertyId, showAllProperties, prope
                 <p className="text-2xl font-bold">{data.responseRate.toFixed(1)}%</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-5">
+          </div>
+        </KpiCard>
+        <KpiCard colorVariant="info">
+          <div className="p-5">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-muted"><BarChart3 className="h-5 w-5 text-muted-foreground" /></div>
               <div>
@@ -242,8 +242,8 @@ export function FeedbackReport({ dateRange, propertyId, showAllProperties, prope
                 <p className="text-2xl font-bold">{data.checkedOutCount}</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </KpiCard>
       </div>
 
       {/* Rating Trend */}

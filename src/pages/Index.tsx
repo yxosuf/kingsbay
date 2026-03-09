@@ -280,15 +280,12 @@ export default function Dashboard() {
         {/* KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {statCards.map((stat, i) => (
-            <Card 
-              key={stat.title} 
-              className={cn(
-                "cursor-pointer border-l-4 hover:shadow-lg transition-all duration-200",
-                stat.borderColor
-              )}
+            <KpiCard
+              key={stat.title}
+              colorVariant={stat.colorVariant}
               onClick={stat.onClick}
             >
-              <CardContent className="p-3 sm:p-6">
+              <div className="p-3 sm:p-6">
                 <div className="flex flex-row items-center justify-between gap-2 sm:gap-3">
                   <div className="space-y-0.5 sm:space-y-1 min-w-0">
                     <p className="text-[11px] sm:text-sm text-muted-foreground font-medium truncate">{stat.title}</p>
@@ -308,8 +305,8 @@ export default function Dashboard() {
                     <stat.icon className={cn("h-4 w-4 sm:h-6 sm:w-6", stat.color)} />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </KpiCard>
           ))}
         </div>
 

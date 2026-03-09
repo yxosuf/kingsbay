@@ -211,8 +211,8 @@ export function OccupancyReport({ dateRange, propertyId, showAllProperties, prop
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
+        <KpiCard colorVariant="primary">
+          <div className="p-5">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-xl bg-primary/10">
                 <TrendingUp className="h-5 w-5 text-primary" />
@@ -224,10 +224,10 @@ export function OccupancyReport({ dateRange, propertyId, showAllProperties, prop
                 </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
+          </div>
+        </KpiCard>
+        <KpiCard colorVariant="info">
+          <div className="p-5">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-xl bg-info/10">
                 <BedDouble className="h-5 w-5 text-info" />
@@ -237,10 +237,10 @@ export function OccupancyReport({ dateRange, propertyId, showAllProperties, prop
                 <p className="text-2xl font-bold">{data.totalRooms}</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
+          </div>
+        </KpiCard>
+        <KpiCard colorVariant="success">
+          <div className="p-5">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-xl bg-success/10">
                 <CalendarDays className="h-5 w-5 text-success" />
@@ -250,10 +250,10 @@ export function OccupancyReport({ dateRange, propertyId, showAllProperties, prop
                 <p className="text-2xl font-bold">{data.avgStayLength} <span className="text-sm font-normal text-muted-foreground">nights</span></p>
               </div>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
+          </div>
+        </KpiCard>
+        <KpiCard colorVariant="warning">
+          <div className="p-5">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-xl bg-warning/10">
                 <Users className="h-5 w-5 text-warning" />
@@ -263,8 +263,8 @@ export function OccupancyReport({ dateRange, propertyId, showAllProperties, prop
                 <p className="text-2xl font-bold">{data.totalBookings}</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </KpiCard>
       </div>
 
       {/* Room-Night Stats */}
