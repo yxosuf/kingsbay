@@ -226,7 +226,7 @@ export default function Dashboard() {
       onClick: () => navigate('/guests?filter=active'),
       color: 'text-primary',
       bgColor: 'bg-primary/10',
-      borderColor: 'border-l-primary',
+      colorVariant: 'primary' as const,
     },
     {
       title: 'Total Revenue',
@@ -236,7 +236,7 @@ export default function Dashboard() {
       onClick: () => navigate('/reports?type=revenue'),
       color: 'text-success',
       bgColor: 'bg-success/10',
-      borderColor: 'border-l-success',
+      colorVariant: 'success' as const,
     },
     {
       title: 'Arrivals Today',
@@ -245,7 +245,7 @@ export default function Dashboard() {
       onClick: () => navigate('/bookings?filter=today'),
       color: 'text-warning',
       bgColor: 'bg-warning/10',
-      borderColor: 'border-l-warning',
+      colorVariant: 'warning' as const,
     },
     {
       title: 'Available Rooms',
@@ -254,7 +254,7 @@ export default function Dashboard() {
       onClick: () => navigate('/rooms'),
       color: 'text-info',
       bgColor: 'bg-info/10',
-      borderColor: 'border-l-info',
+      colorVariant: 'info' as const,
     },
   ], [stats, exchangeRate, navigate]);
 
