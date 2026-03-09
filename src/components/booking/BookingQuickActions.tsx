@@ -140,6 +140,10 @@ export function BookingQuickActions({ booking, onActionComplete, compact = false
           {!compact && <span className="ml-1">View</span>}
         </Button>
 
+        {canShowQR && !compact && (
+          <QRCodeDisplay bookingId={booking.id} guestName={booking.guests?.name} />
+        )}
+
         {canCheckIn && (
           <Button
             variant={variant}
