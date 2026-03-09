@@ -126,10 +126,13 @@ export default function AvailabilityCalendar() {
         .in('status', ['confirmed', 'checked_in', 'pending', 'needs_review']);
 
       if (bookingError) throw bookingError;
-      setBookings((bookingData || []).map(b => ({
-        ...b,
-        guest: Array.isArray(b.guest) ? b.guest[0] : b.guest
-      })) as Booking[]);
+      
+      startTransition(() => {
+        setBookings((bookingData || []).map(b => ({
+          ...b,
+          guest: Array.isArray(b.guest) ? b.guest[0] : b.guest
+        })) as Booking[]);
+      });
 
       const { data: availabilityData, error: availabilityError } = await supabase
         .from('room_availability')
