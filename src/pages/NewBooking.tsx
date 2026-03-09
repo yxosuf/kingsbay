@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, startTransition } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -70,8 +70,10 @@ export default function NewBooking() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [existingGuests, setExistingGuests] = useState<Guest[]>([]);
   const [guestSearch, setGuestSearch] = useState('');
+  const [debouncedGuestSearch, setDebouncedGuestSearch] = useState('');
   const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
   const [showGuestSearch, setShowGuestSearch] = useState(false);
+  const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Walk-in: check-in immediately toggle
   const [checkInImmediately, setCheckInImmediately] = useState(isWalkIn);
@@ -128,6 +130,21 @@ export default function NewBooking() {
     other_ota: 15,
   };
 
+  // Debounce guest search
+  useEffect(() => {
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+    searchDebounceRef.current = setTimeout(() => {
+      setDebouncedGuestSearch(guestSearch);
+    }, 300);
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
+  }, [guestSearch]);
+
   useEffect(() => {
     fetchAvailableRooms();
     fetchExistingGuests();
@@ -139,7 +156,7 @@ export default function NewBooking() {
     getActiveRatePlans(selectedProperty.id).then(setRatePlans);
   }, [selectedProperty?.id]);
 
-  // Calculate rate breakdown when inputs change
+  // Calculate rate breakdown when inputs change (use startTransition for non-urgent updates)
   useEffect(() => {
     if (!selectedProperty?.id || !checkIn || !checkOut || !roomId) {
       setStayBreakdown(null);
@@ -150,30 +167,33 @@ export default function NewBooking() {
 
     setCalculatingRate(true);
     setDiscountError('');
-    calculateStayTotal(
-      selectedProperty.id,
-      room.room_type,
-      room.price,
-      format(checkIn, 'yyyy-MM-dd'),
-      format(checkOut, 'yyyy-MM-dd'),
-      selectedRatePlanId || null,
-      numGuests,
-      discountCode.trim() || null,
-    ).then(breakdown => {
-      setStayBreakdown(breakdown);
-      if (discountCode.trim() && !breakdown.discountCode) {
-        setDiscountError('Invalid or expired discount code');
-      }
-      setCalculatingRate(false);
-    }).catch(() => setCalculatingRate(false));
+    
+    startTransition(() => {
+      calculateStayTotal(
+        selectedProperty.id!,
+        room.room_type,
+        room.price,
+        format(checkIn, 'yyyy-MM-dd'),
+        format(checkOut, 'yyyy-MM-dd'),
+        selectedRatePlanId || null,
+        numGuests,
+        discountCode.trim() || null,
+      ).then(breakdown => {
+        setStayBreakdown(breakdown);
+        if (discountCode.trim() && !breakdown.discountCode) {
+          setDiscountError('Invalid or expired discount code');
+        }
+        setCalculatingRate(false);
+      }).catch(() => setCalculatingRate(false));
+    });
   }, [selectedProperty?.id, checkIn, checkOut, roomId, selectedRatePlanId, numGuests, rooms, discountCode]);
 
-  // Fetch booked dates for calendar indicators
+  // Fetch booked dates for calendar indicators (reduced range from 6 to 2 months)
   useEffect(() => {
     const fetchBookedDates = async () => {
       if (!selectedProperty?.id) return;
       const rangeStart = format(new Date(), 'yyyy-MM-dd');
-      const rangeEnd = format(addMonths(new Date(), 6), 'yyyy-MM-dd');
+      const rangeEnd = format(addMonths(new Date(), 2), 'yyyy-MM-dd');
 
       const { data } = await supabase
         .from('bookings')
@@ -183,20 +203,22 @@ export default function NewBooking() {
         .lt('check_in', rangeEnd)
         .gt('check_out', rangeStart);
 
-      const dates = new Set<string>();
-      (data || []).forEach(b => {
-        const start = parseLocalDate(b.check_in);
-        const end = parseLocalDate(b.check_out);
-        // Block [check_in, check_out) 
-        const days = eachDayOfInterval({ start, end: new Date(end.getTime() - 86400000) });
-        days.forEach(d => dates.add(toDateString(d)));
+      startTransition(() => {
+        const dates = new Set<string>();
+        (data || []).forEach(b => {
+          const start = parseLocalDate(b.check_in);
+          const end = parseLocalDate(b.check_out);
+          // Block [check_in, check_out) 
+          const days = eachDayOfInterval({ start, end: new Date(end.getTime() - 86400000) });
+          days.forEach(d => dates.add(toDateString(d)));
+        });
+        setBookedDateSet(dates);
       });
-      setBookedDateSet(dates);
     };
     fetchBookedDates();
   }, [selectedProperty?.id]);
 
-  const fetchAvailableRooms = async () => {
+  const fetchAvailableRooms = useCallback(async () => {
     try {
       let query = supabase.from('rooms').select('id, room_number, room_type, price, status, max_guests').neq('status', 'maintenance');
       if (selectedProperty?.id) {
@@ -225,9 +247,9 @@ export default function NewBooking() {
     } catch (error) {
       console.error('Error fetching rooms:', error);
     }
-  };
+  }, [checkIn, checkOut, selectedProperty?.id]);
 
-  const fetchExistingGuests = async () => {
+  const fetchExistingGuests = useCallback(async () => {
     try {
       const { data } = await supabase
         .from('guests')
@@ -237,7 +259,7 @@ export default function NewBooking() {
     } catch (error) {
       console.error('Error fetching guests:', error);
     }
-  };
+  }, []);
 
   const handleSelectGuest = (guest: Guest) => {
     setSelectedGuest(guest);
@@ -552,13 +574,18 @@ export default function NewBooking() {
     }
   };
 
-  const filteredGuests = existingGuests.filter(
-    (g) =>
-      g.name.toLowerCase().includes(guestSearch.toLowerCase()) ||
-      g.phone?.includes(guestSearch)
-  );
+  // Memoize expensive computations
+  const filteredGuests = useMemo(() => {
+    return existingGuests.filter(
+      (g) =>
+        g.name.toLowerCase().includes(debouncedGuestSearch.toLowerCase()) ||
+        g.phone?.includes(debouncedGuestSearch)
+    );
+  }, [existingGuests, debouncedGuestSearch]);
 
-  const selectedRoom = rooms.find((r) => r.id === roomId);
+  const selectedRoom = useMemo(() => {
+    return rooms.find((r) => r.id === roomId);
+  }, [rooms, roomId]);
 
   return (
     <DashboardLayout title={isWalkIn ? "Walk-in Booking" : "New Booking"}>
