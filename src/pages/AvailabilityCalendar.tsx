@@ -109,7 +109,10 @@ export default function AvailabilityCalendar() {
         .order('room_number');
 
       if (roomError) throw roomError;
-      setRooms(roomData || []);
+      
+      startTransition(() => {
+        setRooms(roomData || []);
+      });
 
       const { data: bookingData, error: bookingError } = await supabase
         .from('bookings')
