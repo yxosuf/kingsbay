@@ -91,6 +91,7 @@ const App = () => (
                     <Route path="/guest/book" element={<GuestBooking />} />
                     <Route path="/guest/bookings/:id" element={<GuestBookingDetails />} />
                     <Route path="/guest/reset-password" element={<GuestResetPassword />} />
+                    <Route path="/guest/checkin/:bookingId" element={<GuestCheckin />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </Suspense>
