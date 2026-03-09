@@ -156,7 +156,7 @@ export default function NewBooking() {
     getActiveRatePlans(selectedProperty.id).then(setRatePlans);
   }, [selectedProperty?.id]);
 
-  // Calculate rate breakdown when inputs change
+  // Calculate rate breakdown when inputs change (use startTransition for non-urgent updates)
   useEffect(() => {
     if (!selectedProperty?.id || !checkIn || !checkOut || !roomId) {
       setStayBreakdown(null);
@@ -167,22 +167,25 @@ export default function NewBooking() {
 
     setCalculatingRate(true);
     setDiscountError('');
-    calculateStayTotal(
-      selectedProperty.id,
-      room.room_type,
-      room.price,
-      format(checkIn, 'yyyy-MM-dd'),
-      format(checkOut, 'yyyy-MM-dd'),
-      selectedRatePlanId || null,
-      numGuests,
-      discountCode.trim() || null,
-    ).then(breakdown => {
-      setStayBreakdown(breakdown);
-      if (discountCode.trim() && !breakdown.discountCode) {
-        setDiscountError('Invalid or expired discount code');
-      }
-      setCalculatingRate(false);
-    }).catch(() => setCalculatingRate(false));
+    
+    startTransition(() => {
+      calculateStayTotal(
+        selectedProperty.id!,
+        room.room_type,
+        room.price,
+        format(checkIn, 'yyyy-MM-dd'),
+        format(checkOut, 'yyyy-MM-dd'),
+        selectedRatePlanId || null,
+        numGuests,
+        discountCode.trim() || null,
+      ).then(breakdown => {
+        setStayBreakdown(breakdown);
+        if (discountCode.trim() && !breakdown.discountCode) {
+          setDiscountError('Invalid or expired discount code');
+        }
+        setCalculatingRate(false);
+      }).catch(() => setCalculatingRate(false));
+    });
   }, [selectedProperty?.id, checkIn, checkOut, roomId, selectedRatePlanId, numGuests, rooms, discountCode]);
 
   // Fetch booked dates for calendar indicators
