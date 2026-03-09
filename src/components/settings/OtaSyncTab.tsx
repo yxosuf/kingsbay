@@ -411,7 +411,33 @@ export function OtaSyncTab() {
             )}
           </CardContent>
         </Card>
-      </TabsContent>
-    </Tabs>
+        </TabsContent>
+      </Tabs>
+
+      {/* API Key Management Dialog */}
+      {selectedIntegrationData && (
+        <OtaApiKeyDialog
+          integration={selectedIntegrationData}
+          open={!!selectedIntegration}
+          onClose={() => setSelectedIntegration(null)}
+          onSave={async (apiKey, sandboxMode) => {
+            await saveApiKey.mutateAsync({
+              integrationId: selectedIntegrationData.id,
+              apiKey,
+              sandboxMode,
+            });
+          }}
+          onDelete={async () => {
+            await deleteApiKey.mutateAsync(selectedIntegrationData.id);
+          }}
+          onTest={async () => {
+            await testConnection.mutateAsync(selectedIntegrationData.id);
+          }}
+          isSaving={saveApiKey.isPending}
+          isDeleting={deleteApiKey.isPending}
+          isTesting={testConnection.isPending}
+        />
+      )}
+    </>
   );
 }
