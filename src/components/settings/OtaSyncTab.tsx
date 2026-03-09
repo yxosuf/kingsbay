@@ -345,25 +345,19 @@ export function OtaSyncTab() {
           </Card>
         </TabsContent>
 
-      <TabsContent value="history">
-        <Card>
-          <CardHeader>
-            <CardTitle>Sync History</CardTitle>
-            <CardDescription>
-              View rate and availability push logs to connected OTAs
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8 text-muted-foreground">
-              <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium mb-2">No Sync History</p>
-              <p className="text-sm">
-                Sync logs will appear here once OTA integrations are active.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
+        <TabsContent value="history">
+          <Card>
+            <CardHeader>
+              <CardTitle>Sync History</CardTitle>
+              <CardDescription>
+                View detailed logs of all rate and availability pushes to connected OTAs
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <OtaSyncHistoryTable logs={syncLogs} loading={logsLoading} />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
       <TabsContent value="simulate">
         <Card>
