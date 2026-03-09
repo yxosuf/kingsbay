@@ -127,6 +127,13 @@ export function useOtaSync(propertyId?: string) {
 
   const deleteApiKey = useMutation({
     mutationFn: async (integrationId: string) => {
+      // Get integration details for audit log
+      const { data: integration } = await supabase
+        .from('ota_integrations')
+        .select('ota_name')
+        .eq('id', integrationId)
+        .single();
+
       const { error } = await supabase
         .from('ota_integrations')
         .update({
@@ -137,6 +144,20 @@ export function useOtaSync(propertyId?: string) {
         .eq('id', integrationId);
 
       if (error) throw error;
+
+      // Create audit log
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('audit_logs').insert({
+          user_id: user.id,
+          property_id: propertyId,
+          action: 'ota_api_key_deleted',
+          details: {
+            ota_name: integration?.ota_name,
+            integration_id: integrationId,
+          },
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ota-integrations', propertyId] });
