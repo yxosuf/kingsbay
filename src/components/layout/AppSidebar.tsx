@@ -213,8 +213,8 @@ export function AppSidebar() {
                       {active && (
                         <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-sidebar-ring" />
                       )}
-                      <item.icon className={cn("h-4 w-4", active && "text-sidebar-ring")} />
-                      <span>{item.title}</span>
+                      <item.icon className={cn("h-5 w-5", active && "text-sidebar-ring")} />
+                      <span className="text-base">{item.title}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
