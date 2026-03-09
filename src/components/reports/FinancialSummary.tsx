@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { KpiCard } from '@/components/ui/KpiCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -263,8 +264,8 @@ export function FinancialSummary({ dateRange, propertyId, showAllProperties, pro
 
       {/* Financial KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
+        <KpiCard colorVariant="success">
+          <div className="p-5">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-xl bg-success/10">
                 <BookOpen className="h-5 w-5 text-success" />
@@ -274,10 +275,10 @@ export function FinancialSummary({ dateRange, propertyId, showAllProperties, pro
                 <CurrencyDisplay amount={data.revenueTotal} fxRate={fxRate} size="sm" primaryClassName="font-bold text-success" />
               </div>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
+          </div>
+        </KpiCard>
+        <KpiCard colorVariant="destructive">
+          <div className="p-5">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-xl bg-destructive/10">
                 <BookOpen className="h-5 w-5 text-destructive" />
@@ -287,10 +288,10 @@ export function FinancialSummary({ dateRange, propertyId, showAllProperties, pro
                 <CurrencyDisplay amount={data.expenseTotal} fxRate={fxRate} size="sm" primaryClassName="font-bold text-destructive" />
               </div>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
+          </div>
+        </KpiCard>
+        <KpiCard colorVariant="primary">
+          <div className="p-5">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-xl bg-primary/10">
                 <Scale className="h-5 w-5 text-primary" />
@@ -305,10 +306,10 @@ export function FinancialSummary({ dateRange, propertyId, showAllProperties, pro
                 />
               </div>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
+          </div>
+        </KpiCard>
+        <KpiCard colorVariant="warning">
+          <div className="p-5">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-xl bg-warning/10">
                 <AlertTriangle className="h-5 w-5 text-warning" />
@@ -323,8 +324,8 @@ export function FinancialSummary({ dateRange, propertyId, showAllProperties, pro
                 />
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </KpiCard>
       </div>
 
       {/* Trial Balance Table */}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { KpiCard } from '@/components/ui/KpiCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -372,9 +373,14 @@ export function ChannelsSettings() {
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         {statCards.map((stat) => {
           const Icon = stat.icon;
+          const variant = stat.color.includes('success') ? 'success'
+            : stat.color.includes('warning') ? 'warning'
+            : stat.color.includes('destructive') ? 'destructive'
+            : stat.color.includes('info') ? 'info'
+            : 'primary';
           return (
-            <Card key={stat.label} className={cn("border", stat.border)}>
-              <CardContent className="p-4">
+            <KpiCard key={stat.label} colorVariant={variant as any}>
+              <div className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{stat.label}</p>
@@ -388,8 +394,8 @@ export function ChannelsSettings() {
                     <Icon className={cn("h-5 w-5", stat.color)} />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </KpiCard>
           );
         })}
       </div>

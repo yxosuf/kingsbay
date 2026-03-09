@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { KpiCard } from '@/components/ui/KpiCard';
 import { Button } from '@/components/ui/button';
 import { CurrencyDisplay } from '@/components/ui/CurrencyDisplay';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -219,8 +220,8 @@ export function RevenueReport({ dateRange, propertyId, showAllProperties, proper
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
+        <KpiCard colorVariant="success">
+          <div className="p-5">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-xl bg-success/10">
                 <Wallet className="h-5 w-5 text-success" />
@@ -230,10 +231,10 @@ export function RevenueReport({ dateRange, propertyId, showAllProperties, proper
                 <CurrencyDisplay amount={data.totalRevenue} fxRate={fxRate} size="md" primaryClassName="font-bold" />
               </div>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
+          </div>
+        </KpiCard>
+        <KpiCard colorVariant="primary">
+          <div className="p-5">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-xl bg-primary/10">
                 <BedDouble className="h-5 w-5 text-primary" />
@@ -243,10 +244,10 @@ export function RevenueReport({ dateRange, propertyId, showAllProperties, proper
                 <CurrencyDisplay amount={data.roomRevenue} fxRate={fxRate} size="sm" primaryClassName="font-semibold" />
               </div>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
+          </div>
+        </KpiCard>
+        <KpiCard colorVariant="warning">
+          <div className="p-5">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-xl bg-warning/10">
                 <Sparkles className="h-5 w-5 text-warning" />
@@ -256,10 +257,10 @@ export function RevenueReport({ dateRange, propertyId, showAllProperties, proper
                 <CurrencyDisplay amount={data.serviceRevenue} fxRate={fxRate} size="sm" primaryClassName="font-semibold" />
               </div>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
+          </div>
+        </KpiCard>
+        <KpiCard colorVariant="info">
+          <div className="p-5">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-xl bg-info/10">
                 <Receipt className="h-5 w-5 text-info" />
@@ -269,8 +270,8 @@ export function RevenueReport({ dateRange, propertyId, showAllProperties, proper
                 <p className="text-lg font-bold">{data.invoiceCount}</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </KpiCard>
       </div>
 
       {/* Cashflow Summary */}
