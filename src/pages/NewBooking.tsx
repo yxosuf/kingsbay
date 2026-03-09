@@ -70,8 +70,10 @@ export default function NewBooking() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [existingGuests, setExistingGuests] = useState<Guest[]>([]);
   const [guestSearch, setGuestSearch] = useState('');
+  const [debouncedGuestSearch, setDebouncedGuestSearch] = useState('');
   const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
   const [showGuestSearch, setShowGuestSearch] = useState(false);
+  const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Walk-in: check-in immediately toggle
   const [checkInImmediately, setCheckInImmediately] = useState(isWalkIn);
