@@ -1,54 +1,51 @@
+# Kings Bay PMS — Implementation Complete ✅
 
+All plan items have been implemented and verified.
 
-# Hover Auto-Expand Sidebar with Visual Redesign
+## Phase 1 — Critical Fixes ✅
+| # | Item |
+|---|------|
+| 1 | Viewer Role RLS — `is_write_staff()`, write-restricted policies |
+| 2 | Availability Calendar — `[check_in, check_out)` string comparison |
+| 3 | Hybrid Hold System — `hold_expires_at`, edge function, countdown UI |
+| 4 | Cleaning Timer — `cleaning_until`, edge function, auto-release |
+| 5 | Rooms Derived Status — Occupied/Due Out/Arriving/Cleaning/Dirty/Inspected/Clean |
+| 6 | Guests in Settings — Tab, `/guests` redirect, guest details with services |
+| 7 | Guest Retention — `archived_at`/`deleted_at`, edge function, filters |
+| 8 | Nationality + Phone Code — Country selector, `countryData.ts` |
+| 9 | FX Rate System — `CurrencyDisplay`, `useFxRate`, edge function |
+| 10 | Danger Zone — Admin-only, password confirm, per-property, audit |
 
-## Analysis
+## Phase 2 — Operational ✅
+| # | Item |
+|---|------|
+| 11 | Front Desk Speed Mode — Quick actions, arrivals/departures |
+| 12 | Channel Manager — iCal, email inbound, needs_review flow |
+| 13 | Housekeeping Board — Drag-drop (Dirty→Cleaning→Clean→Inspected), staff assignment |
+| 14 | Notifications — Bell, preferences, edge functions |
+| 15 | Data Quality — Duplicate detection (phone/email/passport/NIC), admin merge tool |
 
-The reference image shows a **minimal icon-only sidebar** with:
-- Rounded blue circular icon buttons (two at top, one at bottom)
-- Icons centered vertically
-- Light background color (#F5F5F5-ish)
-- Very clean, modern design
-- Very narrow width (~48-60px)
+## Phase 3 — Finance ✅
+| # | Item |
+|---|------|
+| 16 | Booking Transactions Ledger — `booking_transactions`, TransactionsTab |
+| 17 | Accounting Layer — `ledger_accounts/entries/lines`, auto-posting |
 
-Current sidebar uses:
-- `collapsible="icon"` mode with `SIDEBAR_WIDTH_ICON = "3rem"` (48px)
-- Dark brown theme from King's Bay branding
-- Manual toggle via button/keyboard shortcut
-- Already supports collapsed/expanded states with transitions
+## Phase 4 ✅
+| # | Item |
+|---|------|
+| 18 | System Health Monitor — `/settings?tab=system-health`, admin checks |
 
-## Implementation Plan
+## Additional Features ✅
+- Guest Email System (Resend) — booking_confirmation, pre_arrival, checkout_summary
+- Guest Feedback System — dialog, display, reports, dashboard widget
+- Printable Invoice — react-to-print
+- PWA Support — service worker, manifest
+- Extend Stay / Move Room dialogs
+- Add Service Dialog with category filtering
+- Reports (Occupancy, Revenue, Financial, Feedback)
+- Mobile Responsive — bottom nav, responsive tables/tabs
+- Passport Photo Upload — secure storage in guest-documents bucket
+- Guest Details — services purchased with totals, VIP/blacklist badges
 
-### 1. **AppSidebar.tsx** - Add Hover Logic
-- Add `isHovered` state and `hoverTimeoutRef`
-- Add `onMouseEnter`/`onMouseLeave` handlers to root `<Sidebar>` element
-- Use `useEffect` to call `setOpen(isHovered)` when hover state changes
-- Add 100ms delay on mouse leave to prevent flickering
-- Keep existing navigation structure intact
-
-### 2. **DashboardLayout.tsx** - Default to Collapsed
-- Change `SidebarProvider` to `defaultOpen={false}`
-- Sidebar will start collapsed and expand only on hover
-
-### 3. **Visual Refinements** (Optional Enhancements)
-The current sidebar already has circular icons when collapsed. To match the reference image more closely:
-- Icons are already centered in collapsed mode via existing CSS
-- Active state already has visual indicators
-- The brown theme matches the King's Bay branding, no need to change to blue unless user requests
-
-## Key Behavior
-
-**Desktop:**
-- Sidebar starts collapsed (icon-only, 48px wide)
-- Hover → expands to full width (256px) instantly
-- Mouse leave → collapses after 100ms delay
-- Smooth 200ms CSS transition (already built-in)
-
-**Mobile:**
-- No changes - continues using Sheet/drawer behavior
-- Hover logic disabled on mobile
-
-## Files Modified
-1. `src/components/layout/AppSidebar.tsx` - hover state + event handlers
-2. `src/components/layout/DashboardLayout.tsx` - defaultOpen={false}
-
+## All items verified and complete. No remaining work.

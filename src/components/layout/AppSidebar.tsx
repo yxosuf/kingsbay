@@ -30,7 +30,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useUserSettings } from '@/hooks/useUserSettings';
 
 const mainNavItems = [
@@ -49,7 +49,7 @@ const systemNavItems = [
 ];
 
 export function AppSidebar() {
-  const { state, isMobile, setOpenMobile, toggleSidebar } = useSidebar();
+  const { state, isMobile, setOpenMobile, toggleSidebar, setOpen } = useSidebar();
   const collapsed = state === 'collapsed';
   const location = useLocation();
   const navigate = useNavigate();
@@ -57,6 +57,32 @@ export function AppSidebar() {
   const { selectedProperty } = useProperty();
   const { settings: userSettings } = useUserSettings();
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-expand on hover (desktop only)
+  useEffect(() => {
+    if (!isMobile) {
+      if (isHovered) {
+        setOpen(true);
+      } else {
+        setOpen(false);
+      }
+    }
+  }, [isHovered, isMobile, setOpen]);
+
+  const handleMouseEnter = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    hoverTimeoutRef.current = setTimeout(() => {
+      setIsHovered(false);
+    }, 100);
+  };
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
@@ -102,7 +128,12 @@ export function AppSidebar() {
     .slice(0, 2);
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border hidden md:flex">
+    <Sidebar 
+      collapsible="icon" 
+      className="border-r border-sidebar-border hidden md:flex"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       {/* Header with Logo */}
       <SidebarHeader className={cn(
         "border-b border-sidebar-border",
