@@ -19,6 +19,7 @@ import { OperationsMetricsRow } from '@/components/dashboard/OperationsMetricsRo
 import { RevenueMetricsCard } from '@/components/dashboard/RevenueMetricsCard';
 import { BookingSourcesChart } from '@/components/dashboard/BookingSourcesChart';
 import { OtaPerformanceCard } from '@/components/dashboard/OtaPerformanceCard';
+import { AiSuggestionsPanel } from '@/components/dashboard/AiSuggestionsPanel';
 import { useDashboardKpi } from '@/hooks/useDashboardKpi';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
