@@ -123,10 +123,11 @@ export function BookingQuickActions({ booking, onActionComplete, compact = false
     navigate(`/bookings/${booking.id}/checkout`);
   };
 
-  const canCheckIn = canWrite && (booking.status === 'pending' || booking.status === 'confirmed');
+  const canCheckIn = canWrite && (booking.status === 'pending' || booking.status === 'confirmed' || booking.status === 'pending_checkin');
   const canCheckOut = canWrite && booking.status === 'checked_in';
-  const canCancel = canWrite && (booking.status === 'pending' || booking.status === 'confirmed' || booking.status === 'needs_review');
+  const canCancel = canWrite && (booking.status === 'pending' || booking.status === 'confirmed' || booking.status === 'needs_review' || booking.status === 'pending_checkin');
   const canNoShow = canWrite && (booking.status === 'confirmed' || booking.status === 'pending');
+  const canShowQR = canWrite && (booking.status === 'pending' || booking.status === 'confirmed' || booking.status === 'pending_checkin');
 
   const size = compact ? 'icon' as const : 'sm' as const;
   const variant = compact ? 'ghost' as const : 'outline' as const;
