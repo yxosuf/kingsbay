@@ -2050,7 +2050,66 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      dashboard_kpi_metrics: {
+        Row: {
+          agoda_bookings_month: number | null
+          airbnb_bookings_month: number | null
+          arrivals_today: number | null
+          bookingcom_bookings_month: number | null
+          departures_today: number | null
+          direct_bookings_month: number | null
+          expedia_bookings_month: number | null
+          ota_bookings_month: number | null
+          ota_commission_month: number | null
+          ota_revenue_month: number | null
+          property_id: string | null
+          rooms_occupied: number | null
+          walkins_today: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_revenue_metrics: {
+        Row: {
+          invoices_month: number | null
+          property_id: string | null
+          revenue_month: number | null
+          revenue_today: number | null
+          revenue_week: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_room_metrics: {
+        Row: {
+          available_rooms: number | null
+          property_id: string | null
+          total_rooms: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rooms_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       can_access_guest: {
@@ -2106,6 +2165,7 @@ export type Database = {
         | "other_ota"
       booking_status:
         | "pending"
+        | "pending_checkin"
         | "confirmed"
         | "checked_in"
         | "checked_out"
@@ -2275,6 +2335,7 @@ export const Constants = {
       ],
       booking_status: [
         "pending",
+        "pending_checkin",
         "confirmed",
         "checked_in",
         "checked_out",

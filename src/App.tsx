@@ -33,6 +33,7 @@ const GuestDashboard = lazy(() => import("./pages/guest/GuestDashboard"));
 const GuestBooking = lazy(() => import("./pages/guest/GuestBooking"));
 const GuestBookingDetails = lazy(() => import("./pages/guest/GuestBookingDetails"));
 const GuestResetPassword = lazy(() => import("./pages/guest/GuestResetPassword"));
+const GuestCheckin = lazy(() => import("./pages/guest/GuestCheckin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -90,6 +91,7 @@ const App = () => (
                     <Route path="/guest/book" element={<GuestBooking />} />
                     <Route path="/guest/bookings/:id" element={<GuestBookingDetails />} />
                     <Route path="/guest/reset-password" element={<GuestResetPassword />} />
+                    <Route path="/guest/checkin/:bookingId" element={<GuestCheckin />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </Suspense>

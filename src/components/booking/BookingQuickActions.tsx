@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { QRCodeDisplay } from './QRCodeDisplay';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -122,10 +123,11 @@ export function BookingQuickActions({ booking, onActionComplete, compact = false
     navigate(`/bookings/${booking.id}/checkout`);
   };
 
-  const canCheckIn = canWrite && (booking.status === 'pending' || booking.status === 'confirmed');
+  const canCheckIn = canWrite && (booking.status === 'pending' || booking.status === 'confirmed' || booking.status === 'pending_checkin');
   const canCheckOut = canWrite && booking.status === 'checked_in';
-  const canCancel = canWrite && (booking.status === 'pending' || booking.status === 'confirmed' || booking.status === 'needs_review');
+  const canCancel = canWrite && (booking.status === 'pending' || booking.status === 'confirmed' || booking.status === 'needs_review' || booking.status === 'pending_checkin');
   const canNoShow = canWrite && (booking.status === 'confirmed' || booking.status === 'pending');
+  const canShowQR = canWrite && (booking.status === 'pending' || booking.status === 'confirmed' || booking.status === 'pending_checkin');
 
   const size = compact ? 'icon' as const : 'sm' as const;
   const variant = compact ? 'ghost' as const : 'outline' as const;
@@ -137,6 +139,10 @@ export function BookingQuickActions({ booking, onActionComplete, compact = false
           <Eye className="h-4 w-4" />
           {!compact && <span className="ml-1">View</span>}
         </Button>
+
+        {canShowQR && !compact && (
+          <QRCodeDisplay bookingId={booking.id} guestName={booking.guests?.name} />
+        )}
 
         {canCheckIn && (
           <Button
