@@ -128,7 +128,12 @@ export function AppSidebar() {
     .slice(0, 2);
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border hidden md:flex">
+    <Sidebar 
+      collapsible="icon" 
+      className="border-r border-sidebar-border hidden md:flex"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       {/* Header with Logo */}
       <SidebarHeader className={cn(
         "border-b border-sidebar-border",
