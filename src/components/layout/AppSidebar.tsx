@@ -129,8 +129,9 @@ export function AppSidebar() {
 
   return (
     <Sidebar 
+      variant="floating"
       collapsible="icon" 
-      className="border-r border-sidebar-border hidden md:flex"
+      className="hidden md:flex"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
