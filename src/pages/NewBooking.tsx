@@ -130,6 +130,21 @@ export default function NewBooking() {
     other_ota: 15,
   };
 
+  // Debounce guest search
+  useEffect(() => {
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+    searchDebounceRef.current = setTimeout(() => {
+      setDebouncedGuestSearch(guestSearch);
+    }, 300);
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
+  }, [guestSearch]);
+
   useEffect(() => {
     fetchAvailableRooms();
     fetchExistingGuests();
