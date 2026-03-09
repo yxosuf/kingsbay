@@ -2165,6 +2165,7 @@ export type Database = {
         | "other_ota"
       booking_status:
         | "pending"
+        | "pending_checkin"
         | "confirmed"
         | "checked_in"
         | "checked_out"
@@ -2334,6 +2335,7 @@ export const Constants = {
       ],
       booking_status: [
         "pending",
+        "pending_checkin",
         "confirmed",
         "checked_in",
         "checked_out",
