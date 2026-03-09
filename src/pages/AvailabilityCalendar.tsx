@@ -142,7 +142,10 @@ export default function AvailabilityCalendar() {
         .lte('date', rangeEnd);
 
       if (availabilityError) throw availabilityError;
-      setAvailability(availabilityData || []);
+      
+      startTransition(() => {
+        setAvailability(availabilityData || []);
+      });
 
       const { data: settingsData } = await supabase
         .from('property_inventory_settings')
