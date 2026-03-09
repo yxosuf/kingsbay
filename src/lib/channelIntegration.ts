@@ -126,10 +126,9 @@ class OtaIntegrationFactory {
 }
 
 /**
- * Singleton instance of the channel integration service
- * Import and use this throughout the application
+ * Export factory for creating OTA integrations
  */
-export const channelIntegration: IChannelIntegration = new StubChannelIntegration();
+export { OtaIntegrationFactory };
 
 /**
  * Helper function to push rates when they change
