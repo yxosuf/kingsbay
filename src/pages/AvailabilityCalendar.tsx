@@ -271,7 +271,7 @@ export default function AvailabilityCalendar() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
-                {getRoomTypes().map(type => (
+                {getRoomTypes.map(type => (
                   <SelectItem key={type} value={type}>{type}</SelectItem>
                 ))}
               </SelectContent>
