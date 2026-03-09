@@ -58,42 +58,38 @@ export function OtaSyncTab() {
     testConnection,
   } = useOtaSync(selectedProperty?.id);
 
-  const { data: integrations, isLoading } = useQuery({
-    queryKey: ['ota-integrations', selectedProperty?.id],
-    queryFn: async () => {
-      if (!selectedProperty?.id) return [];
+  // Auto-seed default integrations on first load
+  const DEFAULT_OTAS = [
+    { ota_name: 'booking_com', display_name: 'Booking.com' },
+    { ota_name: 'airbnb', display_name: 'Airbnb' },
+    { ota_name: 'expedia', display_name: 'Expedia' },
+    { ota_name: 'agoda', display_name: 'Agoda' },
+  ];
 
-      const { data, error } = await supabase
+  // Check if we need to seed integrations
+  if (!integrationsLoading && integrations.length === 0 && selectedProperty?.id) {
+    const seedIntegrations = async () => {
+      const seedData = DEFAULT_OTAS.map(ota => ({
+        property_id: selectedProperty.id,
+        ota_name: ota.ota_name,
+        display_name: ota.display_name,
+        is_enabled: false,
+        status: 'coming_soon',
+      }));
+
+      const { error } = await supabase
         .from('ota_integrations')
-        .select('*')
-        .eq('property_id', selectedProperty.id)
-        .order('display_name');
+        .insert(seedData);
 
-      if (error) throw error;
-
-      // Auto-seed if none exist
-      if (!data || data.length === 0) {
-        const seedData = DEFAULT_OTAS.map(ota => ({
-          property_id: selectedProperty.id,
-          ota_name: ota.ota_name,
-          display_name: ota.display_name,
-          is_enabled: false,
-          status: 'coming_soon' as const,
-        }));
-
-        const { data: seeded, error: seedError } = await supabase
-          .from('ota_integrations')
-          .insert(seedData)
-          .select();
-
-        if (seedError) throw seedError;
-        return seeded as OtaIntegration[];
+      if (!error) {
+        queryClient.invalidateQueries({ queryKey: ['ota-integrations', selectedProperty.id] });
       }
+    };
 
-      return data as OtaIntegration[];
-    },
-    enabled: !!selectedProperty?.id,
-  });
+    seedIntegrations();
+  }
+
+  const selectedIntegrationData = integrations.find(i => i.id === selectedIntegration) || null;
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
