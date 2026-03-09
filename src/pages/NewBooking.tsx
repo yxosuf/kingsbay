@@ -218,7 +218,7 @@ export default function NewBooking() {
     fetchBookedDates();
   }, [selectedProperty?.id]);
 
-  const fetchAvailableRooms = async () => {
+  const fetchAvailableRooms = useCallback(async () => {
     try {
       let query = supabase.from('rooms').select('id, room_number, room_type, price, status, max_guests').neq('status', 'maintenance');
       if (selectedProperty?.id) {
@@ -247,9 +247,9 @@ export default function NewBooking() {
     } catch (error) {
       console.error('Error fetching rooms:', error);
     }
-  };
+  }, [checkIn, checkOut, selectedProperty?.id]);
 
-  const fetchExistingGuests = async () => {
+  const fetchExistingGuests = useCallback(async () => {
     try {
       const { data } = await supabase
         .from('guests')
@@ -259,7 +259,7 @@ export default function NewBooking() {
     } catch (error) {
       console.error('Error fetching guests:', error);
     }
-  };
+  }, []);
 
   const handleSelectGuest = (guest: Guest) => {
     setSelectedGuest(guest);
