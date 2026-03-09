@@ -189,7 +189,7 @@ export default function AvailabilityCalendar() {
     const safetyBuffer = inventorySettings?.safety_buffer || 0;
     const sellable = Math.max(0, available - safetyBuffer);
     return { available, booked, blocked, sellable, total: rooms.length };
-  };
+  }, [rooms, bookings, availability, inventorySettings]);
 
   const navigatePeriod = (direction: 'prev' | 'next') => {
     if (viewMode === 'week') {
