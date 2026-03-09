@@ -217,7 +217,7 @@ const GuestSelectorComponent = ({
                 <SelectContent>
                   {countries.map((country) => (
                     <SelectItem key={country.code} value={country.name}>
-                      {country.flag} {country.name}
+                      {country.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
