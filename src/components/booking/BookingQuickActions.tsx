@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { QRCodeDisplay } from './QRCodeDisplay';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
