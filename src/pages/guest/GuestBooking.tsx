@@ -158,13 +158,13 @@ export default function GuestBooking() {
 
   // Recalculate price when rate plan changes
   useEffect(() => {
-    if (selectedRoom && selectedRatePlanId && checkIn && checkOut) {
+    if (selectedRoom && checkIn && checkOut) {
       calculatePrice();
     }
   }, [selectedRatePlanId, selectedRoom, checkIn, checkOut, numAdults, numChildren, discountApplied]);
 
   const calculatePrice = async () => {
-    if (!selectedRoom || !selectedRatePlanId || !checkIn || !checkOut) return;
+    if (!selectedRoom || !checkIn || !checkOut) return;
     setLoadingPrice(true);
 
     try {
@@ -176,9 +176,9 @@ export default function GuestBooking() {
         selectedRoom.price,
         checkIn,
         checkOut,
-        selectedRatePlanId,
+        selectedRatePlanId || null,
         totalGuests,
-        discountApplied ? undefined : undefined, // discount handled separately
+        discountCode.trim().toUpperCase() || null,
       );
 
       let finalTotal = result.total;
@@ -224,7 +224,7 @@ export default function GuestBooking() {
   };
 
   const handleBook = async () => {
-    if (!guestId || !selectedRoom || !selectedRatePlanId) return;
+    if (!guestId || !selectedRoom) return;
     setIsSubmitting(true);
 
     const { data, error } = await supabase.from('bookings').insert({
@@ -238,7 +238,7 @@ export default function GuestBooking() {
       status: 'confirmed',
       booking_source: 'direct' as any,
       total_amount: totalAmount,
-      rate_plan_id: selectedRatePlanId,
+      rate_plan_id: selectedRatePlanId || null,
       discount_code_id: discountApplied?.id || null,
       discount_amount: discountApplied ? (priceBreakdown?.totalAmount || 0) - totalAmount : 0,
       special_requests: specialRequests.trim() || null,
