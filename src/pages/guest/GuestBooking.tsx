@@ -158,13 +158,13 @@ export default function GuestBooking() {
 
   // Recalculate price when rate plan changes
   useEffect(() => {
-    if (selectedRoom && selectedRatePlanId && checkIn && checkOut) {
+    if (selectedRoom && checkIn && checkOut) {
       calculatePrice();
     }
   }, [selectedRatePlanId, selectedRoom, checkIn, checkOut, numAdults, numChildren, discountApplied]);
 
   const calculatePrice = async () => {
-    if (!selectedRoom || !selectedRatePlanId || !checkIn || !checkOut) return;
+    if (!selectedRoom || !checkIn || !checkOut) return;
     setLoadingPrice(true);
 
     try {
