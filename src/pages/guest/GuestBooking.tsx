@@ -224,7 +224,7 @@ export default function GuestBooking() {
   };
 
   const handleBook = async () => {
-    if (!guestId || !selectedRoom || !selectedRatePlanId) return;
+    if (!guestId || !selectedRoom) return;
     setIsSubmitting(true);
 
     const { data, error } = await supabase.from('bookings').insert({
