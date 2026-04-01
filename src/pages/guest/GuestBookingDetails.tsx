@@ -6,17 +6,33 @@ import { GuestLayout } from '@/components/guest/GuestLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, MapPin, BedDouble, CalendarDays, Users } from 'lucide-react';
+import { ArrowLeft, MapPin, BedDouble, CalendarDays, Users, Plus, UtensilsCrossed } from 'lucide-react';
 import { format, parseISO, differenceInDays } from 'date-fns';
+import { GuestAddServiceDialog } from '@/components/guest/GuestAddServiceDialog';
+
+interface GuestService {
+  id: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  service_date: string;
+  notes: string | null;
+  service: { name: string; category: string } | null;
+}
 
 export default function GuestBookingDetails() {
   const { id } = useParams<{ id: string }>();
   const { guestId } = useAuth();
   const [booking, setBooking] = useState<any>(null);
+  const [services, setServices] = useState<GuestService[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addServiceOpen, setAddServiceOpen] = useState(false);
 
   useEffect(() => {
-    if (id && guestId) fetchBooking();
+    if (id && guestId) {
+      fetchBooking();
+      fetchServices();
+    }
   }, [id, guestId]);
 
   const fetchBooking = async () => {
@@ -42,6 +58,26 @@ export default function GuestBookingDetails() {
     }
     setLoading(false);
   };
+
+  const fetchServices = async () => {
+    const { data } = await supabase
+      .from('guest_services')
+      .select('id, quantity, unit_price, total_price, service_date, notes, service:services(name, category)')
+      .eq('booking_id', id!)
+      .order('created_at', { ascending: false });
+
+    if (data) {
+      setServices(
+        data.map((s: any) => ({
+          ...s,
+          service: Array.isArray(s.service) ? s.service[0] : s.service,
+        }))
+      );
+    }
+  };
+
+  const canAddService = booking && ['confirmed', 'checked_in'].includes(booking.status);
+  const servicesTotalAmount = services.reduce((sum, s) => sum + s.total_price, 0);
 
   if (loading) {
     return (
@@ -73,6 +109,7 @@ export default function GuestBookingDetails() {
       </Button>
 
       <div className="grid gap-4 md:grid-cols-2">
+        {/* Stay Details */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center justify-between">
@@ -110,6 +147,7 @@ export default function GuestBookingDetails() {
           </CardContent>
         </Card>
 
+        {/* Pricing */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Pricing</CardTitle>
@@ -128,9 +166,21 @@ export default function GuestBookingDetails() {
               </div>
             )}
             <div className="flex justify-between font-semibold text-base pt-2 border-t border-border">
-              <span>Total</span>
+              <span>Room Total</span>
               <span>LKR {(booking.total_amount || 0).toLocaleString()}</span>
             </div>
+            {servicesTotalAmount > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Services</span>
+                <span>LKR {servicesTotalAmount.toLocaleString()}</span>
+              </div>
+            )}
+            {servicesTotalAmount > 0 && (
+              <div className="flex justify-between font-semibold text-base pt-2 border-t border-border">
+                <span>Grand Total</span>
+                <span>LKR {((booking.total_amount || 0) + servicesTotalAmount).toLocaleString()}</span>
+              </div>
+            )}
             {booking.price_breakdown && (
               <details className="pt-2">
                 <summary className="text-xs text-muted-foreground cursor-pointer">View nightly breakdown</summary>
@@ -146,7 +196,54 @@ export default function GuestBookingDetails() {
             )}
           </CardContent>
         </Card>
+
+        {/* Services */}
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <UtensilsCrossed className="h-5 w-5" />
+                Services
+              </span>
+              {canAddService && (
+                <Button size="sm" onClick={() => setAddServiceOpen(true)}>
+                  <Plus className="h-4 w-4 mr-1" /> Add Service
+                </Button>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {services.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                {canAddService
+                  ? 'No services added yet. You can request room service, transport, and more.'
+                  : 'No services were added to this booking.'}
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {services.map((s) => (
+                  <div key={s.id} className="flex items-center justify-between p-3 bg-muted rounded-lg text-sm">
+                    <div>
+                      <p className="font-medium">{s.service?.name || 'Service'}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {s.quantity} × LKR {s.unit_price.toLocaleString()} • {s.service_date}
+                      </p>
+                    </div>
+                    <span className="font-medium">LKR {s.total_price.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
+
+      <GuestAddServiceDialog
+        open={addServiceOpen}
+        onOpenChange={setAddServiceOpen}
+        bookingId={id!}
+        onSuccess={fetchServices}
+      />
     </GuestLayout>
   );
 }
