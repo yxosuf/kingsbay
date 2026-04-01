@@ -238,7 +238,7 @@ export default function GuestBooking() {
       status: 'confirmed',
       booking_source: 'direct' as any,
       total_amount: totalAmount,
-      rate_plan_id: selectedRatePlanId,
+      rate_plan_id: selectedRatePlanId || null,
       discount_code_id: discountApplied?.id || null,
       discount_amount: discountApplied ? (priceBreakdown?.totalAmount || 0) - totalAmount : 0,
       special_requests: specialRequests.trim() || null,
