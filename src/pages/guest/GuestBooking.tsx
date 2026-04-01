@@ -176,9 +176,9 @@ export default function GuestBooking() {
         selectedRoom.price,
         checkIn,
         checkOut,
-        selectedRatePlanId,
+        selectedRatePlanId || null,
         totalGuests,
-        discountApplied ? undefined : undefined, // discount handled separately
+        discountCode.trim().toUpperCase() || null,
       );
 
       let finalTotal = result.total;
