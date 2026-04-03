@@ -29,7 +29,7 @@ export interface RoomMetrics {
   available_rooms: number;
 }
 
-const emptyKpi: KpiMetrics = {
+export const emptyKpi: KpiMetrics = {
   rooms_occupied: 0, arrivals_today: 0, departures_today: 0, walkins_today: 0,
   direct_bookings_month: 0, ota_bookings_month: 0,
   airbnb_bookings_month: 0, bookingcom_bookings_month: 0,
@@ -37,11 +37,11 @@ const emptyKpi: KpiMetrics = {
   ota_commission_month: 0, ota_revenue_month: 0,
 };
 
-const emptyRevenue: RevenueMetrics = {
+export const emptyRevenue: RevenueMetrics = {
   revenue_today: 0, revenue_week: 0, revenue_month: 0, invoices_month: 0,
 };
 
-const emptyRooms: RoomMetrics = { total_rooms: 0, available_rooms: 0 };
+export const emptyRooms: RoomMetrics = { total_rooms: 0, available_rooms: 0 };
 
 async function fetchKpi(propertyId: string | null, showAll: boolean) {
   // Fetch all three views in parallel
