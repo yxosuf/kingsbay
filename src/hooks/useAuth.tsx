@@ -48,36 +48,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [guestId, setGuestId] = useState<string | null>(null);
 
   useEffect(() => {
+    let fetchedUserId: string | null = null;
+
+    const handleSession = (s: Session | null) => {
+      setSession(s);
+      setUser(s?.user ?? null);
+      if (s?.user) {
+        // Prevent duplicate fetches for the same user
+        if (fetchedUserId === s.user.id) return;
+        fetchedUserId = s.user.id;
+        setTimeout(() => fetchUserData(s.user.id), 0);
+      } else {
+        fetchedUserId = null;
+        setRole(null);
+        setProfile(null);
+        setGuestId(null);
+        setLoading(false);
+      }
+    };
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        // Defer fetching additional data with setTimeout to avoid deadlock
-        if (session?.user) {
-          setTimeout(() => {
-            fetchUserData(session.user.id);
-          }, 0);
-        } else {
-          setRole(null);
-          setProfile(null);
-          setGuestId(null);
-          setLoading(false);
-        }
-      }
+      (_event, session) => handleSession(session)
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserData(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
+    supabase.auth.getSession().then(({ data: { session } }) => handleSession(session));
 
     return () => subscription.unsubscribe();
   }, []);
