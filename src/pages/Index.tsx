@@ -120,21 +120,22 @@ export default function Dashboard() {
   }, [settingsLoading, settings.default_landing_page, navigate]);
 
   // KPI data from database views
-  const { data: kpiData } = useDashboardKpi();
+  const { data: kpiData, isPlaceholderData } = useDashboardKpi();
   const kpi = kpiData?.kpi;
   const revenue = kpiData?.revenue;
   const rooms = kpiData?.rooms;
 
-  // Activity feed
+  // Activity feed + Exchange rate in parallel
   const { data: todayActivity = [], isLoading: loading } = useQuery({
     queryKey: ['dashboard-activity', propertyId, showAllProperties],
     queryFn: () => fetchActivityData(propertyId, showAllProperties),
+    staleTime: 2 * 60 * 1000,
   });
 
-  // Exchange rate
   const { data: exchangeRate } = useQuery({
     queryKey: ['exchangeRate', propertyId],
     queryFn: () => fetchExchangeRateData(propertyId),
+    staleTime: 5 * 60 * 1000,
   });
 
   const weather = useMemo(() => ({

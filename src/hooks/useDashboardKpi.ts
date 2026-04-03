@@ -96,5 +96,6 @@ export function useDashboardKpi() {
     queryKey: ['dashboard-kpi', propertyId, showAllProperties],
     queryFn: () => fetchKpi(propertyId, showAllProperties),
     staleTime: 2 * 60 * 1000, // 2 minutes
+    placeholderData: { kpi: emptyKpi, revenue: emptyRevenue, rooms: emptyRooms },
   });
 }
