@@ -198,17 +198,13 @@ export default function Dashboard() {
         </div>
 
         {/* Operations Metrics Row — 6 KPI cards */}
-        {kpi && rooms && (
-          <OperationsMetricsRow kpi={kpi} rooms={rooms} />
-        )}
+        <OperationsMetricsRow kpi={kpi ?? emptyKpi} rooms={rooms ?? emptyRooms} />
 
         {/* Revenue + Booking Sources + OTA Performance */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          {revenue && rooms && (
-            <RevenueMetricsCard revenue={revenue} rooms={rooms} fxRate={fxRate} />
-          )}
-          {kpi && <BookingSourcesChart kpi={kpi} />}
-          {kpi && <OtaPerformanceCard kpi={kpi} fxRate={fxRate} />}
+          <RevenueMetricsCard revenue={revenue ?? emptyRevenue} rooms={rooms ?? emptyRooms} fxRate={fxRate} />
+          <BookingSourcesChart kpi={kpi ?? emptyKpi} />
+          <OtaPerformanceCard kpi={kpi ?? emptyKpi} fxRate={fxRate} />
         </div>
 
         {/* AI Suggestions */}
