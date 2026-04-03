@@ -208,28 +208,26 @@ export default function Dashboard() {
         </div>
 
         {/* AI Suggestions */}
-        {kpi && rooms && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            <AiSuggestionsPanel
-              type="occupancy_forecast"
-              context={{
-                occupancyPercent: rooms.total_rooms > 0 ? Math.round((kpi.rooms_occupied / rooms.total_rooms) * 100) : 0,
-                totalRooms: rooms.total_rooms,
-                upcomingBookings: kpi.arrivals_today,
-                upcomingBookings30: kpi.direct_bookings_month + kpi.ota_bookings_month,
-              }}
-            />
-            <AiSuggestionsPanel
-              type="cross_sell"
-              context={{
-                nights: 2,
-                roomType: 'standard',
-                totalSpend: revenue?.revenue_month || 0,
-                isVip: false,
-              }}
-            />
-          </div>
-        )}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <AiSuggestionsPanel
+            type="occupancy_forecast"
+            context={{
+              occupancyPercent: (rooms?.total_rooms ?? 0) > 0 ? Math.round(((kpi?.rooms_occupied ?? 0) / (rooms?.total_rooms ?? 1)) * 100) : 0,
+              totalRooms: rooms?.total_rooms ?? 0,
+              upcomingBookings: kpi?.arrivals_today ?? 0,
+              upcomingBookings30: (kpi?.direct_bookings_month ?? 0) + (kpi?.ota_bookings_month ?? 0),
+            }}
+          />
+          <AiSuggestionsPanel
+            type="cross_sell"
+            context={{
+              nights: 2,
+              roomType: 'standard',
+              totalSpend: revenue?.revenue_month || 0,
+              isVip: false,
+            }}
+          />
+        </div>
         {/* Main Content Grid - Activity + Widgets */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Today's Activity */}
