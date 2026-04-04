@@ -66,10 +66,12 @@ const App = () => (
             <TooltipProvider>
               <Sonner />
               <BrowserRouter>
+              <ErrorBoundary>
                 <Suspense fallback={<PageLoader />}>
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/auth" element={<Auth />} />
+                    <Route path="/auth/reset-password" element={<ResetPassword />} />
                     <Route path="/bookings" element={<Bookings />} />
                     <Route path="/bookings/new" element={<NewBooking />} />
                     <Route path="/bookings/:id" element={<BookingDetails />} />
@@ -97,6 +99,7 @@ const App = () => (
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </Suspense>
+              </ErrorBoundary>
               </BrowserRouter>
             </TooltipProvider>
           </UserSettingsProvider>
