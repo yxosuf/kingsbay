@@ -48,6 +48,13 @@ export default function Auth() {
     }
   }, [user, loading, navigate]);
 
+  // Resend cooldown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
