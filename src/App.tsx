@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { PropertyProvider } from "@/hooks/useProperty";
 import { UserSettingsProvider } from "@/hooks/useUserSettings";
 import { ThemeProvider } from "next-themes";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Lazy-loaded pages for code splitting
 const Index = lazy(() => import("./pages/Index"));

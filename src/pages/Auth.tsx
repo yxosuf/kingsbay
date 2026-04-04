@@ -27,6 +27,11 @@ export default function Auth() {
   const navigate = useNavigate();
   const { user, loading, signIn, signUp } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [signupSuccess, setSignupSuccess] = useState(false);
+  const [signupEmailUsed, setSignupEmailUsed] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
