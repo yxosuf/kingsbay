@@ -92,8 +92,8 @@ export default function ResetPassword() {
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-100 dark:bg-green-900/30 mb-3 mx-auto">
-              <CheckCircle className="w-7 h-7 text-green-600" />
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mb-3 mx-auto">
+              <CheckCircle className="w-7 h-7 text-primary" />
             </div>
             <CardTitle>Password Updated</CardTitle>
             <CardDescription>Redirecting you to sign in...</CardDescription>
