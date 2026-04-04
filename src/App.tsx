@@ -35,6 +35,7 @@ const GuestBooking = lazy(() => import("./pages/guest/GuestBooking"));
 const GuestBookingDetails = lazy(() => import("./pages/guest/GuestBookingDetails"));
 const GuestResetPassword = lazy(() => import("./pages/guest/GuestResetPassword"));
 const GuestCheckin = lazy(() => import("./pages/guest/GuestCheckin"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
