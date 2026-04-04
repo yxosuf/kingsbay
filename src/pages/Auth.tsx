@@ -132,6 +132,95 @@ export default function Auth() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  // Signup success — email verification state
+  if (signupSuccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="w-full max-w-md space-y-4">
+          <Card className="border-border/50 shadow-lg">
+            <CardHeader className="text-center">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mb-3 mx-auto">
+                <CheckCircle className="w-7 h-7 text-primary" />
+              </div>
+              <CardTitle>Check Your Email</CardTitle>
+              <CardDescription>
+                We sent a verification link to <strong>{signupEmailUsed}</strong>. Click the link to activate your account.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleResendVerification}
+                disabled={resendCooldown > 0}
+              >
+                {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Verification Email'}
+              </Button>
+              <Button variant="ghost" className="w-full" onClick={() => { setSignupSuccess(false); }}>
+                Back to Sign In
+              </Button>
+              <p className="text-xs text-muted-foreground text-center">
+                Note: New accounts require admin approval after verification.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Forgot password form
+  if (showForgotPassword) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="w-full max-w-md space-y-4">
+          <div className="text-center space-y-2">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary text-primary-foreground mb-3">
+              <Hotel className="w-7 h-7" />
+            </div>
+            <h1 className="text-2xl font-bold text-foreground">Reset Password</h1>
+            <p className="text-sm text-muted-foreground">Enter your email to receive a reset link</p>
+          </div>
+          <Card className="border-border/50 shadow-lg">
+            <CardContent className="pt-6">
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="forgot-email">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="forgot-email"
+                      type="email"
+                      placeholder="staff@kingsbay.com"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? 'Sending...' : 'Send Reset Link'}
+                </Button>
+                <Button variant="ghost" className="w-full" onClick={() => setShowForgotPassword(false)}>
+                  Back to Sign In
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-4 sm:space-y-6">
@@ -178,7 +267,16 @@ export default function Auth() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="login-password" className="text-sm">Password</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="login-password" className="text-sm">Password</Label>
+                      <button
+                        type="button"
+                        onClick={() => { setForgotEmail(loginEmail); setShowForgotPassword(true); }}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
