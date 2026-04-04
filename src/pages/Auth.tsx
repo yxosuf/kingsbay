@@ -97,18 +97,40 @@ export default function Auth() {
       logError('Signup failed', error);
       toast.error(getSafeErrorMessage(error));
     } else {
-      toast.success('Account created! Please check your email to verify your account.');
+      setSignupSuccess(true);
+      setSignupEmailUsed(signupEmail);
     }
     setIsSubmitting(false);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
-      </div>
-    );
-  }
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) {
+      toast.error('Please enter your email address');
+      return;
+    }
+    setIsSubmitting(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+      redirectTo: `${window.location.origin}/auth/reset-password`,
+    });
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success('Password reset email sent! Check your inbox.');
+      setShowForgotPassword(false);
+    }
+    setIsSubmitting(false);
+  };
+
+  const handleResendVerification = async () => {
+    setResendCooldown(60);
+    const { error } = await supabase.auth.resend({ type: 'signup', email: signupEmailUsed });
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success('Verification email resent!');
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
