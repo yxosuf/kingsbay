@@ -6,8 +6,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Download, CheckCircle, XCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { useAuth } from '@/hooks/useAuth';
@@ -16,7 +17,11 @@ import { BookingTable, type BookingRow } from '@/components/booking/BookingTable
 import { PaginationControls } from '@/components/ui/PaginationControls';
 import { TableSkeleton } from '@/components/ui/TableSkeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { BulkActionBar } from '@/components/ui/BulkActionBar';
+import { useBulkSelection } from '@/hooks/useBulkSelection';
+import { exportToPdf, exportToExcel } from '@/lib/exportUtils';
 import { toDateString } from '@/lib/dateUtils';
+import { toast } from 'sonner';
 import { BookOpen } from 'lucide-react';
 
 type TabKey = 'today' | 'upcoming' | 'inhouse' | 'past' | 'cancelled' | 'needs_review' | 'all';
@@ -130,13 +135,63 @@ export default function Bookings() {
     );
   }, [bookings, debouncedSearch]);
 
+  const { selectedIds, toggleOne, toggleAll, clearSelection, isAllSelected, isSomeSelected, count: selectedCount } = useBulkSelection(filteredBookings);
+
   const handleTabChange = (v: string) => {
     setActiveTab(v as TabKey);
     setPage(0);
+    clearSelection();
+  };
+
+  const bookingExportColumns = [
+    { header: 'Guest', accessor: (r: any) => r.guests?.name || 'Unknown' },
+    { header: 'Room', accessor: (r: any) => r.rooms?.room_number || 'N/A' },
+    { header: 'Check-in', accessor: 'check_in' },
+    { header: 'Check-out', accessor: 'check_out' },
+    { header: 'Status', accessor: 'status' },
+    { header: 'Amount', accessor: (r: any) => `Rs. ${r.total_amount?.toLocaleString() || '0'}` },
+    { header: 'Source', accessor: 'booking_source' },
+  ];
+
+  const handleBulkConfirm = async () => {
+    const ids = [...selectedIds];
+    const results = await Promise.allSettled(
+      ids.map(id => supabase.from('bookings').update({ status: 'confirmed' as any }).eq('id', id))
+    );
+    const ok = results.filter(r => r.status === 'fulfilled').length;
+    toast.success(`${ok} booking(s) confirmed`);
+    clearSelection();
+    refetch();
+  };
+
+  const handleBulkCancel = async () => {
+    if (!confirm(`Cancel ${selectedCount} booking(s)?`)) return;
+    const ids = [...selectedIds];
+    const results = await Promise.allSettled(
+      ids.map(id => supabase.from('bookings').update({ status: 'cancelled' as any, cancelled_at: new Date().toISOString() }).eq('id', id))
+    );
+    const ok = results.filter(r => r.status === 'fulfilled').length;
+    toast.success(`${ok} booking(s) cancelled`);
+    clearSelection();
+    refetch();
+  };
+
+  const handleExportSelected = () => {
+    const items = filteredBookings.filter(b => selectedIds.has(b.id));
+    exportToExcel(items, bookingExportColumns, 'bookings_export');
+    toast.success(`Exported ${items.length} booking(s)`);
   };
 
   const tabs: TabKey[] = ['today', 'upcoming', 'inhouse', 'past', 'cancelled', 'needs_review'];
   if (isAdmin) tabs.push('all');
+
+  const bulkActions = [
+    ...(canWrite ? [
+      { label: 'Confirm', icon: <CheckCircle className="h-3.5 w-3.5" />, onClick: handleBulkConfirm },
+      { label: 'Cancel', icon: <XCircle className="h-3.5 w-3.5" />, onClick: handleBulkCancel, variant: 'destructive' as const },
+    ] : []),
+    { label: 'Export', icon: <Download className="h-3.5 w-3.5" />, onClick: handleExportSelected, variant: 'outline' as const },
+  ];
 
   return (
     <DashboardLayout title="Bookings">
@@ -156,12 +211,20 @@ export default function Bookings() {
               className="pl-10 rounded-xl shadow-sm focus:shadow-md transition-shadow"
             />
           </div>
-          {canWrite && (
-            <Button onClick={() => navigate('/bookings/new')} className="w-full sm:w-auto">
-              <Plus className="h-4 w-4 mr-2" />
-              New Booking
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => exportToPdf(filteredBookings, bookingExportColumns, 'Bookings Report')} className="gap-1.5">
+              <Download className="h-3.5 w-3.5" /> PDF
             </Button>
-          )}
+            <Button variant="outline" size="sm" onClick={() => exportToExcel(filteredBookings, bookingExportColumns, 'bookings')} className="gap-1.5">
+              <Download className="h-3.5 w-3.5" /> Excel
+            </Button>
+            {canWrite && (
+              <Button onClick={() => navigate('/bookings/new')} className="w-full sm:w-auto">
+                <Plus className="h-4 w-4 mr-2" />
+                New Booking
+              </Button>
+            )}
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={handleTabChange}>
@@ -198,6 +261,12 @@ export default function Bookings() {
                         bookings={filteredBookings}
                         loading={false}
                         onActionComplete={() => refetch()}
+                        selectable
+                        selectedIds={selectedIds}
+                        onToggleOne={toggleOne}
+                        onToggleAll={toggleAll}
+                        isAllSelected={isAllSelected}
+                        isSomeSelected={isSomeSelected}
                       />
                       <PaginationControls
                         page={page}
@@ -218,6 +287,9 @@ export default function Bookings() {
             </TabsContent>
           ))}
         </Tabs>
+
+
+        <BulkActionBar count={selectedCount} actions={bulkActions} onClear={clearSelection} />
       </div>
     </DashboardLayout>
   );

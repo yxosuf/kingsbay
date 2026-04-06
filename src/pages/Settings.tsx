@@ -64,6 +64,7 @@ import { SystemHealthSettings } from '@/components/settings/SystemHealthSettings
 import { HotelSettings } from '@/components/settings/HotelSettings';
 import { OtherSettings } from '@/components/settings/OtherSettings';
 import { RateManagementSettings } from '@/components/settings/RateManagementSettings';
+import { AuditLogViewer } from '@/components/settings/AuditLogViewer';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useUserSettings } from '@/hooks/useUserSettings';
@@ -81,7 +82,7 @@ interface PendingUser {
   created_at: string;
 }
 
-type SettingsSection = 'access' | 'property' | 'rates' | 'notifications' | 'guests' | 'services' | 'channels' | 'reports' | 'security' | 'system-health' | 'other';
+type SettingsSection = 'access' | 'property' | 'rates' | 'notifications' | 'guests' | 'services' | 'channels' | 'reports' | 'security' | 'audit-logs' | 'system-health' | 'other';
 
 interface SectionConfig {
   id: SettingsSection;
@@ -109,6 +110,7 @@ const SECTION_CONFIG: SectionConfig[] = [
   { id: 'notifications', label: 'Notifications', icon: BellRing, description: 'Alert preferences & delivery', keywords: ['alerts', 'notifications', 'push', 'email'] },
   { id: 'reports', label: 'Reports', icon: FileText, description: 'Reports and data exports', keywords: ['reports', 'export', 'analytics', 'statistics'] },
   { id: 'security', label: 'Security & Data', icon: Lock, description: 'Data management and danger zone', keywords: ['danger', 'delete', 'reset', 'clear data', 'security'], adminOnly: true },
+  { id: 'audit-logs', label: 'Audit Logs', icon: FileText, description: 'Activity history and tracking', keywords: ['audit', 'logs', 'history', 'activity', 'tracking'], adminOnly: true },
   { id: 'system-health', label: 'System Health', icon: HeartPulse, description: 'Diagnostics and validation', keywords: ['health', 'diagnostics', 'validation', 'errors'], adminOnly: true },
 ];
 
@@ -117,7 +119,7 @@ const GROUPS: GroupConfig[] = [
   { id: 'operations', label: 'Operations', sections: SECTION_CONFIG.filter(s => ['rates', 'services', 'channels'].includes(s.id)) },
   { id: 'people', label: 'People', sections: SECTION_CONFIG.filter(s => ['access', 'guests'].includes(s.id)) },
   { id: 'comms', label: 'Comms & Insights', sections: SECTION_CONFIG.filter(s => ['notifications', 'reports'].includes(s.id)) },
-  { id: 'advanced', label: 'Advanced', sections: SECTION_CONFIG.filter(s => ['security', 'system-health'].includes(s.id)) },
+  { id: 'advanced', label: 'Advanced', sections: SECTION_CONFIG.filter(s => ['security', 'audit-logs', 'system-health'].includes(s.id)) },
 ];
 
 // Map old tab names to new section IDs for backward compatibility
@@ -433,6 +435,8 @@ export default function Settings() {
         return <ReportsSettings />;
       case 'security':
         return isAdmin ? <DangerZoneSettings /> : null;
+      case 'audit-logs':
+        return isAdmin ? <AuditLogViewer /> : null;
       case 'system-health':
         return isAdmin ? <SystemHealthSettings /> : null;
       case 'other':

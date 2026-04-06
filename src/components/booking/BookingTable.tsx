@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table,
   TableBody,
@@ -61,9 +62,18 @@ interface BookingTableProps {
   bookings: BookingRow[];
   loading: boolean;
   onActionComplete: () => void;
+  selectable?: boolean;
+  selectedIds?: Set<string>;
+  onToggleOne?: (id: string) => void;
+  onToggleAll?: () => void;
+  isAllSelected?: boolean;
+  isSomeSelected?: boolean;
 }
 
-export const BookingTable = memo(function BookingTable({ bookings, loading, onActionComplete }: BookingTableProps) {
+export const BookingTable = memo(function BookingTable({
+  bookings, loading, onActionComplete,
+  selectable, selectedIds, onToggleOne, onToggleAll, isAllSelected, isSomeSelected,
+}: BookingTableProps) {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
 
@@ -137,6 +147,16 @@ export const BookingTable = memo(function BookingTable({ bookings, loading, onAc
     <Table>
       <TableHeader>
         <TableRow>
+          {selectable && (
+            <TableHead className="w-10">
+              <Checkbox
+                checked={isAllSelected}
+                onCheckedChange={() => onToggleAll?.()}
+                aria-label="Select all"
+                {...(isSomeSelected ? { 'data-state': 'indeterminate' } : {})}
+              />
+            </TableHead>
+          )}
           <TableHead>Guest</TableHead>
           <TableHead>Room</TableHead>
           <TableHead>Check-in</TableHead>
@@ -150,6 +170,15 @@ export const BookingTable = memo(function BookingTable({ bookings, loading, onAc
       <TableBody>
         {bookings.map((booking) => (
           <TableRow key={booking.id} className="cursor-pointer" onClick={() => navigate(`/bookings/${booking.id}`)}>
+            {selectable && (
+              <TableCell onClick={e => e.stopPropagation()}>
+                <Checkbox
+                  checked={selectedIds?.has(booking.id) ?? false}
+                  onCheckedChange={() => onToggleOne?.(booking.id)}
+                  aria-label={`Select booking ${booking.id}`}
+                />
+              </TableCell>
+            )}
             <TableCell>
               <div>
                 <p className="font-medium">{booking.guests?.name || 'Unknown'}</p>
