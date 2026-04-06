@@ -65,7 +65,7 @@ export function usePaginatedQuery<T = any>({
     queryKey: [...queryKey, page, pageSize],
     queryFn: async () => {
       let query = supabase
-        .from(table)
+        .from(table as any)
         .select(select)
         .order(orderBy.column, { ascending: orderBy.ascending ?? false })
         .range(from, to);
