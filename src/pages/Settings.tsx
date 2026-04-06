@@ -119,7 +119,7 @@ const GROUPS: GroupConfig[] = [
   { id: 'operations', label: 'Operations', sections: SECTION_CONFIG.filter(s => ['rates', 'services', 'channels'].includes(s.id)) },
   { id: 'people', label: 'People', sections: SECTION_CONFIG.filter(s => ['access', 'guests'].includes(s.id)) },
   { id: 'comms', label: 'Comms & Insights', sections: SECTION_CONFIG.filter(s => ['notifications', 'reports'].includes(s.id)) },
-  { id: 'advanced', label: 'Advanced', sections: SECTION_CONFIG.filter(s => ['security', 'system-health'].includes(s.id)) },
+  { id: 'advanced', label: 'Advanced', sections: SECTION_CONFIG.filter(s => ['security', 'audit-logs', 'system-health'].includes(s.id)) },
 ];
 
 // Map old tab names to new section IDs for backward compatibility
