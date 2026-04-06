@@ -110,6 +110,7 @@ const SECTION_CONFIG: SectionConfig[] = [
   { id: 'notifications', label: 'Notifications', icon: BellRing, description: 'Alert preferences & delivery', keywords: ['alerts', 'notifications', 'push', 'email'] },
   { id: 'reports', label: 'Reports', icon: FileText, description: 'Reports and data exports', keywords: ['reports', 'export', 'analytics', 'statistics'] },
   { id: 'security', label: 'Security & Data', icon: Lock, description: 'Data management and danger zone', keywords: ['danger', 'delete', 'reset', 'clear data', 'security'], adminOnly: true },
+  { id: 'audit-logs', label: 'Audit Logs', icon: FileText, description: 'Activity history and tracking', keywords: ['audit', 'logs', 'history', 'activity', 'tracking'], adminOnly: true },
   { id: 'system-health', label: 'System Health', icon: HeartPulse, description: 'Diagnostics and validation', keywords: ['health', 'diagnostics', 'validation', 'errors'], adminOnly: true },
 ];
 
