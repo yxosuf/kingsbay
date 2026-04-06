@@ -64,6 +64,7 @@ import { SystemHealthSettings } from '@/components/settings/SystemHealthSettings
 import { HotelSettings } from '@/components/settings/HotelSettings';
 import { OtherSettings } from '@/components/settings/OtherSettings';
 import { RateManagementSettings } from '@/components/settings/RateManagementSettings';
+import { AuditLogViewer } from '@/components/settings/AuditLogViewer';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useUserSettings } from '@/hooks/useUserSettings';
