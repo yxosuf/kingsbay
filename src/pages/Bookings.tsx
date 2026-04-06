@@ -135,13 +135,164 @@ export default function Bookings() {
     );
   }, [bookings, debouncedSearch]);
 
+  const { selectedIds, toggleOne, toggleAll, clearSelection, isAllSelected, isSomeSelected, count: selectedCount } = useBulkSelection(filteredBookings);
+
   const handleTabChange = (v: string) => {
     setActiveTab(v as TabKey);
     setPage(0);
+    clearSelection();
+  };
+
+  const bookingExportColumns = [
+    { header: 'Guest', accessor: (r: any) => r.guests?.name || 'Unknown' },
+    { header: 'Room', accessor: (r: any) => r.rooms?.room_number || 'N/A' },
+    { header: 'Check-in', accessor: 'check_in' },
+    { header: 'Check-out', accessor: 'check_out' },
+    { header: 'Status', accessor: 'status' },
+    { header: 'Amount', accessor: (r: any) => `Rs. ${r.total_amount?.toLocaleString() || '0'}` },
+    { header: 'Source', accessor: 'booking_source' },
+  ];
+
+  const handleBulkConfirm = async () => {
+    const ids = [...selectedIds];
+    const results = await Promise.allSettled(
+      ids.map(id => supabase.from('bookings').update({ status: 'confirmed' as any }).eq('id', id))
+    );
+    const ok = results.filter(r => r.status === 'fulfilled').length;
+    toast.success(`${ok} booking(s) confirmed`);
+    clearSelection();
+    refetch();
+  };
+
+  const handleBulkCancel = async () => {
+    if (!confirm(`Cancel ${selectedCount} booking(s)?`)) return;
+    const ids = [...selectedIds];
+    const results = await Promise.allSettled(
+      ids.map(id => supabase.from('bookings').update({ status: 'cancelled' as any, cancelled_at: new Date().toISOString() }).eq('id', id))
+    );
+    const ok = results.filter(r => r.status === 'fulfilled').length;
+    toast.success(`${ok} booking(s) cancelled`);
+    clearSelection();
+    refetch();
+  };
+
+  const handleExportSelected = () => {
+    const items = filteredBookings.filter(b => selectedIds.has(b.id));
+    exportToExcel(items, bookingExportColumns, 'bookings_export');
+    toast.success(`Exported ${items.length} booking(s)`);
   };
 
   const tabs: TabKey[] = ['today', 'upcoming', 'inhouse', 'past', 'cancelled', 'needs_review'];
   if (isAdmin) tabs.push('all');
+
+  const bulkActions = [
+    ...(canWrite ? [
+      { label: 'Confirm', icon: <CheckCircle className="h-3.5 w-3.5" />, onClick: handleBulkConfirm },
+      { label: 'Cancel', icon: <XCircle className="h-3.5 w-3.5" />, onClick: handleBulkCancel, variant: 'destructive' as const },
+    ] : []),
+    { label: 'Export', icon: <Download className="h-3.5 w-3.5" />, onClick: handleExportSelected, variant: 'outline' as const },
+  ];
+
+  return (
+    <DashboardLayout title="Bookings">
+      <div className="space-y-4 sm:space-y-5">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Viewing:</span>
+          <PropertyBadge />
+        </div>
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 sm:justify-between">
+          <div className="relative flex-1 sm:max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search guest or room..."
+              value={searchTerm}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="pl-10 rounded-xl shadow-sm focus:shadow-md transition-shadow"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => exportToPdf(filteredBookings, bookingExportColumns, 'Bookings Report')} className="gap-1.5">
+              <Download className="h-3.5 w-3.5" /> PDF
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => exportToExcel(filteredBookings, bookingExportColumns, 'bookings')} className="gap-1.5">
+              <Download className="h-3.5 w-3.5" /> Excel
+            </Button>
+            {canWrite && (
+              <Button onClick={() => navigate('/bookings/new')} className="w-full sm:w-auto">
+                <Plus className="h-4 w-4 mr-2" />
+                New Booking
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
+          <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-muted/50 p-1 rounded-2xl">
+            {tabs.map((tab) => (
+              <TabsTrigger key={tab} value={tab} className="text-xs sm:text-sm rounded-xl gap-1.5">
+                {TAB_LABELS[tab]}
+                {!loading && tab === activeTab && totalCount > 0 && (
+                  <Badge variant="secondary" className="h-5 min-w-5 px-1.5 text-[10px] rounded-full">
+                    {totalCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          {tabs.map((tab) => (
+            <TabsContent key={tab} value={tab}>
+              <Card>
+                <CardContent className="px-3 sm:px-6 pt-4 sm:pt-6">
+                  {loading ? (
+                    <TableSkeleton rows={6} columns={7} />
+                  ) : filteredBookings.length === 0 ? (
+                    <EmptyState
+                      icon={BookOpen}
+                      title="No bookings found"
+                      description={activeTab === 'today' ? "No arrivals or departures today." : "No bookings match this filter."}
+                      actionLabel={canWrite ? "New Booking" : undefined}
+                      onAction={canWrite ? () => navigate('/bookings/new') : undefined}
+                    />
+                  ) : (
+                    <>
+                      <BookingTable
+                        bookings={filteredBookings}
+                        loading={false}
+                        onActionComplete={() => refetch()}
+                        selectable
+                        selectedIds={selectedIds}
+                        onToggleOne={toggleOne}
+                        onToggleAll={toggleAll}
+                        isAllSelected={isAllSelected}
+                        isSomeSelected={isSomeSelected}
+                      />
+                      <PaginationControls
+                        page={page}
+                        totalPages={totalPages}
+                        totalCount={totalCount}
+                        pageSize={PAGE_SIZE}
+                        hasNextPage={page < totalPages - 1}
+                        hasPreviousPage={page > 0}
+                        onNextPage={() => setPage(p => Math.min(p + 1, totalPages - 1))}
+                        onPreviousPage={() => setPage(p => Math.max(p - 1, 0))}
+                        onGoToPage={setPage}
+                        isFetching={isFetching}
+                      />
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          ))}
+        </Tabs>
+
+        <BulkActionBar count={selectedCount} actions={bulkActions} onClear={clearSelection} />
+      </div>
+    </DashboardLayout>
+  );
+}
 
   return (
     <DashboardLayout title="Bookings">
