@@ -82,7 +82,7 @@ interface PendingUser {
   created_at: string;
 }
 
-type SettingsSection = 'access' | 'property' | 'rates' | 'notifications' | 'guests' | 'services' | 'channels' | 'reports' | 'security' | 'system-health' | 'other';
+type SettingsSection = 'access' | 'property' | 'rates' | 'notifications' | 'guests' | 'services' | 'channels' | 'reports' | 'security' | 'audit-logs' | 'system-health' | 'other';
 
 interface SectionConfig {
   id: SettingsSection;
