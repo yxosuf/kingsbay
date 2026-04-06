@@ -179,6 +179,7 @@ export const BookingTable = memo(function BookingTable({
                 />
               </TableCell>
             )}
+            <TableCell>
               <div>
                 <p className="font-medium">{booking.guests?.name || 'Unknown'}</p>
                 <p className="text-sm text-muted-foreground">{booking.guests?.phone}</p>
