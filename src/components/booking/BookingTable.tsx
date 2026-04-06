@@ -62,9 +62,18 @@ interface BookingTableProps {
   bookings: BookingRow[];
   loading: boolean;
   onActionComplete: () => void;
+  selectable?: boolean;
+  selectedIds?: Set<string>;
+  onToggleOne?: (id: string) => void;
+  onToggleAll?: () => void;
+  isAllSelected?: boolean;
+  isSomeSelected?: boolean;
 }
 
-export const BookingTable = memo(function BookingTable({ bookings, loading, onActionComplete }: BookingTableProps) {
+export const BookingTable = memo(function BookingTable({
+  bookings, loading, onActionComplete,
+  selectable, selectedIds, onToggleOne, onToggleAll, isAllSelected, isSomeSelected,
+}: BookingTableProps) {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
 
