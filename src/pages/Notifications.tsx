@@ -532,13 +532,14 @@ export default function Notifications() {
         {/* Notification cards */}
         {loading ? (
           <div className="space-y-3">
-            {[1, 2, 3, 4].map((i) => (
-              <Card key={i} className="p-4 animate-pulse">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Card key={i} className="p-4 border-l-4 border-l-muted">
                 <div className="flex gap-3">
-                  <div className="h-10 w-10 rounded-full bg-muted" />
+                  <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-muted rounded w-3/4" />
-                    <div className="h-3 bg-muted rounded w-1/2" />
+                    <div className="h-4 bg-muted animate-pulse rounded w-3/4" />
+                    <div className="h-3 bg-muted animate-pulse rounded w-1/2" />
+                    <div className="h-3 bg-muted animate-pulse rounded w-1/4" />
                   </div>
                 </div>
               </Card>
@@ -546,9 +547,14 @@ export default function Notifications() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-16 text-center">
-            <Bell className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
-            <p className="text-muted-foreground">
-              {showDigest ? 'No digest items to show' : 'No notifications to show'}
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+              <Bell className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold text-foreground mb-1">
+              {showDigest ? 'No digest items' : 'All caught up!'}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {showDigest ? 'No low-priority notifications to show.' : 'No notifications to display right now.'}
             </p>
           </div>
         ) : (

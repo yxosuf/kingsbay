@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { CardGridSkeleton } from '@/components/ui/TableSkeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -469,25 +471,15 @@ export default function Rooms() {
 
         {/* Room Grid */}
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          </div>
+          <CardGridSkeleton count={8} />
         ) : rooms.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <BedDouble className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No rooms added yet.</p>
-              {isAdmin && (
-                <Button
-                  variant="link"
-                  onClick={() => setDialogOpen(true)}
-                  className="mt-2"
-                >
-                  Add your first room
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={BedDouble}
+            title="No rooms added yet"
+            description="Add your first room to start managing your property."
+            actionLabel={isAdmin ? "Add Room" : undefined}
+            onAction={isAdmin ? () => setDialogOpen(true) : undefined}
+          />
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4">
             {roomsWithDerived.map(({ room, derived, cleaningCountdown }) => {
