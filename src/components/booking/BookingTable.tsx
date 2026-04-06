@@ -147,6 +147,16 @@ export const BookingTable = memo(function BookingTable({
     <Table>
       <TableHeader>
         <TableRow>
+          {selectable && (
+            <TableHead className="w-10">
+              <Checkbox
+                checked={isAllSelected}
+                onCheckedChange={() => onToggleAll?.()}
+                aria-label="Select all"
+                {...(isSomeSelected ? { 'data-state': 'indeterminate' } : {})}
+              />
+            </TableHead>
+          )}
           <TableHead>Guest</TableHead>
           <TableHead>Room</TableHead>
           <TableHead>Check-in</TableHead>
