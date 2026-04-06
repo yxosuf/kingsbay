@@ -471,22 +471,15 @@ export default function Rooms() {
 
         {/* Room Grid */}
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          </div>
+          <CardGridSkeleton count={8} />
         ) : rooms.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <BedDouble className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No rooms added yet.</p>
-              {isAdmin && (
-                <Button
-                  variant="link"
-                  onClick={() => setDialogOpen(true)}
-                  className="mt-2"
-                >
-                  Add your first room
-                </Button>
+          <EmptyState
+            icon={BedDouble}
+            title="No rooms added yet"
+            description="Add your first room to start managing your property."
+            actionLabel={isAdmin ? "Add Room" : undefined}
+            onAction={isAdmin ? () => setDialogOpen(true) : undefined}
+          />
               )}
             </CardContent>
           </Card>
