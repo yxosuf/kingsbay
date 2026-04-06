@@ -479,10 +479,6 @@ export default function Rooms() {
             description="Add your first room to start managing your property."
             actionLabel={isAdmin ? "Add Room" : undefined}
             onAction={isAdmin ? () => setDialogOpen(true) : undefined}
-          />
-              )}
-            </CardContent>
-          </Card>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4">
             {roomsWithDerived.map(({ room, derived, cleaningCountdown }) => {
