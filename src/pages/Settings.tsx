@@ -435,6 +435,8 @@ export default function Settings() {
         return <ReportsSettings />;
       case 'security':
         return isAdmin ? <DangerZoneSettings /> : null;
+      case 'audit-logs':
+        return isAdmin ? <AuditLogViewer /> : null;
       case 'system-health':
         return isAdmin ? <SystemHealthSettings /> : null;
       case 'other':
