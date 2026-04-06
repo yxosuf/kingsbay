@@ -44,7 +44,7 @@ export function usePaginatedQuery<T = any>({
   const { data: countData } = useQuery({
     queryKey: [...queryKey, 'count'],
     queryFn: async () => {
-      let query = supabase.from(table).select('*', { count: 'exact', head: true });
+      let query = supabase.from(table as any).select('*', { count: 'exact', head: true });
       if (filters) query = filters(query);
       const { count, error } = await query;
       if (error) throw error;
