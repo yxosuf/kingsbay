@@ -6,8 +6,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Download, CheckCircle, XCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { useAuth } from '@/hooks/useAuth';
@@ -16,7 +17,11 @@ import { BookingTable, type BookingRow } from '@/components/booking/BookingTable
 import { PaginationControls } from '@/components/ui/PaginationControls';
 import { TableSkeleton } from '@/components/ui/TableSkeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { BulkActionBar } from '@/components/ui/BulkActionBar';
+import { useBulkSelection } from '@/hooks/useBulkSelection';
+import { exportToPdf, exportToExcel } from '@/lib/exportUtils';
 import { toDateString } from '@/lib/dateUtils';
+import { toast } from 'sonner';
 import { BookOpen } from 'lucide-react';
 
 type TabKey = 'today' | 'upcoming' | 'inhouse' | 'past' | 'cancelled' | 'needs_review' | 'all';
