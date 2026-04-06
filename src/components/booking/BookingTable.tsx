@@ -170,7 +170,15 @@ export const BookingTable = memo(function BookingTable({
       <TableBody>
         {bookings.map((booking) => (
           <TableRow key={booking.id} className="cursor-pointer" onClick={() => navigate(`/bookings/${booking.id}`)}>
-            <TableCell>
+            {selectable && (
+              <TableCell onClick={e => e.stopPropagation()}>
+                <Checkbox
+                  checked={selectedIds?.has(booking.id) ?? false}
+                  onCheckedChange={() => onToggleOne?.(booking.id)}
+                  aria-label={`Select booking ${booking.id}`}
+                />
+              </TableCell>
+            )}
               <div>
                 <p className="font-medium">{booking.guests?.name || 'Unknown'}</p>
                 <p className="text-sm text-muted-foreground">{booking.guests?.phone}</p>
