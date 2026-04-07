@@ -614,6 +614,10 @@ export default function GuestDetails() {
                 </span>
               )}
             </TabsTrigger>
+            <TabsTrigger value="communications" className="flex-1 text-xs sm:text-sm">
+              <MessageSquare className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
+              Comms
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="bookings" className="mt-6">
