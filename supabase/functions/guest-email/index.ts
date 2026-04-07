@@ -152,6 +152,17 @@ Deno.serve(async (req) => {
 
     console.log(`Email sent: ${email_type} for booking ${booking_id} to ${guestEmail}`);
 
+    // Log communication
+    await supabase.from('guest_communications').insert({
+      guest_id: booking.guest_id,
+      booking_id: booking_id,
+      property_id: booking.property_id,
+      comm_type: 'email',
+      subject,
+      body: `${email_type} email sent`,
+      recipient_email: guestEmail,
+    });
+
     return new Response(
       JSON.stringify({ success: true, email_id: resendData.id, type: email_type }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

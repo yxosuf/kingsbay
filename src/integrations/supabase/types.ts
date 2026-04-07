@@ -560,6 +560,70 @@ export type Database = {
           },
         ]
       }
+      guest_communications: {
+        Row: {
+          body: string | null
+          booking_id: string | null
+          comm_type: string
+          created_at: string
+          guest_id: string
+          id: string
+          property_id: string | null
+          recipient_email: string | null
+          sent_at: string
+          sent_by: string | null
+          subject: string | null
+        }
+        Insert: {
+          body?: string | null
+          booking_id?: string | null
+          comm_type?: string
+          created_at?: string
+          guest_id: string
+          id?: string
+          property_id?: string | null
+          recipient_email?: string | null
+          sent_at?: string
+          sent_by?: string | null
+          subject?: string | null
+        }
+        Update: {
+          body?: string | null
+          booking_id?: string | null
+          comm_type?: string
+          created_at?: string
+          guest_id?: string
+          id?: string
+          property_id?: string | null
+          recipient_email?: string | null
+          sent_at?: string
+          sent_by?: string | null
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_communications_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_communications_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_communications_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_feedback: {
         Row: {
           booking_id: string
@@ -2022,6 +2086,7 @@ export type Database = {
           favorite_settings: Json
           hidden_pages: Json
           id: string
+          onboarding_completed: boolean
           theme: string
           updated_at: string
           user_id: string
@@ -2032,6 +2097,7 @@ export type Database = {
           favorite_settings?: Json
           hidden_pages?: Json
           id?: string
+          onboarding_completed?: boolean
           theme?: string
           updated_at?: string
           user_id: string
@@ -2042,6 +2108,7 @@ export type Database = {
           favorite_settings?: Json
           hidden_pages?: Json
           id?: string
+          onboarding_completed?: boolean
           theme?: string
           updated_at?: string
           user_id?: string

@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ArrowLeft, User, Calendar, Receipt, Edit, MapPin, Phone, Mail, CreditCard, Star, Upload, FileImage, Loader2, Trash2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, User, Calendar, Receipt, Edit, MapPin, Phone, Mail, CreditCard, Star, Upload, FileImage, Loader2, Trash2, AlertTriangle, MessageSquare } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -22,6 +22,7 @@ import { EditGuestDialog } from '@/components/guest/EditGuestDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useGuestFeedback } from '@/hooks/useGuestFeedback';
 import { FeedbackSummary, FeedbackCard } from '@/components/feedback/FeedbackDisplay';
+import { GuestCommunicationLog } from '@/components/guest/GuestCommunicationLog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -613,6 +614,10 @@ export default function GuestDetails() {
                 </span>
               )}
             </TabsTrigger>
+            <TabsTrigger value="communications" className="flex-1 text-xs sm:text-sm">
+              <MessageSquare className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
+              Comms
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="bookings" className="mt-6">
@@ -786,6 +791,10 @@ export default function GuestDetails() {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="communications" className="mt-6">
+            <GuestCommunicationLog guestId={id!} />
           </TabsContent>
         </Tabs>
       </div>

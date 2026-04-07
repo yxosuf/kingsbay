@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo, useCallback } from 'react';
+import { useEffect, useRef, useMemo, useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toDateString } from '@/lib/dateUtils';
@@ -21,6 +21,7 @@ import { BookingSourcesChart } from '@/components/dashboard/BookingSourcesChart'
 import { OtaPerformanceCard } from '@/components/dashboard/OtaPerformanceCard';
 import { AiSuggestionsPanel } from '@/components/dashboard/AiSuggestionsPanel';
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
+import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard';
 import { useDashboardKpi, emptyKpi, emptyRevenue, emptyRooms } from '@/hooks/useDashboardKpi';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -105,10 +106,11 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { selectedProperty, showAllProperties } = useProperty();
-  const { canWrite } = useAuth();
+  const { canWrite, isAdmin } = useAuth();
   const { settings, loading: settingsLoading } = useUserSettings();
   const redirectChecked = useRef(false);
   const propertyId = selectedProperty?.id ?? null;
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     if (!settingsLoading && !redirectChecked.current) {
@@ -119,6 +121,16 @@ export default function Dashboard() {
       }
     }
   }, [settingsLoading, settings.default_landing_page, navigate]);
+
+  // Show onboarding wizard for admins who haven't completed it and have no properties
+  useEffect(() => {
+    if (settingsLoading || !isAdmin) return;
+    if ((settings as any).onboarding_completed) return;
+    // Check if there are any properties
+    if (!selectedProperty && !showAllProperties) {
+      setShowOnboarding(true);
+    }
+  }, [settingsLoading, isAdmin, selectedProperty, showAllProperties, settings]);
 
   // KPI data from database views
   const { data: kpiData, isPlaceholderData } = useDashboardKpi();
@@ -498,6 +510,8 @@ export default function Dashboard() {
           <ActivityFeed />
         </div>
       </div>
+
+      <OnboardingWizard open={showOnboarding} onOpenChange={setShowOnboarding} />
     </DashboardLayout>
   );
 }
