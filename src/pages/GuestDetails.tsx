@@ -792,6 +792,10 @@ export default function GuestDetails() {
               </div>
             )}
           </TabsContent>
+
+          <TabsContent value="communications" className="mt-6">
+            <GuestCommunicationLog guestId={id!} />
+          </TabsContent>
         </Tabs>
       </div>
 
