@@ -7,6 +7,9 @@ import { AppSidebar } from './AppSidebar';
 import { AppHeader } from './AppHeader';
 import { BottomNav } from './BottomNav';
 import { Button } from '@/components/ui/button';
+import { SessionTimeoutWarning } from './SessionTimeoutWarning';
+import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
 interface DashboardLayoutProps {
   children: ReactNode;
