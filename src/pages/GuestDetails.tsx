@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ArrowLeft, User, Calendar, Receipt, Edit, MapPin, Phone, Mail, CreditCard, Star, Upload, FileImage, Loader2, Trash2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, User, Calendar, Receipt, Edit, MapPin, Phone, Mail, CreditCard, Star, Upload, FileImage, Loader2, Trash2, AlertTriangle, MessageSquare } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format, formatDistanceToNow } from 'date-fns';
