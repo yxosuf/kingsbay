@@ -156,6 +156,11 @@ export default function GuestDashboard() {
             </CardContent>
           </Card>
 
+          {/* Passport Upload */}
+          {guestId && (
+            <GuestPassportUpload guestId={guestId} existingPhotoUrl={null} />
+          )}
+
           {/* Book Now CTA */}
           <Card className="bg-primary/5 border-primary/20">
             <CardContent className="flex items-center justify-between py-4">
