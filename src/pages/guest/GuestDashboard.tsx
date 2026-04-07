@@ -59,7 +59,7 @@ export default function GuestDashboard() {
         .limit(50),
       supabase
         .from('guests')
-        .select('id, name, email, phone')
+        .select('id, name, email, phone, passport_photo_path')
         .eq('id', guestId)
         .single(),
     ]);
