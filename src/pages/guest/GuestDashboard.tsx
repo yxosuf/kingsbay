@@ -30,6 +30,7 @@ interface GuestProfile {
   name: string;
   email: string | null;
   phone: string | null;
+  passport_photo_path: string | null;
 }
 
 export default function GuestDashboard() {
