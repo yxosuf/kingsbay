@@ -87,6 +87,8 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
         </SidebarInset>
       </div>
       <BottomNav />
+      <SessionTimeoutWarning />
+      <KeyboardShortcutsDialog open={showHelp} onOpenChange={setShowHelp} shortcuts={shortcuts} />
     </SidebarProvider>
   );
 }
