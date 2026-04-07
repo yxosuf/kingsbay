@@ -11,6 +11,9 @@ import { Label } from '@/components/ui/label';
 import { CalendarDays, MapPin, Pencil, Save } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
+import { GuestPassportUpload } from '@/components/guest/GuestPassportUpload';
+import { format, parseISO } from 'date-fns';
+import { toast } from 'sonner';
 
 interface GuestBooking {
   id: string;
