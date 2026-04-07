@@ -7,6 +7,9 @@ import { AppSidebar } from './AppSidebar';
 import { AppHeader } from './AppHeader';
 import { BottomNav } from './BottomNav';
 import { Button } from '@/components/ui/button';
+import { SessionTimeoutWarning } from './SessionTimeoutWarning';
+import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -15,6 +18,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children, title }: DashboardLayoutProps) {
   const { user, loading, role, signOut, isGuest } = useAuth();
+  const { showHelp, setShowHelp, shortcuts } = useKeyboardShortcuts();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -83,6 +87,8 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
         </SidebarInset>
       </div>
       <BottomNav />
+      <SessionTimeoutWarning />
+      <KeyboardShortcutsDialog open={showHelp} onOpenChange={setShowHelp} shortcuts={shortcuts} />
     </SidebarProvider>
   );
 }

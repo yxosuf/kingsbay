@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { CalendarDays, MapPin, Pencil, Save } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
+import { GuestPassportUpload } from '@/components/guest/GuestPassportUpload';
 
 interface GuestBooking {
   id: string;
@@ -27,6 +28,7 @@ interface GuestProfile {
   name: string;
   email: string | null;
   phone: string | null;
+  passport_photo_path: string | null;
 }
 
 export default function GuestDashboard() {
@@ -55,7 +57,7 @@ export default function GuestDashboard() {
         .limit(50),
       supabase
         .from('guests')
-        .select('id, name, email, phone')
+        .select('id, name, email, phone, passport_photo_path')
         .eq('id', guestId)
         .single(),
     ]);
@@ -153,6 +155,11 @@ export default function GuestDashboard() {
               )}
             </CardContent>
           </Card>
+
+          {/* Passport Upload */}
+          {guestId && (
+            <GuestPassportUpload guestId={guestId} existingPhotoUrl={null} />
+          )}
 
           {/* Book Now CTA */}
           <Card className="bg-primary/5 border-primary/20">
