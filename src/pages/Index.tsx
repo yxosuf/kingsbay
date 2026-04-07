@@ -510,6 +510,8 @@ export default function Dashboard() {
           <ActivityFeed />
         </div>
       </div>
+
+      <OnboardingWizard open={showOnboarding} onOpenChange={setShowOnboarding} />
     </DashboardLayout>
   );
 }
