@@ -21,6 +21,7 @@ import { BookingSourcesChart } from '@/components/dashboard/BookingSourcesChart'
 import { OtaPerformanceCard } from '@/components/dashboard/OtaPerformanceCard';
 import { AiSuggestionsPanel } from '@/components/dashboard/AiSuggestionsPanel';
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
+import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard';
 import { useDashboardKpi, emptyKpi, emptyRevenue, emptyRooms } from '@/hooks/useDashboardKpi';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
