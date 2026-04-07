@@ -106,10 +106,11 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { selectedProperty, showAllProperties } = useProperty();
-  const { canWrite } = useAuth();
+  const { canWrite, isAdmin } = useAuth();
   const { settings, loading: settingsLoading } = useUserSettings();
   const redirectChecked = useRef(false);
   const propertyId = selectedProperty?.id ?? null;
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     if (!settingsLoading && !redirectChecked.current) {
