@@ -22,6 +22,7 @@ import { EditGuestDialog } from '@/components/guest/EditGuestDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useGuestFeedback } from '@/hooks/useGuestFeedback';
 import { FeedbackSummary, FeedbackCard } from '@/components/feedback/FeedbackDisplay';
+import { GuestCommunicationLog } from '@/components/guest/GuestCommunicationLog';
 import {
   AlertDialog,
   AlertDialogAction,
