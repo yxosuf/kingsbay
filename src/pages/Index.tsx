@@ -122,6 +122,16 @@ export default function Dashboard() {
     }
   }, [settingsLoading, settings.default_landing_page, navigate]);
 
+  // Show onboarding wizard for admins who haven't completed it and have no properties
+  useEffect(() => {
+    if (settingsLoading || !isAdmin) return;
+    if ((settings as any).onboarding_completed) return;
+    // Check if there are any properties
+    if (!selectedProperty && !showAllProperties) {
+      setShowOnboarding(true);
+    }
+  }, [settingsLoading, isAdmin, selectedProperty, showAllProperties, settings]);
+
   // KPI data from database views
   const { data: kpiData, isPlaceholderData } = useDashboardKpi();
   const kpi = kpiData?.kpi;
