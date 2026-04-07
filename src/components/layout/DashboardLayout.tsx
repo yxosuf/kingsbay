@@ -18,6 +18,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children, title }: DashboardLayoutProps) {
   const { user, loading, role, signOut, isGuest } = useAuth();
+  const { showHelp, setShowHelp, shortcuts } = useKeyboardShortcuts();
   const navigate = useNavigate();
 
   useEffect(() => {
