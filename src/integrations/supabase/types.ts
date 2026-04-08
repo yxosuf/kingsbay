@@ -880,6 +880,119 @@ export type Database = {
           },
         ]
       }
+      housekeeping_checklists: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string | null
+          frequency: string
+          id: string
+          inventory_item: string | null
+          is_active: boolean | null
+          notify_role: string[] | null
+          property_id: string | null
+          requires_photo: boolean | null
+          sort_order: number | null
+          title: string
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description?: string | null
+          frequency: string
+          id?: string
+          inventory_item?: string | null
+          is_active?: boolean | null
+          notify_role?: string[] | null
+          property_id?: string | null
+          requires_photo?: boolean | null
+          sort_order?: number | null
+          title: string
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          frequency?: string
+          id?: string
+          inventory_item?: string | null
+          is_active?: boolean | null
+          notify_role?: string[] | null
+          property_id?: string | null
+          requires_photo?: boolean | null
+          sort_order?: number | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "housekeeping_checklists_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      housekeeping_task_instances: {
+        Row: {
+          assigned_to: string | null
+          checklist_id: string
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          period_date: string
+          photo_path: string | null
+          property_id: string
+          status: string | null
+          urgency_level: number | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          checklist_id: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          period_date: string
+          photo_path?: string | null
+          property_id: string
+          status?: string | null
+          urgency_level?: number | null
+        }
+        Update: {
+          assigned_to?: string | null
+          checklist_id?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          period_date?: string
+          photo_path?: string | null
+          property_id?: string
+          status?: string | null
+          urgency_level?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "housekeeping_task_instances_checklist_id_fkey"
+            columns: ["checklist_id"]
+            isOneToOne: false
+            referencedRelation: "housekeeping_checklists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "housekeeping_task_instances_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           booking_id: string
