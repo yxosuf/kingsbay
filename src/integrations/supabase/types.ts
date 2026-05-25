@@ -1923,6 +1923,7 @@ export type Database = {
           floor: number | null
           housekeeping_status: Database["public"]["Enums"]["housekeeping_status"]
           id: string
+          image_urls: string[] | null
           inspected_by: string | null
           last_checkout_at: string | null
           max_guests: number | null
@@ -1945,6 +1946,7 @@ export type Database = {
           floor?: number | null
           housekeeping_status?: Database["public"]["Enums"]["housekeeping_status"]
           id?: string
+          image_urls?: string[] | null
           inspected_by?: string | null
           last_checkout_at?: string | null
           max_guests?: number | null
@@ -1967,6 +1969,7 @@ export type Database = {
           floor?: number | null
           housekeeping_status?: Database["public"]["Enums"]["housekeeping_status"]
           id?: string
+          image_urls?: string[] | null
           inspected_by?: string | null
           last_checkout_at?: string | null
           max_guests?: number | null
