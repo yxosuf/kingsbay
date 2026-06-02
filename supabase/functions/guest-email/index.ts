@@ -1,10 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { requireUserJwt } from "../_shared/auth.ts";
 
 type EmailType = "booking_confirmation" | "pre_arrival" | "checkout_summary";
 
@@ -14,8 +10,19 @@ interface EmailRequest {
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req.headers.get('origin'));
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Require authenticated user
+  const auth = await requireUserJwt(req);
+  if (!auth.ok) {
+    return new Response(JSON.stringify({ error: auth.message }), {
+      status: auth.status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
@@ -150,7 +157,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Email sent: ${email_type} for booking ${booking_id} to ${guestEmail}`);
+    console.log(`Email sent: ${email_type} for booking ${booking_id}`);
 
     // Log communication
     await supabase.from('guest_communications').insert({
@@ -170,7 +177,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error("Guest email error:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Unknown error" }),
+      JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
