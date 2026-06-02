@@ -263,6 +263,7 @@ export default function Settings() {
       setStaff(staffData as any);
     } catch (error) {
       console.error('Error fetching staff:', error);
+      toast.error('Failed to load staff members');
     } finally {
       setLoading(false);
     }
@@ -289,6 +290,7 @@ export default function Settings() {
       setPendingUsers(pending);
     } catch (error) {
       console.error('Error fetching pending users:', error);
+      toast.error('Failed to load pending users');
     } finally {
       setLoadingPending(false);
     }

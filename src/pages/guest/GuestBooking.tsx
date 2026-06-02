@@ -194,6 +194,7 @@ export default function GuestBooking() {
       setTotalAmount(Math.round(finalTotal));
     } catch (err) {
       console.error('Price calculation error:', err);
+      toast.error('Failed to calculate price');
     }
     setLoadingPrice(false);
   };

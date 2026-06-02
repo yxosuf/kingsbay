@@ -179,19 +179,27 @@ export function DuplicateGuestDetection() {
         .from('guest_services')
         .update({ booking_id: keep.id } as any)
         .eq('booking_id', remove.id);
-      // This may not match any, that's ok
+      if (serviceError) {
+        console.error('Error reassigning guest services during merge:', serviceError);
+      }
 
       // Reassign guest_feedback
-      await supabase
+      const { error: feedbackError } = await supabase
         .from('guest_feedback')
         .update({ guest_id: keep.id })
         .eq('guest_id', remove.id);
+      if (feedbackError) {
+        console.error('Error reassigning guest feedback during merge:', feedbackError);
+      }
 
       // Reassign guest_view_logs
-      await supabase
+      const { error: viewLogsError } = await supabase
         .from('guest_view_logs')
         .update({ guest_id: keep.id } as any)
         .eq('guest_id', remove.id);
+      if (viewLogsError) {
+        console.error('Error reassigning guest view logs during merge:', viewLogsError);
+      }
 
       // Merge totals
       const newTotalStays = keep.total_stays + remove.total_stays;

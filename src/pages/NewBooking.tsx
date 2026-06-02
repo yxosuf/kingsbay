@@ -246,6 +246,7 @@ export default function NewBooking() {
       }
     } catch (error) {
       console.error('Error fetching rooms:', error);
+      toast.error('Failed to load rooms');
     }
   }, [checkIn, checkOut, selectedProperty?.id]);
 
@@ -258,6 +259,7 @@ export default function NewBooking() {
       setExistingGuests(data || []);
     } catch (error) {
       console.error('Error fetching guests:', error);
+      toast.error('Failed to load guest list');
     }
   }, []);
 
@@ -478,13 +480,18 @@ export default function NewBooking() {
 
       // Update room status
       if (checkInImmediately) {
-        // Walk-in immediate check-in: set room to occupied
-        await supabase.from('rooms').update({ 
+        const { error: roomStatusError } = await supabase.from('rooms').update({ 
           status: 'occupied',
           housekeeping_status: 'occupied' as any,
         }).eq('id', roomId);
+        if (roomStatusError) {
+          console.error('Error updating room to occupied:', roomStatusError);
+        }
       } else {
-        await supabase.from('rooms').update({ status: 'reserved' }).eq('id', roomId);
+        const { error: roomStatusError } = await supabase.from('rooms').update({ status: 'reserved' }).eq('id', roomId);
+        if (roomStatusError) {
+          console.error('Error updating room to reserved:', roomStatusError);
+        }
       }
 
       // Airbnb auto-pay: create invoice + payment transaction + mark as paid
@@ -548,10 +555,13 @@ export default function NewBooking() {
 
       // Track discount code usage
       if (newBooking && stayBreakdown?.discountCodeId) {
-        await supabase.from('discount_code_usages').insert({
+        const { error: discountUsageError } = await supabase.from('discount_code_usages').insert({
           discount_code_id: stayBreakdown.discountCodeId,
           booking_id: newBooking.id,
         });
+        if (discountUsageError) {
+          console.error('Error tracking discount code usage:', discountUsageError);
+        }
       }
 
       toast.success(checkInImmediately ? 'Walk-in guest checked in!' : 'Booking created successfully!');

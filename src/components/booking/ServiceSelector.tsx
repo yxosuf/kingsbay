@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Minus, Trash2, UtensilsCrossed, Car, Dumbbell, Star } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 type ServiceCategory = 'room_service' | 'transport' | 'facilities' | 'special_request';
 
@@ -65,6 +66,7 @@ const ServiceSelectorComponent = ({ selectedServices, onServicesChange }: Servic
       setServices((data as Service[]) || []);
     } catch (error) {
       console.error('Error fetching services:', error);
+      toast.error('Failed to load services');
     } finally {
       setLoading(false);
     }
