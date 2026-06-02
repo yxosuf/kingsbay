@@ -11,6 +11,7 @@ import {
   ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
 } from 'recharts';
 import { toast } from 'sonner';
+import { downloadCsv } from '@/lib/exportUtils';
 
 interface FeedbackReportProps {
   dateRange: { from: Date; to: Date };
@@ -162,14 +163,7 @@ export function FeedbackReport({ dateRange, propertyId, showAllProperties, prope
       ...data.categoryBreakdown.map((c) => [c.category, c.average.toString()]),
     ];
     const csv = rows.map((r) => r.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `feedback-report-${format(dateRange.from, 'yyyy-MM-dd')}-to-${format(dateRange.to, 'yyyy-MM-dd')}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('CSV exported');
+    downloadCsv(csv, `feedback-report-${format(dateRange.from, 'yyyy-MM-dd')}-to-${format(dateRange.to, 'yyyy-MM-dd')}.csv`, 'CSV exported');
   };
 
   if (loading) {

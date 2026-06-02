@@ -25,6 +25,7 @@ import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard';
 import { useDashboardKpi, emptyKpi, emptyRevenue, emptyRooms } from '@/hooks/useDashboardKpi';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getBookingStatusVariant, getBookingStatusLabel } from '@/lib/bookingStatus';
 import { useProperty } from '@/hooks/useProperty';
 import { PropertyBadge } from '@/components/layout/PropertyBadge';
 import { useAuth } from '@/hooks/useAuth';
@@ -173,20 +174,13 @@ export default function Dashboard() {
     }
   }, [queryClient]);
 
+
   const handleCheckOut = useCallback((bookingId: string) => {
     navigate(`/bookings/${bookingId}/checkout`);
   }, [navigate]);
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' | 'info' }> = {
-      pending: { variant: 'warning' },
-      confirmed: { variant: 'info' },
-      checked_in: { variant: 'success' },
-      checked_out: { variant: 'secondary' },
-      cancelled: { variant: 'destructive' },
-    };
-    const config = variants[status] || variants.pending;
-    return <Badge variant={config.variant}>{status.replace('_', ' ')}</Badge>;
+    return <Badge variant={getBookingStatusVariant(status)}>{getBookingStatusLabel(status)}</Badge>;
   };
 
   const greeting = (() => {

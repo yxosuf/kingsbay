@@ -28,6 +28,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useProperty } from '@/hooks/useProperty';
 import { toast } from 'sonner';
+import { formatLKR } from '@/lib/formatters';
 import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
 import { toDateString } from '@/lib/dateUtils';
 
@@ -518,7 +519,7 @@ export default function Rooms() {
                   <CardContent className="p-2.5 sm:p-6 pt-1 sm:pt-0 space-y-1.5 sm:space-y-4">
                     <div className="flex justify-between text-xs sm:text-sm">
                       <span className="text-muted-foreground">Rate</span>
-                      <span className="font-medium">Rs. {room.price.toLocaleString()}</span>
+                      <span className="font-medium">{formatLKR(room.price)}</span>
                     </div>
                     <div className="hidden sm:flex justify-between text-sm">
                       <span className="text-muted-foreground">Max Guests</span>

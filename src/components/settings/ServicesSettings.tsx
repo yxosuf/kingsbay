@@ -16,6 +16,7 @@ import { Plus, Edit, Trash2, UtensilsCrossed, Car, Dumbbell, Star } from 'lucide
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { formatLKR } from '@/lib/formatters';
 import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
 
 type ServiceCategory = 'room_service' | 'transport' | 'facilities' | 'special_request';
@@ -246,7 +247,7 @@ export function ServicesSettings() {
                       )}
 
                       <div className="pt-2 border-t flex items-center justify-between">
-                        <span className="text-sm font-semibold">Rs. {service.price.toLocaleString()}</span>
+                        <span className="text-sm font-semibold">{formatLKR(service.price)}</span>
                         {isAdmin && (
                           <div className="flex items-center gap-1">
                             <Switch checked={service.is_active} onCheckedChange={() => toggleActive(service)} className="scale-75" />

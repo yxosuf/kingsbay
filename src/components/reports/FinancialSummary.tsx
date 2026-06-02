@@ -11,6 +11,7 @@ import { useFxRate } from '@/hooks/useFxRate';
 import { format } from 'date-fns';
 import { Download, CheckCircle2, AlertTriangle, Scale, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
+import { downloadCsv, buildCsvFilename } from '@/lib/exportUtils';
 
 interface FinancialSummaryProps {
   dateRange: { from: Date; to: Date };
@@ -180,14 +181,7 @@ export function FinancialSummary({ dateRange, propertyId, showAllProperties, pro
       `Total Expenses,${data.expenseTotal}`,
       `Net Income,${data.revenueTotal - data.expenseTotal}`,
     ];
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Financial_Summary_${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Financial summary exported');
+    downloadCsv(lines.join('\n'), buildCsvFilename('Financial_Summary'), 'Financial summary exported');
   };
 
   const accountTypeLabel = (type: string) => {

@@ -9,6 +9,7 @@ import { format, eachDayOfInterval, differenceInDays, parseISO } from 'date-fns'
 import { Download, BedDouble, Users, TrendingUp, CalendarDays } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import { toast } from 'sonner';
+import { downloadCsv, buildCsvFilename } from '@/lib/exportUtils';
 
 interface OccupancyReportProps {
   dateRange: { from: Date; to: Date };
@@ -169,14 +170,7 @@ export function OccupancyReport({ dateRange, propertyId, showAllProperties, prop
       'Date,Occupied,Available,Rate %',
       ...data.dailyOccupancy.map(d => `${d.date},${d.occupied},${d.available},${d.rate}`),
     ];
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Occupancy_Report_${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Occupancy report exported');
+    downloadCsv(lines.join('\n'), buildCsvFilename('Occupancy_Report'), 'Occupancy report exported');
   };
 
   if (loading) {
