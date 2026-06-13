@@ -77,6 +77,7 @@ export function AddServiceDialog({
       setServices(data || []);
     } catch (error) {
       console.error('Error fetching services:', error);
+      toast.error('Failed to load services');
     } finally {
       setLoading(false);
     }

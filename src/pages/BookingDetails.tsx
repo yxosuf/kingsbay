@@ -39,6 +39,7 @@ import { FeedbackCard } from '@/components/feedback/FeedbackDisplay';
 import { useGuestFeedback } from '@/hooks/useGuestFeedback';
 import { sendGuestEmail } from '@/lib/guestEmail';
 import { calculateStayTotal, type StayTotal } from '@/lib/rateEngine';
+import { getSafeErrorMessage } from '@/lib/errorHandling';
 import { Info } from 'lucide-react';
 
 interface BookingDetailsData {
@@ -223,13 +224,15 @@ export default function BookingDetails() {
 
   const fetchGuestServices = async () => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('guest_services')
         .select(`id, service_date, quantity, total_price, services (name, category)`)
         .eq('booking_id', id);
+      if (error) throw error;
       setServices(data || []);
     } catch (error) {
       console.error('Error fetching services:', error);
+      toast.error('Failed to load booking services');
     }
   };
 
@@ -263,6 +266,7 @@ export default function BookingDetails() {
       setLinkedBookings([...(children || []), ...siblings]);
     } catch (error) {
       console.error('Error fetching linked bookings:', error);
+      toast.error('Failed to load linked bookings');
     }
   };
 
@@ -300,7 +304,7 @@ export default function BookingDetails() {
 
       const cleaningMinutes = 90;
       const cleaningUntil = new Date(Date.now() + cleaningMinutes * 60 * 1000).toISOString();
-      await supabase
+      const { error: roomUpdateError } = await supabase
         .from('rooms')
         .update({
           status: 'available',
@@ -309,11 +313,17 @@ export default function BookingDetails() {
           cleaning_until: cleaningUntil,
         } as any)
         .eq('id', booking.rooms?.id);
+      if (roomUpdateError) {
+        console.error('Error updating room status during checkout:', roomUpdateError);
+      }
 
-      await supabase
+      const { error: checkoutTimestampError } = await supabase
         .from('bookings')
         .update({ checked_out_at: new Date().toISOString() })
         .eq('id', booking.id);
+      if (checkoutTimestampError) {
+        console.error('Error recording checkout timestamp:', checkoutTimestampError);
+      }
 
       if (booking.property_id) {
         await postBookingConfirmed(booking.id, roomCharges, serviceCharges, taxAmount, booking.property_id, user?.id);
@@ -330,7 +340,7 @@ export default function BookingDetails() {
       setShowPrintPreview(true);
     } catch (error: any) {
       console.error('Error during checkout:', error);
-      toast.error(error.message || 'Failed to process checkout');
+      toast.error(getSafeErrorMessage(error));
     } finally {
       setProcessing(false);
     }

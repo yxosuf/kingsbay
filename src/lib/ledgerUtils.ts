@@ -49,7 +49,7 @@ async function createEntry(
       const id = await getAccountId(line.accountCode);
       if (!id) {
         console.error(`Ledger account not found: ${line.accountCode}`);
-        return null;
+        throw new Error(`Ledger account not found: ${line.accountCode}`);
       }
       accountIds[line.accountCode] = id;
     }
@@ -69,7 +69,7 @@ async function createEntry(
 
   if (entryErr || !entry) {
     console.error('Failed to create ledger entry:', entryErr);
-    return null;
+    throw new Error(`Failed to create ledger entry: ${entryErr?.message || 'unknown error'}`);
   }
 
   const ledgerLines = lines.map((line) => ({
@@ -85,7 +85,7 @@ async function createEntry(
 
   if (linesErr) {
     console.error('Failed to create ledger lines:', linesErr);
-    return null;
+    throw new Error(`Failed to create ledger lines: ${linesErr.message}`);
   }
 
   return entry.id;

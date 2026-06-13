@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { useGuestFeedback } from '@/hooks/useGuestFeedback';
 import { useProperty } from '@/hooks/useProperty';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 
@@ -85,6 +86,7 @@ export function RecentFeedbackWidget() {
       }
     } catch (e) {
       console.error('Error fetching recent feedback:', e);
+      toast.error('Failed to load recent feedback');
     } finally {
       setLoading(false);
     }

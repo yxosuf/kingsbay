@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { toast } from 'sonner';
 
 export interface Property {
   id: string;
@@ -72,6 +73,7 @@ export function PropertyProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Error fetching properties:', error);
+      toast.error('Failed to load properties');
     } finally {
       setLoading(false);
     }

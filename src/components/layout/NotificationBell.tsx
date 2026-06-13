@@ -139,6 +139,7 @@ export function NotificationBell() {
       );
     } catch (error) {
       console.error('Error fetching notifications:', error);
+      toast.error('Failed to load notifications');
     } finally {
       setLoading(false);
     }

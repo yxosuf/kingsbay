@@ -193,6 +193,7 @@ export default function GuestDetails() {
       setBookings(data || []);
     } catch (error) {
       console.error('Error fetching bookings:', error);
+      toast.error('Failed to load guest bookings');
     }
   };
 
@@ -219,6 +220,7 @@ export default function GuestDetails() {
       setAllServices(data || []);
     } catch (error) {
       console.error('Error fetching services:', error);
+      toast.error('Failed to load guest services');
     }
   };
 

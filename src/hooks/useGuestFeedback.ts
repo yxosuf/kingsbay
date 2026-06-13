@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export interface GuestFeedback {
   id: string;
@@ -51,6 +52,7 @@ export function useGuestFeedback(options?: {
       );
     } catch (e) {
       console.error('Error fetching feedback:', e);
+      toast.error('Failed to load guest feedback');
     } finally {
       setLoading(false);
     }

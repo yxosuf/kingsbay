@@ -12,6 +12,7 @@ import {
 import { Calendar, ArrowRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
+import { toast } from 'sonner';
 import { addDays, eachDayOfInterval, isToday, isWeekend, format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toDateString } from '@/lib/dateUtils';
@@ -112,6 +113,7 @@ export function DashboardAvailabilityCalendar() {
       setAvailability(availabilityData || []);
     } catch (error) {
       console.error('Error fetching availability data:', error);
+      toast.error('Failed to load availability data');
     } finally {
       setLoading(false);
     }

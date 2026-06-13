@@ -143,6 +143,7 @@ export function ExtendStayDialog({
       setAvailableRooms(available);
     } catch (error) {
       console.error('Error fetching available rooms:', error);
+      toast.error('Failed to load available rooms');
     }
   };
 

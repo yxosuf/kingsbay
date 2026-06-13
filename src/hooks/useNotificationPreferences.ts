@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 export interface NotificationPreferences {
   categories: Record<string, boolean>;
@@ -46,6 +47,7 @@ export function useNotificationPreferences() {
       }
     } catch (e) {
       console.error('Error fetching notification preferences:', e);
+      toast.error('Failed to load notification preferences');
     } finally {
       setLoading(false);
     }
@@ -71,6 +73,7 @@ export function useNotificationPreferences() {
       return true;
     } catch (e) {
       console.error('Error saving notification preferences:', e);
+      toast.error('Failed to save notification preferences');
       return false;
     } finally {
       setSaving(false);

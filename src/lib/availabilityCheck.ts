@@ -135,7 +135,11 @@ export async function getPropertyAvailability(
     roomQuery = roomQuery.eq('room_type', roomType);
   }
 
-  const { data: rooms } = await roomQuery;
+  const { data: rooms, error: roomError } = await roomQuery;
+  if (roomError) {
+    console.error('Error fetching rooms for availability:', roomError);
+    throw roomError;
+  }
   const totalRooms = rooms?.length || 0;
   const roomIds = rooms?.map(r => r.id) || [];
 
@@ -151,7 +155,7 @@ export async function getPropertyAvailability(
   }
 
   // Get bookings for this date
-  const { data: bookings } = await supabase
+  const { data: bookings, error: bookingsError } = await supabase
     .from('bookings')
     .select('room_id')
     .in('room_id', roomIds)
@@ -159,16 +163,26 @@ export async function getPropertyAvailability(
     .lte('check_in', dateStr)
     .gt('check_out', dateStr);
 
+  if (bookingsError) {
+    console.error('Error fetching bookings for availability:', bookingsError);
+    throw bookingsError;
+  }
+
   const bookedRoomIds = new Set(bookings?.map(b => b.room_id) || []);
   const bookedRooms = bookedRoomIds.size;
 
   // Get blocked dates
-  const { data: blocked } = await supabase
+  const { data: blocked, error: blockedError } = await supabase
     .from('room_availability')
     .select('room_id')
     .in('room_id', roomIds)
     .eq('date', dateStr)
     .eq('is_available', false);
+
+  if (blockedError) {
+    console.error('Error fetching blocked dates for availability:', blockedError);
+    throw blockedError;
+  }
 
   const blockedRoomIds = new Set(blocked?.map(b => b.room_id) || []);
   // Don't double count rooms that are both booked and blocked
@@ -178,11 +192,15 @@ export async function getPropertyAvailability(
   const maintenanceRooms = rooms?.filter(r => r.status === 'maintenance').length || 0;
 
   // Get inventory settings for safety buffer
-  const { data: settings } = await supabase
+  const { data: settings, error: settingsError } = await supabase
     .from('property_inventory_settings')
     .select('safety_buffer')
     .eq('property_id', propertyId)
     .maybeSingle();
+
+  if (settingsError) {
+    console.error('Error fetching inventory settings:', settingsError);
+  }
 
   const safetyBuffer = settings?.safety_buffer || 0;
 

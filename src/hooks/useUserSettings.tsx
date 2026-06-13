@@ -50,7 +50,9 @@ export function UserSettingsProvider({ children }: { children: ReactNode }) {
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (data) {
+      if (error) {
+        console.error('Error fetching user settings:', error);
+      } else if (data) {
         const s: UserSettings = {
           hidden_pages: Array.isArray(data.hidden_pages) ? (data.hidden_pages as string[]) : [],
           default_landing_page: data.default_landing_page || '/',
