@@ -1,6 +1,7 @@
 import { forwardRef } from 'react';
 import { format, differenceInDays } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
+import { formatLKR } from '@/lib/formatters';
 
 interface InvoiceData {
   invoiceNumber: string;
@@ -168,9 +169,9 @@ export const PrintableInvoice = forwardRef<HTMLDivElement, PrintableInvoiceProps
                   Room {data.room.room_number} - {data.room.room_type}
                 </td>
                 <td className="py-3 text-center">{nights}</td>
-                <td className="py-3 text-right">Rs. {data.room.price.toLocaleString()}</td>
+                <td className="py-3 text-right">{formatLKR(data.room.price)}</td>
                 <td className="py-3 text-right font-medium">
-                  Rs. {data.roomCharges.toLocaleString()}
+                  {formatLKR(data.roomCharges)}
                 </td>
               </tr>
             </tbody>
@@ -202,10 +203,10 @@ export const PrintableInvoice = forwardRef<HTMLDivElement, PrintableInvoiceProps
                     </td>
                     <td className="py-2 text-center">{service.quantity}</td>
                     <td className="py-2 text-right">
-                      Rs. {service.unit_price.toLocaleString()}
+                      {formatLKR(service.unit_price)}
                     </td>
                     <td className="py-2 text-right font-medium">
-                      Rs. {service.total_price.toLocaleString()}
+                      {formatLKR(service.total_price)}
                     </td>
                   </tr>
                 ))}
@@ -219,28 +220,28 @@ export const PrintableInvoice = forwardRef<HTMLDivElement, PrintableInvoiceProps
           <div className="w-72">
             <div className="flex justify-between py-2">
               <span className="text-gray-600">Room Charges</span>
-              <span>Rs. {data.roomCharges.toLocaleString()}</span>
+              <span>{formatLKR(data.roomCharges)}</span>
             </div>
             {data.serviceCharges > 0 && (
               <div className="flex justify-between py-2">
                 <span className="text-gray-600">Service Charges</span>
-                <span>Rs. {data.serviceCharges.toLocaleString()}</span>
+                <span>{formatLKR(data.serviceCharges)}</span>
               </div>
             )}
             {data.bankFeeAmount != null && data.bankFeeAmount > 0 && (
               <div className="flex justify-between py-2">
                 <span className="text-gray-600">Card Bank Fee (3%)</span>
-                <span>Rs. {data.bankFeeAmount.toLocaleString()}</span>
+                <span>{formatLKR(data.bankFeeAmount)}</span>
               </div>
             )}
             <div className="flex justify-between py-2">
               <span className="text-gray-600">Tax ({Math.round(data.taxRate * 100)}%)</span>
-              <span>Rs. {data.taxAmount.toLocaleString()}</span>
+              <span>{formatLKR(data.taxAmount)}</span>
             </div>
             <Separator className="bg-gray-300 my-2" />
             <div className="flex justify-between py-2 text-xl font-bold">
               <span>Total Due</span>
-              <span>Rs. {data.totalAmount.toLocaleString()}</span>
+              <span>{formatLKR(data.totalAmount)}</span>
             </div>
           </div>
         </div>

@@ -24,6 +24,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { checkInBooking, checkOutBooking, cancelBooking, markNoShow } from '@/lib/bookingActions';
 import { MoveRoomDialog } from './MoveRoomDialog';
 import { PaymentDialog } from './PaymentDialog';
 
@@ -65,17 +66,7 @@ export function BookingCard({ booking, onActionComplete, badge }: BookingCardPro
   const handleCheckIn = async () => {
     setProcessing(true);
     try {
-      const { error: bookingErr } = await supabase
-        .from('bookings')
-        .update({ status: 'checked_in', checked_in_at: new Date().toISOString() })
-        .eq('id', booking.id);
-      if (bookingErr) throw bookingErr;
-
-      await supabase
-        .from('rooms')
-        .update({ status: 'occupied' })
-        .eq('id', booking.room_id);
-
+      await checkInBooking(booking.id, booking.room_id);
       toast.success('Guest checked in successfully');
       onActionComplete();
     } catch {
@@ -92,16 +83,7 @@ export function BookingCard({ booking, onActionComplete, badge }: BookingCardPro
     }
     setProcessing(true);
     try {
-      const { error } = await supabase
-        .from('bookings')
-        .update({
-          status: 'cancelled',
-          cancelled_at: new Date().toISOString(),
-          cancel_reason: cancelReason.trim(),
-        })
-        .eq('id', booking.id);
-      if (error) throw error;
-
+      await cancelBooking(booking.id, cancelReason);
       toast.success('Booking cancelled');
       setCancelDialog(false);
       setCancelReason('');
@@ -116,12 +98,7 @@ export function BookingCard({ booking, onActionComplete, badge }: BookingCardPro
   const handleNoShow = async () => {
     setProcessing(true);
     try {
-      const { error } = await supabase
-        .from('bookings')
-        .update({ status: 'no_show', no_show_at: new Date().toISOString() })
-        .eq('id', booking.id);
-      if (error) throw error;
-
+      await markNoShow(booking.id);
       toast.success('Booking marked as no-show');
       setNoShowDialog(false);
       onActionComplete();
@@ -135,23 +112,7 @@ export function BookingCard({ booking, onActionComplete, badge }: BookingCardPro
   const handleCheckOut = async () => {
     setProcessing(true);
     try {
-      const { error: bookingErr } = await supabase
-        .from('bookings')
-        .update({ status: 'checked_out', checked_out_at: new Date().toISOString() })
-        .eq('id', booking.id);
-      if (bookingErr) throw bookingErr;
-
-      // Set room to cleaning
-      await supabase
-        .from('rooms')
-        .update({
-          status: 'available',
-          housekeeping_status: 'dirty',
-          last_checkout_at: new Date().toISOString(),
-          cleaning_until: new Date(Date.now() + 90 * 60 * 1000).toISOString(),
-        })
-        .eq('id', booking.room_id);
-
+      await checkOutBooking(booking.id, booking.room_id);
       toast.success('Guest checked out successfully');
       onActionComplete();
     } catch {

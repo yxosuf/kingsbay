@@ -16,6 +16,7 @@ import { Eye, LogIn, LogOut, X, UserX } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { sendGuestEmail } from '@/lib/guestEmail';
+import { checkInBooking, cancelBooking, markNoShow } from '@/lib/bookingActions';
 
 interface Booking {
   id: string;
@@ -48,20 +49,8 @@ export function BookingQuickActions({ booking, onActionComplete, compact = false
 
   const handleCheckIn = async () => {
     try {
-      const { error: bookingError } = await supabase
-        .from('bookings')
-        .update({ status: 'checked_in', checked_in_at: new Date().toISOString() })
-        .eq('id', booking.id);
-      if (bookingError) throw bookingError;
-
-      const { error: roomError } = await supabase
-        .from('rooms')
-        .update({ status: 'occupied' })
-        .eq('id', booking.room_id);
-      if (roomError) throw roomError;
-
+      await checkInBooking(booking.id, booking.room_id);
       toast.success('Guest checked in successfully');
-      // Send confirmation email (fire-and-forget)
       sendGuestEmail(booking.id, 'booking_confirmation').catch(() => {});
       onActionComplete();
     } catch {
@@ -76,16 +65,7 @@ export function BookingQuickActions({ booking, onActionComplete, compact = false
     }
     setProcessing(true);
     try {
-      const { error } = await supabase
-        .from('bookings')
-        .update({
-          status: 'cancelled',
-          cancelled_at: new Date().toISOString(),
-          cancel_reason: cancelReason.trim(),
-        })
-        .eq('id', booking.id);
-      if (error) throw error;
-
+      await cancelBooking(booking.id, cancelReason);
       toast.success('Booking cancelled');
       setActionDialog(null);
       setCancelReason('');
@@ -100,15 +80,7 @@ export function BookingQuickActions({ booking, onActionComplete, compact = false
   const handleNoShow = async () => {
     setProcessing(true);
     try {
-      const { error } = await supabase
-        .from('bookings')
-        .update({
-          status: 'no_show',
-          no_show_at: new Date().toISOString(),
-        })
-        .eq('id', booking.id);
-      if (error) throw error;
-
+      await markNoShow(booking.id);
       toast.success('Booking marked as no-show');
       setActionDialog(null);
       onActionComplete();

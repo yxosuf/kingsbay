@@ -22,6 +22,7 @@ import { useBulkSelection } from '@/hooks/useBulkSelection';
 import { exportToPdf, exportToExcel } from '@/lib/exportUtils';
 import { toDateString } from '@/lib/dateUtils';
 import { toast } from 'sonner';
+import { formatLKR } from '@/lib/formatters';
 import { BookOpen } from 'lucide-react';
 
 type TabKey = 'today' | 'upcoming' | 'inhouse' | 'past' | 'cancelled' | 'needs_review' | 'all';
@@ -149,7 +150,7 @@ export default function Bookings() {
     { header: 'Check-in', accessor: 'check_in' },
     { header: 'Check-out', accessor: 'check_out' },
     { header: 'Status', accessor: 'status' },
-    { header: 'Amount', accessor: (r: any) => `Rs. ${r.total_amount?.toLocaleString() || '0'}` },
+    { header: 'Amount', accessor: (r: any) => formatLKR(r.total_amount) },
     { header: 'Source', accessor: 'booking_source' },
   ];
 

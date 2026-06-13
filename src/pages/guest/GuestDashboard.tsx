@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { CalendarDays, MapPin, Pencil, Save } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
+import { getBookingStatusVariant, getBookingStatusLabel } from '@/lib/bookingStatus';
 import { GuestPassportUpload } from '@/components/guest/GuestPassportUpload';
 
 interface GuestBooking {
@@ -97,16 +98,7 @@ export default function GuestDashboard() {
   const upcoming = bookings.filter(b => b.check_in >= today && !['cancelled', 'checked_out', 'no_show'].includes(b.status));
   const past = bookings.filter(b => b.check_in < today || ['checked_out', 'cancelled', 'no_show'].includes(b.status));
 
-  const statusColor = (status: string) => {
-    switch (status) {
-      case 'confirmed': return 'default';
-      case 'checked_in': return 'default';
-      case 'checked_out': return 'secondary';
-      case 'cancelled': return 'destructive';
-      case 'pending': return 'outline';
-      default: return 'secondary';
-    }
-  };
+  const statusColor = (status: string) => getBookingStatusVariant(status);
 
   return (
     <GuestLayout title="My Dashboard">
@@ -200,7 +192,7 @@ export default function GuestDashboard() {
                         </div>
                         <div className="flex items-center gap-3">
                           {b.total_amount && <span className="text-sm font-medium">LKR {b.total_amount.toLocaleString()}</span>}
-                          <Badge variant={statusColor(b.status)}>{b.status.replace('_', ' ')}</Badge>
+                          <Badge variant={statusColor(b.status)}>{getBookingStatusLabel(b.status)}</Badge>
                         </div>
                       </CardContent>
                     </Card>
@@ -227,7 +219,7 @@ export default function GuestDashboard() {
                             {b.property?.name} {b.room && `• Room ${b.room.room_number}`}
                           </p>
                         </div>
-                        <Badge variant={statusColor(b.status)}>{b.status.replace('_', ' ')}</Badge>
+                        <Badge variant={statusColor(b.status)}>{getBookingStatusLabel(b.status)}</Badge>
                       </CardContent>
                     </Card>
                   </Link>

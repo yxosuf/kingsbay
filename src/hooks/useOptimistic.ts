@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
+import { formatLKR } from '@/lib/formatters';
 
 interface OptimisticState<T> {
   data: T;
@@ -97,7 +98,7 @@ export const optimisticFeedback = {
   },
   
   paymentRecorded: (amount: number) => {
-    const id = toast.loading(`Recording payment of Rs. ${amount.toLocaleString()}...`);
+    const id = toast.loading(`Recording payment of ${formatLKR(amount)}...`);
     return {
       success: () => toast.success('Payment recorded successfully', { id }),
       error: (msg?: string) => toast.error(msg || 'Failed to record payment', { id }),

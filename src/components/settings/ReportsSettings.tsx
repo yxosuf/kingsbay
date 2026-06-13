@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useProperty } from '@/hooks/useProperty';
 import { toast } from 'sonner';
+import { downloadCsv, buildCsvFilename } from '@/lib/exportUtils';
 import { useNavigate } from 'react-router-dom';
 import { PropertyBadge } from '@/components/layout/PropertyBadge';
 import { cn } from '@/lib/utils';
@@ -98,14 +99,7 @@ export function ReportsSettings() {
         csvContent += row.join(',') + '\n';
       });
 
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Guest_Details_${selectedProperty?.name?.replace(/\s+/g, '_') || 'All'}_${format(new Date(), 'yyyy-MM-dd')}.csv`;
-      a.click();
-      window.URL.revokeObjectURL(url);
-      toast.success('Full guest details exported');
+      downloadCsv(csvContent, buildCsvFilename(`Guest_Details_${selectedProperty?.name?.replace(/\s+/g, '_') || 'All'}`), 'Full guest details exported');
     } catch (error) {
       console.error('Error exporting guest details:', error);
       toast.error('Failed to export guest details');
@@ -155,14 +149,7 @@ export function ReportsSettings() {
         csvContent += row.join(',') + '\n';
       });
 
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Guest_Services_${selectedProperty?.name?.replace(/\s+/g, '_') || 'All'}_${format(new Date(), 'yyyy-MM-dd')}.csv`;
-      a.click();
-      window.URL.revokeObjectURL(url);
-      toast.success('Guest services report exported');
+      downloadCsv(csvContent, buildCsvFilename(`Guest_Services_${selectedProperty?.name?.replace(/\s+/g, '_') || 'All'}`), 'Guest services report exported');
     } catch (error) {
       console.error('Error exporting services report:', error);
       toast.error('Failed to export services report');

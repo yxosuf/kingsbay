@@ -10,6 +10,7 @@ import { format, eachDayOfInterval, parseISO } from 'date-fns';
 import { Download, Wallet, TrendingUp, BedDouble, Sparkles, Receipt, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { toast } from 'sonner';
+import { downloadCsv, buildCsvFilename } from '@/lib/exportUtils';
 
 interface RevenueReportProps {
   dateRange: { from: Date; to: Date };
@@ -173,14 +174,7 @@ export function RevenueReport({ dateRange, propertyId, showAllProperties, proper
       'Date,Revenue (LKR)',
       ...data.dailyRevenue.map(d => `${d.date},${d.revenue}`),
     ];
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Revenue_Report_${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Revenue report exported');
+    downloadCsv(lines.join('\n'), buildCsvFilename('Revenue_Report'), 'Revenue report exported');
   };
 
   if (loading) {

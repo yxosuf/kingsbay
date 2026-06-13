@@ -1,10 +1,37 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 interface ExportColumn {
   header: string;
   accessor: string | ((row: any) => any);
+}
+
+/**
+ * Download a CSV string as a file and show a success toast.
+ *
+ * Replaces the repeated Blob→createObjectURL→click→revokeObjectURL
+ * boilerplate found in every report component.
+ */
+export function downloadCsv(csvContent: string, filename: string, successMessage = 'CSV exported') {
+  const blob = new Blob([csvContent], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast.success(successMessage);
+}
+
+/**
+ * Build a dated CSV filename.
+ * e.g. buildCsvFilename('Revenue_Report') → "Revenue_Report_2024-06-01.csv"
+ */
+export function buildCsvFilename(baseName: string): string {
+  return `${baseName}_${format(new Date(), 'yyyy-MM-dd')}.csv`;
 }
 
 function resolveValue(row: any, accessor: ExportColumn['accessor']): string {

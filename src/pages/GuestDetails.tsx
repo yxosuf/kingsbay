@@ -16,6 +16,7 @@ import {
 import { ArrowLeft, User, Calendar, Receipt, Edit, MapPin, Phone, Mail, CreditCard, Star, Upload, FileImage, Loader2, Trash2, AlertTriangle, MessageSquare } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { formatLKR } from '@/lib/formatters';
 import { format, formatDistanceToNow } from 'date-fns';
 import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
 import { EditGuestDialog } from '@/components/guest/EditGuestDialog';
@@ -580,7 +581,7 @@ export default function GuestDetails() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Total Room Charges</p>
-                  <p className="text-2xl font-bold">Rs. {totalBookingsValue.toLocaleString()}</p>
+                  <p className="text-2xl font-bold">{formatLKR(totalBookingsValue)}</p>
                 </div>
               </div>
             </CardContent>
@@ -593,7 +594,7 @@ export default function GuestDetails() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Total Services</p>
-                  <p className="text-2xl font-bold">Rs. {totalServicesValue.toLocaleString()}</p>
+                  <p className="text-2xl font-bold">{formatLKR(totalServicesValue)}</p>
                 </div>
               </div>
             </CardContent>
@@ -669,7 +670,7 @@ export default function GuestDetails() {
                             </Badge>
                           </TableCell>
                           <TableCell>{getStatusBadge(booking.status)}</TableCell>
-                          <TableCell>Rs. {booking.total_amount?.toLocaleString()}</TableCell>
+                          <TableCell>{formatLKR(booking.total_amount)}</TableCell>
                           <TableCell className="text-right">
                             <Button
                               variant="ghost"
@@ -701,7 +702,7 @@ export default function GuestDetails() {
                         <p className="text-sm text-muted-foreground">
                           {categoryLabels[category] || category}
                         </p>
-                        <p className="text-xl font-bold">Rs. {data.total.toLocaleString()}</p>
+                        <p className="text-xl font-bold">{formatLKR(data.total)}</p>
                         <p className="text-sm text-muted-foreground">{data.count} items</p>
                       </div>
                     ))}
@@ -759,9 +760,9 @@ export default function GuestDetails() {
                             </div>
                           </TableCell>
                           <TableCell>{service.quantity}</TableCell>
-                          <TableCell>Rs. {Number(service.unit_price).toLocaleString()}</TableCell>
+                          <TableCell>{formatLKR(Number(service.unit_price))}</TableCell>
                           <TableCell className="font-medium">
-                            Rs. {Number(service.total_price).toLocaleString()}
+                            {formatLKR(Number(service.total_price))}
                           </TableCell>
                         </TableRow>
                       ))}
