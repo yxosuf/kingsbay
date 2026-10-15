@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
           results.push({ channelId: channel.id, channelType: channel.channel_type, status: 'failed', error: importResult.error || 'Unknown error' });
         }
       } catch (error) {
-        results.push({ channelId: channel.id, channelType: channel.channel_type, status: 'failed', error: error.message });
+        results.push({ channelId: channel.id, channelType: channel.channel_type, status: 'failed', error: error instanceof Error ? error.message : String(error) });
       }
     }
 
