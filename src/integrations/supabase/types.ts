@@ -1321,6 +1321,128 @@ export type Database = {
           },
         ]
       }
+      organization_creation_log: {
+        Row: {
+          created_at: string
+          id: string
+          ip: string | null
+          org_id: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip?: string | null
+          org_id?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip?: string | null
+          org_id?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_creation_log_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_members: {
+        Row: {
+          id: string
+          invited_by: string | null
+          joined_at: string
+          org_id: string
+          role: Database["public"]["Enums"]["staff_role"]
+          status: Database["public"]["Enums"]["member_status"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          org_id: string
+          role: Database["public"]["Enums"]["staff_role"]
+          status?: Database["public"]["Enums"]["member_status"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          org_id?: string
+          role?: Database["public"]["Enums"]["staff_role"]
+          status?: Database["public"]["Enums"]["member_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_members_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          base_currency: string
+          created_at: string
+          id: string
+          name: string
+          onboarding_completed_at: string | null
+          owner_user_id: string
+          plan: Database["public"]["Enums"]["plan_tier"]
+          slug: string
+          status: Database["public"]["Enums"]["org_status"]
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          base_currency?: string
+          created_at?: string
+          id?: string
+          name: string
+          onboarding_completed_at?: string | null
+          owner_user_id: string
+          plan?: Database["public"]["Enums"]["plan_tier"]
+          slug: string
+          status?: Database["public"]["Enums"]["org_status"]
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          base_currency?: string
+          created_at?: string
+          id?: string
+          name?: string
+          onboarding_completed_at?: string | null
+          owner_user_id?: string
+          plan?: Database["public"]["Enums"]["plan_tier"]
+          slug?: string
+          status?: Database["public"]["Enums"]["org_status"]
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ota_integrations: {
         Row: {
           api_key: string | null
@@ -1548,6 +1670,24 @@ export type Database = {
           },
         ]
       }
+      platform_admins: {
+        Row: {
+          created_at: string
+          level: Database["public"]["Enums"]["platform_admin_level"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          level?: Database["public"]["Enums"]["platform_admin_level"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          level?: Database["public"]["Enums"]["platform_admin_level"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1585,6 +1725,7 @@ export type Database = {
           is_active: boolean
           location: string | null
           name: string
+          organization_id: string
           phone: string | null
           property_type: Database["public"]["Enums"]["property_type"]
           total_rooms: number | null
@@ -1599,6 +1740,7 @@ export type Database = {
           is_active?: boolean
           location?: string | null
           name: string
+          organization_id: string
           phone?: string | null
           property_type?: Database["public"]["Enums"]["property_type"]
           total_rooms?: number | null
@@ -1613,12 +1755,21 @@ export type Database = {
           is_active?: boolean
           location?: string | null
           name?: string
+          organization_id?: string
           phone?: string | null
           property_type?: Database["public"]["Enums"]["property_type"]
           total_rooms?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "properties_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       property_inventory_settings: {
         Row: {
@@ -2058,6 +2209,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           name: string
+          organization_id: string | null
           price: number
           updated_at: string
         }
@@ -2068,6 +2220,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name: string
+          organization_id?: string | null
           price?: number
           updated_at?: string
         }
@@ -2078,10 +2231,60 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name?: string
+          organization_id?: string | null
           price?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "services_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_access_log: {
+        Row: {
+          action: string
+          ended_at: string | null
+          id: string
+          ip: string | null
+          org_id: string | null
+          platform_admin_id: string
+          reason: string | null
+          started_at: string
+        }
+        Insert: {
+          action: string
+          ended_at?: string | null
+          id?: string
+          ip?: string | null
+          org_id?: string | null
+          platform_admin_id: string
+          reason?: string | null
+          started_at?: string
+        }
+        Update: {
+          action?: string
+          ended_at?: string | null
+          id?: string
+          ip?: string | null
+          org_id?: string | null
+          platform_admin_id?: string
+          reason?: string | null
+          started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_access_log_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sync_logs: {
         Row: {
@@ -2145,6 +2348,50 @@ export type Database = {
         }
         Relationships: []
       }
+      usage_counters: {
+        Row: {
+          ai_actions: number
+          emails_ingested: number
+          id: string
+          org_id: string
+          period_end: string
+          period_start: string
+          properties_count: number
+          rooms_count: number
+          whatsapp_messages: number
+        }
+        Insert: {
+          ai_actions?: number
+          emails_ingested?: number
+          id?: string
+          org_id: string
+          period_end: string
+          period_start: string
+          properties_count?: number
+          rooms_count?: number
+          whatsapp_messages?: number
+        }
+        Update: {
+          ai_actions?: number
+          emails_ingested?: number
+          id?: string
+          org_id?: string
+          period_end?: string
+          period_start?: string
+          properties_count?: number
+          rooms_count?: number
+          whatsapp_messages?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_counters_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_property_access: {
         Row: {
           created_at: string
@@ -2192,6 +2439,27 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["staff_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles_backup_2026_10: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          role: Database["public"]["Enums"]["staff_role"] | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          role?: Database["public"]["Enums"]["staff_role"] | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          role?: Database["public"]["Enums"]["staff_role"] | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -2295,10 +2563,25 @@ export type Database = {
       }
     }
     Functions: {
+      add_org_member_by_email: {
+        Args: {
+          p_email: string
+          p_role: Database["public"]["Enums"]["staff_role"]
+        }
+        Returns: string
+      }
+      assert_plan: {
+        Args: {
+          min_plan: Database["public"]["Enums"]["plan_tier"]
+          org: string
+        }
+        Returns: undefined
+      }
       can_access_guest: {
         Args: { guest_id: string; guest_property_id: string }
         Returns: boolean
       }
+      can_reach_property: { Args: { prop: string }; Returns: boolean }
       check_booking_overlap: {
         Args: {
           p_check_in: string
@@ -2315,6 +2598,12 @@ export type Database = {
         }[]
       }
       clear_property_data: { Args: { p_property_id: string }; Returns: Json }
+      create_organization_with_owner: {
+        Args: { p_name: string; p_user_agent?: string }
+        Returns: string
+      }
+      current_org_id: { Args: never; Returns: string }
+      current_org_ids: { Args: never; Returns: string[] }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["staff_role"]
@@ -2326,9 +2615,51 @@ export type Database = {
       is_front_desk: { Args: never; Returns: boolean }
       is_guest: { Args: never; Returns: boolean }
       is_manager: { Args: never; Returns: boolean }
+      is_org_member: { Args: { org: string }; Returns: boolean }
+      is_platform_admin: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
       is_viewer: { Args: never; Returns: boolean }
       is_write_staff: { Args: never; Returns: boolean }
+      org_has_plan: {
+        Args: {
+          min_plan: Database["public"]["Enums"]["plan_tier"]
+          org: string
+        }
+        Returns: boolean
+      }
+      org_role: {
+        Args: { org: string }
+        Returns: Database["public"]["Enums"]["staff_role"]
+      }
+      plan_rank: {
+        Args: { p: Database["public"]["Enums"]["plan_tier"] }
+        Returns: number
+      }
+      platform_list_organizations: {
+        Args: never
+        Returns: {
+          created_at: string
+          id: string
+          member_count: number
+          name: string
+          plan: Database["public"]["Enums"]["plan_tier"]
+          property_count: number
+          room_count: number
+          slug: string
+          status: Database["public"]["Enums"]["org_status"]
+        }[]
+      }
+      platform_update_organization: {
+        Args: {
+          p_org: string
+          p_plan: Database["public"]["Enums"]["plan_tier"]
+          p_reason: string
+          p_status: Database["public"]["Enums"]["org_status"]
+        }
+        Returns: undefined
+      }
+      property_org: { Args: { prop: string }; Returns: string }
+      shares_org_with: { Args: { other_user: string }; Returns: boolean }
       user_has_notification_access: {
         Args: {
           notification_property_id: string
@@ -2365,8 +2696,12 @@ export type Database = {
         | "other_ota"
       guest_type: "local" | "international"
       housekeeping_status: "clean" | "dirty" | "cleaning" | "inspected"
+      member_status: "invited" | "active" | "suspended"
+      org_status: "active" | "suspended" | "cancelled"
       payment_method: "cash" | "card" | "bank_transfer" | "online"
       payment_status: "pending" | "partial" | "paid"
+      plan_tier: "starter" | "pro" | "pro_plus"
+      platform_admin_level: "support" | "billing" | "superuser"
       property_type: "hotel" | "villa" | "resort" | "apartment" | "guesthouse"
       room_status: "available" | "occupied" | "reserved" | "maintenance"
       service_category:
@@ -2374,7 +2709,7 @@ export type Database = {
         | "transport"
         | "facilities"
         | "special_request"
-      staff_role: "admin" | "front_desk" | "manager" | "viewer"
+      staff_role: "admin" | "front_desk" | "manager" | "viewer" | "housekeeping"
       sync_direction: "inbound" | "outbound"
       sync_frequency: "realtime" | "5min" | "15min" | "hourly"
       sync_result_status: "success" | "failed" | "partial"
@@ -2537,8 +2872,12 @@ export const Constants = {
       ],
       guest_type: ["local", "international"],
       housekeeping_status: ["clean", "dirty", "cleaning", "inspected"],
+      member_status: ["invited", "active", "suspended"],
+      org_status: ["active", "suspended", "cancelled"],
       payment_method: ["cash", "card", "bank_transfer", "online"],
       payment_status: ["pending", "partial", "paid"],
+      plan_tier: ["starter", "pro", "pro_plus"],
+      platform_admin_level: ["support", "billing", "superuser"],
       property_type: ["hotel", "villa", "resort", "apartment", "guesthouse"],
       room_status: ["available", "occupied", "reserved", "maintenance"],
       service_category: [
@@ -2547,7 +2886,7 @@ export const Constants = {
         "facilities",
         "special_request",
       ],
-      staff_role: ["admin", "front_desk", "manager", "viewer"],
+      staff_role: ["admin", "front_desk", "manager", "viewer", "housekeeping"],
       sync_direction: ["inbound", "outbound"],
       sync_frequency: ["realtime", "5min", "15min", "hourly"],
       sync_result_status: ["success", "failed", "partial"],
