@@ -170,7 +170,7 @@ Deno.serve(async (req) => {
       const svcClient = createClient(supabaseUrl, supabaseServiceKey);
       const { data: roleData } = await svcClient
         .from('organization_members')
-        .select('role')
+        .select('role, org_id')
         .eq('status', 'active')
         .eq('user_id', claimsData.claims.sub)
         .maybeSingle();
@@ -183,6 +183,7 @@ Deno.serve(async (req) => {
       }
     }
     // --- END AUTH ---
+    const callerOrgId: string | null = (typeof roleData !== 'undefined' && roleData) ? (roleData as any).org_id : null;
 
     const { channelId } = await req.json();
 
@@ -200,12 +201,19 @@ Deno.serve(async (req) => {
     // Fetch channel connection with property info
     const { data: channel, error: channelError } = await supabase
       .from('channel_connections')
-      .select('*, property:properties(id, name)')
+      .select('*, property:properties(id, name, organization_id)')
       .eq('id', channelId)
       .maybeSingle();
 
     if (channelError || !channel) {
       console.error('[iCal Import] Channel not found:', channelError);
+      return new Response(
+        JSON.stringify({ error: 'Channel not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (callerOrgId && (channel as any).property?.organization_id !== callerOrgId) {
       return new Response(
         JSON.stringify({ error: 'Channel not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
