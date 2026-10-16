@@ -545,6 +545,7 @@ export default function Settings() {
                             <SelectItem value="admin">Admin</SelectItem>
                             <SelectItem value="manager">Manager</SelectItem>
                             <SelectItem value="front_desk">Front Desk</SelectItem>
+                            <SelectItem value="housekeeping">Housekeeping</SelectItem>
                             <SelectItem value="viewer">Viewer</SelectItem>
                           </SelectContent>
                         </Select>
@@ -825,6 +826,7 @@ export default function Settings() {
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="manager">Manager</SelectItem>
                   <SelectItem value="front_desk">Front Desk</SelectItem>
+                  <SelectItem value="housekeeping">Housekeeping</SelectItem>
                   <SelectItem value="viewer">Viewer</SelectItem>
                 </SelectContent>
               </Select>
@@ -860,6 +862,7 @@ export default function Settings() {
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="manager">Manager</SelectItem>
                   <SelectItem value="front_desk">Front Desk</SelectItem>
+                  <SelectItem value="housekeeping">Housekeeping</SelectItem>
                   <SelectItem value="viewer">Viewer</SelectItem>
                 </SelectContent>
               </Select>
