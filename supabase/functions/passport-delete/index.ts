@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
     const adminClient = createClient(supabaseUrl, serviceRoleKey)
     const { data: roleData } = await adminClient
       .from('organization_members')
-      .select('role')
+      .select('role, org_id')
       .eq('status', 'active')
       .eq('user_id', userId)
       .maybeSingle()
@@ -46,6 +46,17 @@ Deno.serve(async (req) => {
     const { guest_id } = await req.json()
     if (!guest_id) {
       return new Response(JSON.stringify({ error: 'Missing guest_id' }), { status: 400, headers: corsHeaders })
+    }
+
+    // Company check: guest must belong to a property of the caller's company
+    const { data: guestRow } = await adminClient
+      .from('guests')
+      .select('property_id, properties:properties(organization_id)')
+      .eq('id', guest_id)
+      .maybeSingle()
+    const guestOrg = (guestRow as any)?.properties?.organization_id
+    if (!guestRow || (guestRow.property_id && guestOrg !== roleData.org_id)) {
+      return new Response(JSON.stringify({ error: 'Guest not found' }), { status: 404, headers: corsHeaders })
     }
 
     const now = new Date()

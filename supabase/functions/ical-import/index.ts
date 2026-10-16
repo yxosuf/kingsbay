@@ -152,6 +152,7 @@ Deno.serve(async (req) => {
     const bearerToken = authHeader.replace('Bearer ', '');
     const isServiceRole = bearerToken === supabaseServiceKey;
 
+    let callerOrgId: string | null = null;
     if (!isServiceRole) {
       // Validate as user JWT
       const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -181,9 +182,9 @@ Deno.serve(async (req) => {
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+      callerOrgId = roleData.org_id;
     }
     // --- END AUTH ---
-    const callerOrgId: string | null = (typeof roleData !== 'undefined' && roleData) ? (roleData as any).org_id : null;
 
     const { channelId } = await req.json();
 
