@@ -40,10 +40,11 @@ Deno.serve(async (req) => {
     // Verify admin or manager role
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const { data: roleData, error: roleError } = await supabase
-      .from('user_roles')
+      .from('organization_members')
       .select('role')
+      .eq('status', 'active')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (roleError || !roleData || !['admin', 'manager'].includes(roleData.role)) {
       return new Response(

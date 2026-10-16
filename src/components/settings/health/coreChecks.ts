@@ -30,7 +30,7 @@ export async function runCoreChecks(propertyId: string | null): Promise<HealthCh
 
   // Role system
   try {
-    const { data: roles } = await supabase.from('user_roles').select('role');
+    const { data: roles } = await supabase.from('organization_members').select('role');
     const roleCounts: Record<string, number> = {};
     (roles || []).forEach((r) => { roleCounts[r.role] = (roleCounts[r.role] || 0) + 1; });
     const totalUsers = roles?.length || 0;

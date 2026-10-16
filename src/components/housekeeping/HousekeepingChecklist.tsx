@@ -144,7 +144,7 @@ export function HousekeepingChecklist() {
 
       // Fetch staff
       const { data: staffData } = await supabase
-        .from('user_roles')
+        .from('organization_members')
         .select('user_id, profiles:profiles(full_name)')
         .in('role', ['admin', 'manager', 'front_desk']);
 

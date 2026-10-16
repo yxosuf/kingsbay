@@ -169,10 +169,11 @@ Deno.serve(async (req) => {
       // Verify staff role
       const svcClient = createClient(supabaseUrl, supabaseServiceKey);
       const { data: roleData } = await svcClient
-        .from('user_roles')
+        .from('organization_members')
         .select('role')
+        .eq('status', 'active')
         .eq('user_id', claimsData.claims.sub)
-        .single();
+        .maybeSingle();
 
       if (!roleData || !['admin', 'manager'].includes(roleData.role)) {
         return new Response(
@@ -201,7 +202,7 @@ Deno.serve(async (req) => {
       .from('channel_connections')
       .select('*, property:properties(id, name)')
       .eq('id', channelId)
-      .single();
+      .maybeSingle();
 
     if (channelError || !channel) {
       console.error('[iCal Import] Channel not found:', channelError);
@@ -308,7 +309,7 @@ Deno.serve(async (req) => {
           notes: 'Auto-created for OTA/iCal bookings',
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (guestError) {
         console.error('[iCal Import] Error creating OTA guest:', guestError);

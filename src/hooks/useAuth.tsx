@@ -3,7 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-type StaffRole = 'admin' | 'front_desk' | 'manager' | 'viewer';
+type StaffRole = 'admin' | 'front_desk' | 'manager' | 'viewer' | 'housekeeping';
 
 /**
  * Auth context interface providing user authentication and role information.
@@ -83,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Fetch role + profile + guest link in parallel
       const [{ data: roleData }, { data: profileData }, { data: guestData }] = await Promise.all([
-        supabase.from('user_roles').select('role').eq('user_id', userId).single(),
+        supabase.from('organization_members').select('role').eq('user_id', userId).eq('status', 'active').maybeSingle(),
         supabase.from('profiles').select('full_name, email').eq('id', userId).single(),
         supabase.from('guests').select('id').eq('auth_user_id', userId).maybeSingle(),
       ]);
@@ -145,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isManager: role === 'manager',
     isFrontDesk: role === 'front_desk',
     isViewer: role === 'viewer',
-    canWrite: role !== null && role !== 'viewer',
+    canWrite: role !== null && role !== 'viewer' && role !== 'housekeeping',
     isGuest: role === null && guestId !== null,
     guestId,
   };
