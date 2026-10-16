@@ -65,6 +65,7 @@ import { HotelSettings } from '@/components/settings/HotelSettings';
 import { OtherSettings } from '@/components/settings/OtherSettings';
 import { RateManagementSettings } from '@/components/settings/RateManagementSettings';
 import { AuditLogViewer } from '@/components/settings/AuditLogViewer';
+import { CompanySettings } from '@/components/settings/CompanySettings';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useUserSettings } from '@/hooks/useUserSettings';
@@ -82,7 +83,7 @@ interface PendingUser {
   created_at: string;
 }
 
-type SettingsSection = 'access' | 'property' | 'rates' | 'notifications' | 'guests' | 'services' | 'channels' | 'reports' | 'security' | 'audit-logs' | 'system-health' | 'other';
+type SettingsSection = 'company' | 'access' | 'property' | 'rates' | 'notifications' | 'guests' | 'services' | 'channels' | 'reports' | 'security' | 'audit-logs' | 'system-health' | 'other';
 
 interface SectionConfig {
   id: SettingsSection;
@@ -100,6 +101,7 @@ interface GroupConfig {
 }
 
 const SECTION_CONFIG: SectionConfig[] = [
+  { id: 'company', label: 'Company', icon: Hotel, description: 'Business account and plan', keywords: ['company', 'organization', 'plan', 'subscription', 'business'] },
   { id: 'property', label: 'Property', icon: Building2, description: 'Name, times, currency, tax', keywords: ['hotel', 'name', 'check-in', 'checkout', 'currency', 'tax', 'timezone'] },
   { id: 'other', label: 'Other Settings', icon: SlidersHorizontal, description: 'Pages, theme, preferences', keywords: ['theme', 'dark mode', 'light mode', 'sidebar', 'landing page'] },
   { id: 'rates', label: 'Rate Management', icon: DollarSign, description: 'Plans, seasons, pricing', keywords: ['pricing', 'rates', 'seasons', 'discounts', 'occupancy'], adminOnly: true },
@@ -115,7 +117,7 @@ const SECTION_CONFIG: SectionConfig[] = [
 ];
 
 const GROUPS: GroupConfig[] = [
-  { id: 'basics', label: 'Basics', sections: SECTION_CONFIG.filter(s => ['property', 'other'].includes(s.id)) },
+  { id: 'basics', label: 'Basics', sections: SECTION_CONFIG.filter(s => ['company', 'property', 'other'].includes(s.id)) },
   { id: 'operations', label: 'Operations', sections: SECTION_CONFIG.filter(s => ['rates', 'services', 'channels'].includes(s.id)) },
   { id: 'people', label: 'People', sections: SECTION_CONFIG.filter(s => ['access', 'guests'].includes(s.id)) },
   { id: 'comms', label: 'Comms & Insights', sections: SECTION_CONFIG.filter(s => ['notifications', 'reports'].includes(s.id)) },
@@ -241,20 +243,20 @@ export default function Settings() {
 
   const fetchStaff = async () => {
     try {
-      const { data: roles, error } = await supabase
-        .from('user_roles')
+      const { data: members, error } = await supabase
+        .from('organization_members')
         .select('user_id, role')
         .order('role');
 
       if (error) throw error;
-      
-      const userIds = roles?.map(r => r.user_id) || [];
+
+      const userIds = members?.map(r => r.user_id) || [];
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, full_name, email')
         .in('id', userIds);
 
-      const staffData = roles?.map(r => ({
+      const staffData = members?.map(r => ({
         user_id: r.user_id,
         role: r.role,
         profiles: profiles?.find(p => p.id === r.user_id) || null
@@ -269,48 +271,31 @@ export default function Settings() {
     }
   };
 
+  // Pending sign-ups are no longer listed: other companies' sign-ups must stay private.
+  // Staff are added by email via add_org_member_by_email.
   const fetchPendingUsers = async () => {
-    try {
-      const { data: allProfiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, created_at')
-        .order('created_at', { ascending: false });
+    setPendingUsers([]);
+    setLoadingPending(false);
+  };
 
-      if (profilesError) throw profilesError;
-
-      const { data: roles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id');
-
-      if (rolesError) throw rolesError;
-
-      const userIdsWithRoles = new Set(roles?.map(r => r.user_id) || []);
-      const pending = (allProfiles || []).filter(p => !userIdsWithRoles.has(p.id));
-      
-      setPendingUsers(pending);
-    } catch (error) {
-      console.error('Error fetching pending users:', error);
-      toast.error('Failed to load pending users');
-    } finally {
-      setLoadingPending(false);
-    }
+  const addMemberByEmail = async (email: string, role: string) => {
+    const { error } = await supabase.rpc('add_org_member_by_email', {
+      p_email: email,
+      p_role: role as 'admin' | 'manager' | 'front_desk' | 'viewer' | 'housekeeping',
+    });
+    if (error) throw error;
   };
 
   const handleAssignRole = async () => {
-    if (!selectedUser) return;
+    if (!selectedUser?.email) return;
     setSaving(true);
     try {
-      const { error } = await supabase.from('user_roles').insert({
-        user_id: selectedUser.id,
-        role: assignRole,
-      });
-      if (error) throw error;
+      await addMemberByEmail(selectedUser.email, assignRole);
       toast.success(`Role assigned to ${selectedUser.full_name || selectedUser.email}`);
       setShowAssignRole(false);
       setSelectedUser(null);
       setAssignRole('front_desk');
       fetchStaff();
-      fetchPendingUsers();
     } catch (error: any) {
       logError('Error assigning role', error);
       toast.error(getSafeErrorMessage(error));
@@ -332,31 +317,7 @@ export default function Settings() {
     }
     setSaving(true);
     try {
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', newEmail.trim())
-        .single();
-
-      if (profileError || !profile) {
-        toast.error('User not found. They must sign up first.');
-        return;
-      }
-
-      const { error: roleError } = await supabase.from('user_roles').insert({
-        user_id: profile.id,
-        role: newRole as 'admin' | 'front_desk' | 'manager',
-      });
-
-      if (roleError) {
-        if (roleError.message.includes('duplicate')) {
-          toast.error('This user already has a role assigned');
-        } else {
-          throw roleError;
-        }
-        return;
-      }
-
+      await addMemberByEmail(newEmail.trim(), newRole);
       toast.success('Staff member added successfully');
       setShowAddStaff(false);
       setNewEmail('');
@@ -364,7 +325,7 @@ export default function Settings() {
       fetchStaff();
     } catch (error: any) {
       logError('Error adding staff', error);
-      toast.error(getSafeErrorMessage(error));
+      toast.error(error?.message || getSafeErrorMessage(error));
     } finally {
       setSaving(false);
     }
@@ -377,7 +338,7 @@ export default function Settings() {
     }
     if (!confirm('Are you sure you want to remove this staff member?')) return;
     try {
-      const { error } = await supabase.from('user_roles').delete().eq('user_id', userId);
+      const { error } = await supabase.from('organization_members').delete().eq('user_id', userId);
       if (error) throw error;
       toast.success('Staff member removed');
       fetchStaff();
@@ -393,7 +354,7 @@ export default function Settings() {
       return;
     }
     try {
-      const { error } = await supabase.from('user_roles').update({ role }).eq('user_id', userId);
+      const { error } = await supabase.from('organization_members').update({ role }).eq('user_id', userId);
       if (error) throw error;
       toast.success('Role updated');
       fetchStaff();
@@ -419,6 +380,8 @@ export default function Settings() {
 
   const renderContent = () => {
     switch (activeSection) {
+      case 'company':
+        return <CompanySettings />;
       case 'access':
         return renderAccessRoles();
       case 'property':
@@ -582,6 +545,7 @@ export default function Settings() {
                             <SelectItem value="admin">Admin</SelectItem>
                             <SelectItem value="manager">Manager</SelectItem>
                             <SelectItem value="front_desk">Front Desk</SelectItem>
+                            <SelectItem value="housekeeping">Housekeeping</SelectItem>
                             <SelectItem value="viewer">Viewer</SelectItem>
                           </SelectContent>
                         </Select>
@@ -862,6 +826,7 @@ export default function Settings() {
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="manager">Manager</SelectItem>
                   <SelectItem value="front_desk">Front Desk</SelectItem>
+                  <SelectItem value="housekeeping">Housekeeping</SelectItem>
                   <SelectItem value="viewer">Viewer</SelectItem>
                 </SelectContent>
               </Select>
@@ -897,6 +862,7 @@ export default function Settings() {
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="manager">Manager</SelectItem>
                   <SelectItem value="front_desk">Front Desk</SelectItem>
+                  <SelectItem value="housekeeping">Housekeeping</SelectItem>
                   <SelectItem value="viewer">Viewer</SelectItem>
                 </SelectContent>
               </Select>

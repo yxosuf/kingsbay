@@ -55,10 +55,11 @@ Deno.serve(async (req) => {
 
     // 2. Role check - must be write staff
     const { data: roleData } = await adminClient
-      .from('user_roles')
+      .from('organization_members')
       .select('role')
+      .eq('status', 'active')
       .eq('user_id', userId)
-      .single()
+      .maybeSingle()
 
     if (!roleData || roleData.role === 'viewer') {
       return new Response(JSON.stringify({ error: 'Forbidden: insufficient permissions' }), { status: 403, headers: corsHeaders })
@@ -108,7 +109,7 @@ Deno.serve(async (req) => {
       .from('guests')
       .select('id, property_id')
       .eq('id', guestId)
-      .single()
+      .maybeSingle()
 
     if (guestError || !guestData) {
       return new Response(JSON.stringify({ error: 'Guest not found or access denied' }), { status: 404, headers: corsHeaders })

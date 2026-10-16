@@ -78,7 +78,7 @@ export function HousekeepingBoard() {
 
       const [{ data: roomData, error: roomError }, { data: staffData }] = await Promise.all([
         roomQuery,
-        supabase.from('user_roles').select('user_id, profiles:profiles(full_name)').in('role', ['admin', 'manager', 'front_desk']),
+        supabase.from('organization_members').select('user_id, profiles:profiles(full_name)').in('role', ['admin', 'manager', 'front_desk']),
       ]);
 
       if (roomError) throw roomError;

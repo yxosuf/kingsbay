@@ -1,15 +1,14 @@
 import { ReactNode, useEffect } from 'react';
-import { LogIn } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { AppHeader } from './AppHeader';
 import { BottomNav } from './BottomNav';
-import { Button } from '@/components/ui/button';
 import { SessionTimeoutWarning } from './SessionTimeoutWarning';
 import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { CreateCompany } from '@/components/organization/CreateCompany';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -52,25 +51,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
   };
 
   if (!role) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="text-center space-y-4 max-w-md">
-          <h2 className="text-2xl font-semibold text-foreground">Access Pending</h2>
-          <p className="text-muted-foreground">
-            Your account has been created but you haven't been assigned a role yet. 
-            Please contact an administrator to get access to the system.
-          </p>
-          <Button
-            variant="outline"
-            onClick={handleReturnToLogin}
-            className="mt-2"
-          >
-            <LogIn className="h-4 w-4" />
-            Return to login
-          </Button>
-        </div>
-      </div>
-    );
+    return <CreateCompany onSignOut={handleReturnToLogin} />;
   }
 
   return (

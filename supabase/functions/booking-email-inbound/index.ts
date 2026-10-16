@@ -636,6 +636,25 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Plan gate: email booking import requires the Pro plan or higher
+    {
+      const { data: propRow } = await supabase
+        .from('properties')
+        .select('organization_id')
+        .eq('id', propertyId)
+        .maybeSingle();
+      const orgId = (propRow as { organization_id?: string } | null)?.organization_id;
+      const { data: allowed } = orgId
+        ? await supabase.rpc('org_has_plan', { org: orgId, min_plan: 'pro' })
+        : { data: false };
+      if (!allowed) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Email booking import requires the Pro plan' }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     // Handle cancellation
     if (extracted.status === 'cancelled') {
       const { data: existingBooking } = await supabase

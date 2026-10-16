@@ -152,6 +152,7 @@ Deno.serve(async (req) => {
     const bearerToken = authHeader.replace('Bearer ', '');
     const isServiceRole = bearerToken === supabaseServiceKey;
 
+    let callerOrgId: string | null = null;
     if (!isServiceRole) {
       // Validate as user JWT
       const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -169,10 +170,11 @@ Deno.serve(async (req) => {
       // Verify staff role
       const svcClient = createClient(supabaseUrl, supabaseServiceKey);
       const { data: roleData } = await svcClient
-        .from('user_roles')
-        .select('role')
+        .from('organization_members')
+        .select('role, org_id')
+        .eq('status', 'active')
         .eq('user_id', claimsData.claims.sub)
-        .single();
+        .maybeSingle();
 
       if (!roleData || !['admin', 'manager'].includes(roleData.role)) {
         return new Response(
@@ -180,6 +182,7 @@ Deno.serve(async (req) => {
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+      callerOrgId = roleData.org_id;
     }
     // --- END AUTH ---
 
@@ -199,12 +202,19 @@ Deno.serve(async (req) => {
     // Fetch channel connection with property info
     const { data: channel, error: channelError } = await supabase
       .from('channel_connections')
-      .select('*, property:properties(id, name)')
+      .select('*, property:properties(id, name, organization_id)')
       .eq('id', channelId)
-      .single();
+      .maybeSingle();
 
     if (channelError || !channel) {
       console.error('[iCal Import] Channel not found:', channelError);
+      return new Response(
+        JSON.stringify({ error: 'Channel not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (callerOrgId && (channel as any).property?.organization_id !== callerOrgId) {
       return new Response(
         JSON.stringify({ error: 'Channel not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -308,7 +318,7 @@ Deno.serve(async (req) => {
           notes: 'Auto-created for OTA/iCal bookings',
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (guestError) {
         console.error('[iCal Import] Error creating OTA guest:', guestError);

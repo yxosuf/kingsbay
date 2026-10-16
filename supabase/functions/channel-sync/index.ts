@@ -40,10 +40,11 @@ Deno.serve(async (req) => {
     // Verify admin or manager role
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const { data: roleData, error: roleError } = await supabase
-      .from('user_roles')
-      .select('role')
+      .from('organization_members')
+      .select('role, org_id')
+      .eq('status', 'active')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (roleError || !roleData || !['admin', 'manager'].includes(roleData.role)) {
       return new Response(
@@ -66,9 +67,16 @@ Deno.serve(async (req) => {
 
     console.log(`[Channel Sync] Starting sync - propertyId: ${propertyId}, channelId: ${channelId}, user: ${userId}`);
 
+    const { data: orgProps } = await supabase
+      .from('properties')
+      .select('id')
+      .eq('organization_id', roleData.org_id);
+    const orgPropertyIds = (orgProps || []).map((p: { id: string }) => p.id);
+
     let query = supabase
       .from('channel_connections')
       .select('id, property_id, channel_type, ical_import_url, sync_status')
+      .in('property_id', orgPropertyIds.length ? orgPropertyIds : ['00000000-0000-0000-0000-000000000000'])
       .eq('is_enabled', true)
       .not('ical_import_url', 'is', null);
 

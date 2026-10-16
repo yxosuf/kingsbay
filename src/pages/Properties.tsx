@@ -22,6 +22,7 @@ import {
 import { Plus, Edit, Trash2, Building2, Hotel, Home, Building, Warehouse, MapPin, Phone, Mail, MoreVertical, Power } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useOrganization } from '@/hooks/useOrganization';
 import { useProperty, Property } from '@/hooks/useProperty';
 import { toast } from 'sonner';
 import { getSafeErrorMessage, logError } from '@/lib/errorHandling';
@@ -45,6 +46,7 @@ const typeGradients: Record<string, string> = {
 export default function Properties() {
   const { isAdmin } = useAuth();
   const { refetchProperties } = useProperty();
+  const { organization } = useOrganization();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -90,7 +92,7 @@ export default function Properties() {
         if (error) throw error;
         toast.success('Property updated successfully');
       } else {
-        const { error } = await supabase.from('properties').insert(propertyData);
+        const { error } = await supabase.from('properties').insert({ ...propertyData, organization_id: organization?.id as string });
         if (error) throw error;
         toast.success('Property added successfully');
       }
