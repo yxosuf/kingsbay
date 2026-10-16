@@ -65,6 +65,7 @@ import { HotelSettings } from '@/components/settings/HotelSettings';
 import { OtherSettings } from '@/components/settings/OtherSettings';
 import { RateManagementSettings } from '@/components/settings/RateManagementSettings';
 import { AuditLogViewer } from '@/components/settings/AuditLogViewer';
+import { CompanySettings } from '@/components/settings/CompanySettings';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useUserSettings } from '@/hooks/useUserSettings';
@@ -82,7 +83,7 @@ interface PendingUser {
   created_at: string;
 }
 
-type SettingsSection = 'access' | 'property' | 'rates' | 'notifications' | 'guests' | 'services' | 'channels' | 'reports' | 'security' | 'audit-logs' | 'system-health' | 'other';
+type SettingsSection = 'company' | 'access' | 'property' | 'rates' | 'notifications' | 'guests' | 'services' | 'channels' | 'reports' | 'security' | 'audit-logs' | 'system-health' | 'other';
 
 interface SectionConfig {
   id: SettingsSection;
@@ -100,6 +101,7 @@ interface GroupConfig {
 }
 
 const SECTION_CONFIG: SectionConfig[] = [
+  { id: 'company', label: 'Company', icon: Hotel, description: 'Business account and plan', keywords: ['company', 'organization', 'plan', 'subscription', 'business'] },
   { id: 'property', label: 'Property', icon: Building2, description: 'Name, times, currency, tax', keywords: ['hotel', 'name', 'check-in', 'checkout', 'currency', 'tax', 'timezone'] },
   { id: 'other', label: 'Other Settings', icon: SlidersHorizontal, description: 'Pages, theme, preferences', keywords: ['theme', 'dark mode', 'light mode', 'sidebar', 'landing page'] },
   { id: 'rates', label: 'Rate Management', icon: DollarSign, description: 'Plans, seasons, pricing', keywords: ['pricing', 'rates', 'seasons', 'discounts', 'occupancy'], adminOnly: true },
@@ -115,7 +117,7 @@ const SECTION_CONFIG: SectionConfig[] = [
 ];
 
 const GROUPS: GroupConfig[] = [
-  { id: 'basics', label: 'Basics', sections: SECTION_CONFIG.filter(s => ['property', 'other'].includes(s.id)) },
+  { id: 'basics', label: 'Basics', sections: SECTION_CONFIG.filter(s => ['company', 'property', 'other'].includes(s.id)) },
   { id: 'operations', label: 'Operations', sections: SECTION_CONFIG.filter(s => ['rates', 'services', 'channels'].includes(s.id)) },
   { id: 'people', label: 'People', sections: SECTION_CONFIG.filter(s => ['access', 'guests'].includes(s.id)) },
   { id: 'comms', label: 'Comms & Insights', sections: SECTION_CONFIG.filter(s => ['notifications', 'reports'].includes(s.id)) },
@@ -378,6 +380,8 @@ export default function Settings() {
 
   const renderContent = () => {
     switch (activeSection) {
+      case 'company':
+        return <CompanySettings />;
       case 'access':
         return renderAccessRoles();
       case 'property':
