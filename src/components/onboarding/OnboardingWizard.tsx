@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useOrganization } from '@/hooks/useOrganization';
 import {
   Dialog,
   DialogContent,
@@ -54,6 +55,7 @@ export function OnboardingWizard({ open, onOpenChange }: OnboardingWizardProps) 
 
   // Step 4: Invite
   const [inviteEmail, setInviteEmail] = useState('');
+  const { organization } = useOrganization();
 
   const handleCreateProperty = async () => {
     if (!propertyName.trim()) {
@@ -66,6 +68,7 @@ export function OnboardingWizard({ open, onOpenChange }: OnboardingWizardProps) 
         name: propertyName.trim(),
         property_type: propertyType as any,
         location: propertyLocation.trim() || null,
+        organization_id: organization?.id as string,
       }).select('id').single();
 
       if (error) throw error;
